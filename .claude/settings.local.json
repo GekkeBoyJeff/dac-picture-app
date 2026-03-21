@@ -5,7 +5,12 @@
       "WebSearch",
       "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --eslint --no-git --use-npm)",
       "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --eslint --no-git --use-npm --turbopack)",
-      "Bash(yes \"No\")"
+      "Bash(yes \"No\")",
+      "Bash(npm run:*)",
+      "Bash(ls -la /Users/jeffrey/Documents/projects/picture-app/.env*)",
+      "Bash(find /Users/jeffrey/Documents/projects/picture-app/node_modules/next/dist/docs/01-app -name *export* -o -name *static*)",
+      "Bash(npx tsc:*)",
+      "Bash(find /Users/jeffrey/Documents/projects/picture-app/node_modules/next/dist/docs/01-app -name *dynamic* -o -name *lazy* -o -name *import*)"
     ]
   }
 }
