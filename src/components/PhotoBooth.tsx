@@ -5,6 +5,7 @@ import { useCamera } from "@/hooks/useCamera";
 import { useGallery } from "@/hooks/useGallery";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useToast } from "@/hooks/useToast";
+import { useHandGesture } from "@/hooks/useHandGesture";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
 import { OVERLAYS, COUNTDOWN_SECONDS } from "@/lib/config";
@@ -34,6 +35,18 @@ export function PhotoBooth() {
   const { photos, addPhoto, removePhoto } = useGallery();
   const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt();
   const toast = useToast();
+
+  const handlePeaceSign = useCallback(() => {
+    if (appState === "camera" && isReady) {
+      setAppState("countdown");
+    }
+  }, [appState, isReady]);
+
+  const { gestureActive } = useHandGesture(
+    videoRef,
+    appState === "camera" && isReady,
+    handlePeaceSign
+  );
 
   useEffect(() => {
     startCamera();
@@ -116,6 +129,7 @@ export function PhotoBooth() {
         isMirrored={isMirrored}
         canInstall={canInstall}
         onInstall={promptInstall}
+        gestureActive={gestureActive}
       />
 
       {appState === "countdown" && (

@@ -17,6 +17,7 @@ interface CameraViewProps {
   isMirrored: boolean;
   canInstall: boolean;
   onInstall: () => void;
+  gestureActive: boolean;
 }
 
 export const CameraView = memo(function CameraView({
@@ -31,6 +32,7 @@ export const CameraView = memo(function CameraView({
   isMirrored,
   canInstall,
   onInstall,
+  gestureActive,
 }: CameraViewProps) {
   const [showCameraMenu, setShowCameraMenu] = useState(false);
   const [showAppQr, setShowAppQr] = useState(false);
@@ -107,6 +109,13 @@ export const CameraView = memo(function CameraView({
           year: "numeric",
         })}
       </span>
+
+      {gestureActive && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/20 animate-pulse">
+          <span className="text-2xl">✌️</span>
+          <span className="text-white text-sm font-medium">Houd vast...</span>
+        </div>
+      )}
 
       <button
         onClick={onCapture}
