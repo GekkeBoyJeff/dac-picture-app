@@ -14,7 +14,7 @@ type GestureResult = {
 };
 
 const DETECTION_INTERVAL_MS = 500;
-const CONFIDENCE_THRESHOLD = 0.65;
+const CONFIDENCE_THRESHOLD = 0.45;
 // Consecutive detections required before firing
 const REQUIRED_CONSECUTIVE_VICTORY = 3;
 const REQUIRED_CONSECUTIVE_FIST_PALM = 2;
@@ -60,15 +60,25 @@ export function useHandGesture(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
     );
 
-    recognizerRef.current = await GestureRecognizer.createFromOptions(vision, {
+    const modelOptions = {
       baseOptions: {
         modelAssetPath:
           "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-        delegate: "GPU",
+        delegate: "GPU" as const,
       },
-      runningMode: "VIDEO",
+      runningMode: "VIDEO" as const,
       numHands: 2,
-    });
+    };
+
+    try {
+      recognizerRef.current = await GestureRecognizer.createFromOptions(vision, modelOptions);
+    } catch {
+      // GPU delegate failed (e.g. external webcam codec issue) — fall back to CPU
+      recognizerRef.current = await GestureRecognizer.createFromOptions(vision, {
+        ...modelOptions,
+        baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" as const },
+      });
+    }
   }, []);
 
   useEffect(() => {
