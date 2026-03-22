@@ -34,6 +34,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_ACTIONS: true
+          NEXT_PUBLIC_BASE_PATH: /dac-picture-app
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

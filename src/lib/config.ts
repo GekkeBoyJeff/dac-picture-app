@@ -1,5 +1,7 @@
 import type { OverlayConfig, TextOverlayConfig } from "./types";
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const VIDEO = {
   IDEAL_WIDTH: 1920,
   IDEAL_HEIGHT: 1080,
@@ -23,7 +25,7 @@ export const TOAST_DURATION_MS = 1500;
 
 export const OVERLAYS: OverlayConfig[] = [
   {
-    path: "/overlays/frame.svg",
+    path: `${BASE_PATH}/overlays/frame.svg`,
     position: "full",
     maxWidth: 1920,
     maxHeight: 1080,
@@ -31,7 +33,7 @@ export const OVERLAYS: OverlayConfig[] = [
     padding: 0,
   },
   {
-    path: "/overlays/logo.png",
+    path: `${BASE_PATH}/overlays/logo.png`,
     position: "top-left",
     maxWidth: 60,
     maxHeight: 60,
@@ -40,7 +42,7 @@ export const OVERLAYS: OverlayConfig[] = [
     invert: true,
   },
   {
-    path: "/overlays/DAC_Amelia.png",
+    path: `${BASE_PATH}/overlays/DAC_Amelia.png`,
     position: "bottom-right",
     maxWidth: 300,
     maxHeight: 480,
@@ -48,7 +50,7 @@ export const OVERLAYS: OverlayConfig[] = [
     padding: 35,
   },
   {
-    path: "/overlays/HMIA.png",
+    path: `${BASE_PATH}/overlays/HMIA.png`,
     position: "bottom-left",
     maxWidth: 280,
     maxHeight: 200,
