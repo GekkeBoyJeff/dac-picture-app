@@ -45,17 +45,22 @@ export function useCamera() {
         setError(null);
         stopCamera();
 
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
         const isPortrait = window.innerHeight > window.innerWidth;
         const constraints: MediaStreamConstraints = {
           video: {
             ...(deviceId
               ? { deviceId: { exact: deviceId } }
-              : /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+              : isMobile
                 ? { facingMode: "user" }
                 : {}),
-            width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
-            height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
-            aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
+            // On mobile, skip resolution constraints to avoid forced cropping/zoom
+            // on front cameras. CSS object-fit: cover handles the display.
+            ...(!isMobile && {
+              width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
+              height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
+              aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
+            }),
           } as MediaTrackConstraints,
         };
 
