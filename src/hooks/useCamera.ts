@@ -67,6 +67,7 @@ export function useCamera() {
         const activeDeviceId = settings?.deviceId ?? deviceId ?? null;
         setSelectedDeviceId(activeDeviceId);
 
+        const facingMode = settings?.facingMode;
         const label = track?.label?.toLowerCase() ?? "";
         const isExternal =
           label.includes("elgato") ||
@@ -74,7 +75,10 @@ export function useCamera() {
           label.includes("external") ||
           label.includes("usb") ||
           label.includes("capture");
-        setIsMirrored(!isExternal);
+        // Mirror only front-facing cameras; back cameras and external devices stay normal
+        setIsMirrored(
+          facingMode ? facingMode === "user" : !isExternal
+        );
 
         // Set zoom to minimum (widest angle) and enable image stabilization
         // These properties exist at runtime on mobile browsers but not in TS types
