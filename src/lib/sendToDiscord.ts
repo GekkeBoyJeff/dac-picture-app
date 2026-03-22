@@ -9,11 +9,9 @@ export async function sendToDiscord(imageBase64: string): Promise<boolean> {
   }
 
   try {
-    // Convert base64 to blob
     const res = await fetch(imageBase64);
     const blob = await res.blob();
 
-    // Send directly to Discord webhook from browser
     const formData = new FormData();
     formData.append("content", DISCORD_MESSAGE);
     formData.append("files[0]", blob, `photobooth-${Date.now()}.jpg`);

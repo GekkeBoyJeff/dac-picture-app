@@ -8,8 +8,9 @@ import { useToast } from "@/hooks/useToast";
 import { useHandGesture } from "@/hooks/useHandGesture";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
-import { OVERLAYS, COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config";
-import { CameraView } from "./CameraView";
+import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config";
+import { CameraView } from "./camera";
+import { WarningIcon } from "./icons";
 import { Countdown } from "./Countdown";
 import { FlashEffect } from "./FlashEffect";
 import { Gallery } from "./Gallery";
@@ -23,6 +24,7 @@ export function PhotoBooth() {
   const [showGallery, setShowGallery] = useState(false);
   const [showAppQr, setShowAppQr] = useState(false);
   const appQrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     videoRef,
@@ -83,9 +85,12 @@ export function PhotoBooth() {
       const video = videoRef.current;
       if (!video) throw new Error("Video element not available");
 
+      const container = containerRef.current;
+      if (!container) throw new Error("Container element not available");
+
       const { exportDataUrl, galleryDataUrl } = await compositePhoto(
         video,
-        OVERLAYS,
+        container,
         isMirrored
       );
 
@@ -104,22 +109,10 @@ export function PhotoBooth() {
 
   if (error) {
     return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center">
+      <div className="w-dvw h-dvh bg-black flex items-center justify-center">
         <div className="text-center p-8 max-w-md">
           <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
-            <svg
-              className="w-10 h-10 text-red-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-              />
-            </svg>
+            <WarningIcon className="w-10 h-10 text-red-400" />
           </div>
           <p className="text-white/80 text-lg mb-4">{error}</p>
           <button
@@ -137,6 +130,7 @@ export function PhotoBooth() {
     <>
       <CameraView
         videoRef={videoRef}
+        containerRef={containerRef}
         onCapture={handleCapture}
         onGalleryToggle={() => setShowGallery(true)}
         galleryCount={photos.length}

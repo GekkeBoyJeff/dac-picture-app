@@ -1,5 +1,4 @@
-import type { OverlayConfig } from "./types";
-import { IMAGE, VIDEO, CORNERS, CORNER_SIZE, CORNER_OFFSET, QR_CODE } from "./config";
+import { IMAGE } from "./config";
 
 const imageCache = new Map<string, HTMLImageElement>();
 
@@ -19,198 +18,245 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * Returns per-axis scale factors that match CSS percentage calculations.
- * In portrait mode, the design dimensions are swapped so that designW
- * always corresponds to the short side of the canvas.
- */
-function getDesignScales(canvasW: number, canvasH: number) {
-  const isPortrait = canvasH > canvasW;
-  const designW = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
-  const designH = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
-  return {
-    scaleX: canvasW / designW,
-    scaleY: canvasH / designH,
-    // Uniform scale for elements that must stay square (corners, QR)
-    scaleUniform: Math.min(canvasW / designW, canvasH / designH),
-  };
-}
-
-function calcDrawRect(
-  img: HTMLImageElement,
-  canvasW: number,
-  canvasH: number,
-  config: OverlayConfig
-): { x: number; y: number; w: number; h: number } {
-  if (config.position === "full") {
-    return { x: 0, y: 0, w: canvasW, h: canvasH };
-  }
-
-  // Per-axis scaling to match CSS percentage positioning exactly
-  const { scaleX, scaleY } = getDesignScales(canvasW, canvasH);
-  const scaledMaxW = config.maxWidth * scaleX;
-  const scaledMaxH = config.maxHeight * scaleY;
-  const scaledPadX = config.padding * scaleX;
-  const scaledPadY = config.padding * scaleY;
-
-  const aspect = img.naturalWidth / img.naturalHeight;
-  let w: number;
-  let h: number;
-
-  if (config.fixedSize) {
-    // fixedSize in CSS uses fixed px — scale proportionally to canvas
-    w = config.maxWidth * scaleX;
-    h = config.maxHeight * scaleY;
-  } else if (config.maxHeight > config.maxWidth * 1.5) {
-    // Height-constrained (matches CSS: maxHeight as % of container height)
-    h = scaledMaxH;
-    w = h * aspect;
-    if (w > scaledMaxW) {
-      w = scaledMaxW;
-      h = w / aspect;
-    }
-  } else {
-    // Width-constrained (matches CSS: width as % of container width)
-    w = scaledMaxW;
-    h = w / aspect;
-  }
-
-  let x = scaledPadX;
-  let y = scaledPadY;
-
-  if (config.position === "middle-right") {
-    return { x: canvasW - w - scaledPadX, y: (canvasH - h) / 2, w, h };
-  }
-  if (config.position.includes("right")) x = canvasW - w - scaledPadX;
-  if (config.position.includes("bottom")) y = canvasH - h - scaledPadY;
-
-  return { x, y, w, h };
-}
-
 interface CompositeResult {
   exportDataUrl: string;
   galleryDataUrl: string;
 }
 
-// Maximum canvas pixels to prevent mobile browsers from hanging or running out of memory
-const MAX_CANVAS_PIXELS = 1920 * 1080;
+const MAX_PIXELS = 1920 * 1080;
 
+/**
+ * Composite a photo by measuring actual DOM overlay positions.
+ * The CSS rendering is the single source of truth — no JS replication needed.
+ */
 export async function compositePhoto(
   video: HTMLVideoElement,
-  overlays: OverlayConfig[],
-  mirror: boolean = true
+  container: HTMLElement,
+  mirror: boolean = true,
 ): Promise<CompositeResult> {
-  let width = video.videoWidth || 1920;
-  let height = video.videoHeight || 1080;
+  const containerRect = container.getBoundingClientRect();
+  const containerAspect = containerRect.width / containerRect.height;
 
-  // Scale down if canvas would be too large (common on mobile with high-res cameras)
-  const totalPixels = width * height;
-  if (totalPixels > MAX_CANVAS_PIXELS) {
-    const scale = Math.sqrt(MAX_CANVAS_PIXELS / totalPixels);
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
+  // --- Video crop (replicate object-cover) ---
+  const vw = video.videoWidth || 1920;
+  const vh = video.videoHeight || 1080;
+  const videoAspect = vw / vh;
+
+  let srcX = 0;
+  let srcY = 0;
+  let srcW = vw;
+  let srcH = vh;
+
+  if (videoAspect > containerAspect) {
+    srcW = Math.round(vh * containerAspect);
+    srcX = Math.round((vw - srcW) / 2);
+  } else if (videoAspect < containerAspect) {
+    srcH = Math.round(vw / containerAspect);
+    srcY = Math.round((vh - srcH) / 2);
+  }
+
+  // --- Canvas setup ---
+  let canvasW = srcW;
+  let canvasH = srcH;
+  if (canvasW * canvasH > MAX_PIXELS) {
+    const s = Math.sqrt(MAX_PIXELS / (canvasW * canvasH));
+    canvasW = Math.round(canvasW * s);
+    canvasH = Math.round(canvasH * s);
   }
 
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
+  canvas.width = canvasW;
+  canvas.height = canvasH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to get canvas 2D context");
 
+  // --- Draw video ---
   if (mirror) {
     ctx.save();
-    ctx.translate(width, 0);
+    ctx.translate(canvasW, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvasW, canvasH);
     ctx.restore();
   } else {
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvasW, canvasH);
   }
 
-  const loadResults = await Promise.allSettled(
-    overlays.map((config) => loadImage(config.path).then((img) => ({ img, config })))
+  // --- Scale factors: canvas pixels per screen pixel ---
+  const scaleX = canvasW / containerRect.width;
+  const scaleY = canvasH / containerRect.height;
+
+  // --- Vignettes (procedural — always full-canvas) ---
+  drawVignettes(ctx, canvasW, canvasH);
+
+  // --- Image overlays (corners, main overlays, QR) ---
+  const imageEls = container.querySelectorAll<HTMLImageElement>(
+    '[data-overlay="corner"], [data-overlay="image"], [data-overlay="qr"]',
   );
 
-  for (const result of loadResults) {
-    if (result.status === "rejected") {
-      console.warn(result.reason instanceof Error ? result.reason.message : "Overlay failed");
-      continue;
+  const imageDraws = Array.from(imageEls).map(async (el) => {
+    const src = el.src || el.getAttribute("src");
+    if (!src) return;
+
+    try {
+      const img = await loadImage(src);
+      const elRect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const objectFit = style.objectFit;
+
+      let x = (elRect.left - containerRect.left) * scaleX;
+      let y = (elRect.top - containerRect.top) * scaleY;
+      let w = elRect.width * scaleX;
+      let h = elRect.height * scaleY;
+
+      // object-fit: contain means the image is smaller than the element box.
+      // Recalculate the actual rendered image rect within the box.
+      if (objectFit === "contain" && img.naturalWidth && img.naturalHeight) {
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        const boxW = elRect.width;
+        const boxH = elRect.height;
+        let renderW: number;
+        let renderH: number;
+
+        if (boxW / boxH > imgAspect) {
+          // Box is wider than image → image height-constrained
+          renderH = boxH;
+          renderW = boxH * imgAspect;
+        } else {
+          // Box is taller than image → image width-constrained
+          renderW = boxW;
+          renderH = boxW / imgAspect;
+        }
+
+        // Center within box (default object-position)
+        const offsetX = (boxW - renderW) / 2;
+        const offsetY = (boxH - renderH) / 2;
+
+        x = (elRect.left - containerRect.left + offsetX) * scaleX;
+        y = (elRect.top - containerRect.top + offsetY) * scaleY;
+        w = renderW * scaleX;
+        h = renderH * scaleY;
+      }
+
+      const opacity = parseFloat(style.opacity);
+      const filter = style.filter;
+
+      ctx.save();
+      if (!isNaN(opacity)) ctx.globalAlpha = opacity;
+      if (filter && filter !== "none") ctx.filter = filter;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.restore();
+    } catch (err) {
+      console.warn("Overlay failed:", src, err);
     }
-    const { img, config } = result.value;
-    const { x, y, w, h } = calcDrawRect(img, width, height, config);
+  });
 
-    ctx.save();
-    ctx.globalAlpha = config.opacity;
-    if (config.invert) ctx.filter = "brightness(0) invert(1)";
-    ctx.drawImage(img, x, y, w, h);
-    ctx.restore();
+  await Promise.all(imageDraws);
+
+  // --- Title text ---
+  const titleEl = container.querySelector('[data-overlay="title"]');
+  if (titleEl) {
+    drawTitle(ctx, titleEl, containerRect, scaleX, scaleY);
   }
 
-  // Per-axis scales for decorations
-  const { scaleX, scaleY, scaleUniform } = getDesignScales(width, height);
-
-  // Corners (square, use uniform scale to keep aspect ratio)
-  const cornerResults = await Promise.allSettled(
-    CORNERS.map((c) => loadImage(c.src).then((img) => ({ img, position: c.position })))
-  );
-  const scaledCornerSize = CORNER_SIZE * scaleUniform;
-  const scaledCornerOffsetX = CORNER_OFFSET * scaleX;
-  const scaledCornerOffsetY = CORNER_OFFSET * scaleY;
-  for (const result of cornerResults) {
-    if (result.status === "rejected") continue;
-    const { img, position } = result.value;
-    const x = position.includes("left") ? scaledCornerOffsetX : width - scaledCornerSize - scaledCornerOffsetX;
-    const y = position.includes("top") ? scaledCornerOffsetY : height - scaledCornerSize - scaledCornerOffsetY;
-    ctx.drawImage(img, x, y, scaledCornerSize, scaledCornerSize);
-  }
-
-  // Draw text overlays
-  {
-    // "Dutch Anime Community" title — position scales per-axis
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.font = `600 ${24 * scaleUniform}px Arial, sans-serif`;
-    ctx.fillStyle = "white";
-    ctx.letterSpacing = `${4 * scaleUniform}px`;
-    ctx.shadowColor = "rgba(0,0,0,0.8)";
-    ctx.shadowBlur = 12 * scaleUniform;
-    ctx.shadowOffsetY = 2 * scaleUniform;
-    ctx.fillText("DUTCH ANIME", 100 * scaleX, 48 * scaleY);
-    ctx.fillText("COMMUNITY", 100 * scaleX, 74 * scaleY);
-    ctx.restore();
-
-    // Date stamp
-    const today = new Date().toLocaleDateString("nl-NL", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-    ctx.save();
-    ctx.globalAlpha = 0.7;
-    ctx.font = `${14 * scaleUniform}px 'Courier New', monospace`;
-    ctx.fillStyle = "white";
-    ctx.shadowColor = "rgba(0,0,0,0.9)";
-    ctx.shadowBlur = 4 * scaleUniform;
-    const textWidth = ctx.measureText(today).width;
-    ctx.fillText(today, (width - textWidth) / 2, height * 0.968);
-    ctx.restore();
-  }
-
-  // Draw QR code (square, use uniform scale)
-  try {
-    const qrImg = await loadImage(QR_CODE.src);
-    const qrSize = QR_CODE.size * scaleUniform;
-    ctx.save();
-    ctx.globalAlpha = QR_CODE.opacity;
-    ctx.drawImage(qrImg, QR_CODE.left * scaleX, QR_CODE.top * scaleY, qrSize, qrSize);
-    ctx.restore();
-  } catch {
-    // QR code load failed — continue without it
+  // --- Date stamp ---
+  const dateEl = container.querySelector('[data-overlay="date"]');
+  if (dateEl) {
+    drawDate(ctx, dateEl, containerRect, scaleX, scaleY);
   }
 
   const exportDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.EXPORT_QUALITY);
   const galleryDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.GALLERY_QUALITY);
 
   return { exportDataUrl, galleryDataUrl };
+}
+
+// ---------- Helpers ----------
+
+function drawVignettes(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  // Radial vignette
+  const cx = w / 2;
+  const cy = h / 2;
+  const outerR = Math.sqrt(cx * cx + cy * cy);
+  const radial = ctx.createRadialGradient(cx, cy, outerR * 0.35, cx, cy, outerR);
+  radial.addColorStop(0, "transparent");
+  radial.addColorStop(1, "rgba(0,0,0,0.4)");
+  ctx.fillStyle = radial;
+  ctx.fillRect(0, 0, w, h);
+
+  // Bottom gradient (45% height)
+  const bottomH = h * 0.45;
+  const bottomGrad = ctx.createLinearGradient(0, h - bottomH, 0, h);
+  bottomGrad.addColorStop(0, "transparent");
+  bottomGrad.addColorStop(0.4, "rgba(0,0,0,0.2)");
+  bottomGrad.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = bottomGrad;
+  ctx.fillRect(0, h - bottomH, w, bottomH);
+
+  // Top gradient (20% height)
+  const topH = h * 0.2;
+  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
+  topGrad.addColorStop(0, "rgba(0,0,0,0.4)");
+  topGrad.addColorStop(1, "transparent");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, w, topH);
+}
+
+function drawTitle(
+  ctx: CanvasRenderingContext2D,
+  el: Element,
+  containerRect: DOMRect,
+  scaleX: number,
+  scaleY: number,
+) {
+  const span = el.querySelector("span");
+  if (!span) return;
+
+  const style = getComputedStyle(span);
+  const elRect = el.getBoundingClientRect();
+  const fontSize = parseFloat(style.fontSize) * scaleY;
+  const x = (elRect.left - containerRect.left) * scaleX;
+  const y = (elRect.top - containerRect.top) * scaleY;
+
+  ctx.save();
+  ctx.globalAlpha = parseFloat(style.opacity) || 0.9;
+  ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+  ctx.fillStyle = "white";
+  ctx.letterSpacing = `${parseFloat(style.letterSpacing || "0") * scaleX}px`;
+  ctx.shadowColor = "rgba(0,0,0,0.8)";
+  ctx.shadowBlur = 12 * Math.min(scaleX, scaleY);
+  ctx.shadowOffsetY = 2 * scaleY;
+
+  // The title has two lines: "Dutch Anime" and "Community"
+  // Measure actual line height from the span's computed style
+  const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+  const scaledLineHeight = lineHeight * scaleY;
+
+  ctx.fillText("DUTCH ANIME", x, y + fontSize);
+  ctx.fillText("COMMUNITY", x, y + fontSize + scaledLineHeight);
+  ctx.restore();
+}
+
+function drawDate(
+  ctx: CanvasRenderingContext2D,
+  el: Element,
+  containerRect: DOMRect,
+  scaleX: number,
+  scaleY: number,
+) {
+  const style = getComputedStyle(el);
+  const elRect = el.getBoundingClientRect();
+  const fontSize = parseFloat(style.fontSize) * scaleY;
+
+  const text = el.textContent || "";
+  const x = (elRect.left - containerRect.left) * scaleX;
+  const y = (elRect.top - containerRect.top) * scaleY;
+
+  ctx.save();
+  ctx.globalAlpha = parseFloat(style.opacity) || 0.7;
+  ctx.font = `${fontSize}px 'Courier New', monospace`;
+  ctx.fillStyle = "white";
+  ctx.shadowColor = "rgba(0,0,0,0.9)";
+  ctx.shadowBlur = 4 * Math.min(scaleX, scaleY);
+  ctx.fillText(text, x, y + fontSize);
+  ctx.restore();
 }

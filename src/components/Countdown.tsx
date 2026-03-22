@@ -34,7 +34,7 @@ export function Countdown({ seconds, onComplete, showLookUp = false }: Countdown
     <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none">
       <span
         key={count}
-        className="text-[12rem] font-black text-white drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-countdown select-none"
+        className="text-[6rem] md:text-[12rem] font-black text-white drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-countdown select-none"
       >
         {count}
       </span>

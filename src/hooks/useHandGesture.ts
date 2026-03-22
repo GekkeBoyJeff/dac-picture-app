@@ -15,10 +15,9 @@ type GestureResult = {
 
 const DETECTION_INTERVAL_MS = 500;
 const CONFIDENCE_THRESHOLD = 0.3;
-// Consecutive detections required before firing
+// Require multiple consecutive detections to avoid false positives from brief hand movements
 const REQUIRED_CONSECUTIVE_VICTORY = 3;
 const REQUIRED_CONSECUTIVE_FIST_PALM = 2;
-// Cooldown after fist/palm fires to prevent rapid toggling
 const FIST_PALM_COOLDOWN_MS = 2000;
 
 export type ActiveGesture = "Victory" | "Closed_Fist" | null;
@@ -38,13 +37,12 @@ export function useHandGesture(
   const lastTimestampRef = useRef(-1);
   const [activeGesture, setActiveGesture] = useState<ActiveGesture>(null);
 
-  // Per-gesture tracking
   const victoryConsecutiveRef = useRef(0);
   const victoryFiredRef = useRef(false);
   const fistConsecutiveRef = useRef(0);
   const fistCooldownRef = useRef(false);
 
-  // Reset victory fired state when re-enabled
+  // Reset so a new countdown can be triggered after the previous one completes
   useEffect(() => {
     if (enabled) {
       victoryFiredRef.current = false;
@@ -106,6 +104,7 @@ export function useHandGesture(
           if (now > lastTimestampRef.current) {
             lastTimestampRef.current = now;
             try {
+              // MediaPipe spams console with non-actionable warnings per frame
               const origError = console.error;
               const origWarn = console.warn;
               console.error = () => {};
@@ -120,7 +119,6 @@ export function useHandGesture(
 
               const gestures = (result as GestureResult).gestures;
 
-              // Find the best gesture across all detected hands
               let bestGesture: string | null = null;
               let bestScore = 0;
               for (const gestureList of gestures) {
@@ -132,7 +130,6 @@ export function useHandGesture(
                 }
               }
 
-              // Victory (peace sign) → take photo
               if (bestGesture === "Victory") {
                 victoryConsecutiveRef.current++;
                 fistConsecutiveRef.current = 0;
@@ -148,7 +145,6 @@ export function useHandGesture(
                   return;
                 }
               }
-              // Closed fist → open dialog
               else if (bestGesture === "Closed_Fist" && callbacks.onClosedFist) {
                 fistConsecutiveRef.current++;
                 victoryConsecutiveRef.current = 0;
@@ -167,15 +163,12 @@ export function useHandGesture(
                   }, FIST_PALM_COOLDOWN_MS);
                 }
               }
-              // No recognized gesture
               else {
                 victoryConsecutiveRef.current = 0;
                 fistConsecutiveRef.current = 0;
                 setActiveGesture(null);
               }
-            } catch {
-              // Frame processing error, skip
-            }
+            } catch {}
           }
         }
 
@@ -197,7 +190,6 @@ export function useHandGesture(
     };
   }, [enabled, videoRef, callbacks, initRecognizer]);
 
-  // Cleanup recognizer on unmount
   useEffect(() => {
     return () => {
       recognizerRef.current?.close();

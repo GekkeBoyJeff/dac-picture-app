@@ -1,3 +1,10 @@
+/** All values in rem */
+export interface OverlaySize {
+  maxWidth: number;
+  maxHeight: number;
+  padding: number;
+}
+
 export interface OverlayConfig {
   path: string;
   position:
@@ -7,25 +14,19 @@ export interface OverlayConfig {
     | "bottom-right"
     | "middle-right"
     | "full";
-  maxWidth: number;
-  maxHeight: number;
   opacity: number;
-  padding: number;
   invert?: boolean;
   fixedSize?: boolean;
+  /** Fixed rem sizes per breakpoint */
+  sizes: {
+    sm: OverlaySize;
+    md: OverlaySize;
+    lg: OverlaySize;
+  };
 }
 
 export interface PhotoEntry {
   id: string;
   dataUrl: string;
   createdAt: number;
-}
-
-export interface SendPhotoRequest {
-  imageBase64: string;
-}
-
-export interface ApiResponse {
-  success: boolean;
-  error?: string;
 }

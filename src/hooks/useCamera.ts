@@ -54,8 +54,7 @@ export function useCamera() {
               : isMobile
                 ? { facingMode: "user" }
                 : {}),
-            // On mobile, request max resolution without aspect ratio constraint
-            // to avoid forced cropping/zoom. On desktop, target 16:9.
+            // Mobile: skip aspect ratio constraint to avoid forced cropping/zoom
             ...(isMobile
               ? {
                   width: { ideal: 4096 },
@@ -85,13 +84,13 @@ export function useCamera() {
           label.includes("external") ||
           label.includes("usb") ||
           label.includes("capture");
-        // Mirror only front-facing cameras; back cameras and external devices stay normal
+        // External devices and back cameras should not be mirrored
         setIsMirrored(
           facingMode ? facingMode === "user" : !isExternal
         );
 
-        // Set zoom to minimum (widest angle) and enable image stabilization
-        // These properties exist at runtime on mobile browsers but not in TS types
+        // Widest zoom angle for group photos; stabilization reduces shake
+        // These properties exist at runtime but not in TS types
         try {
           const caps = track?.getCapabilities?.() as Record<string, unknown> | undefined;
           const advanced: Record<string, unknown>[] = [];
@@ -143,7 +142,7 @@ export function useCamera() {
     [startCamera]
   );
 
-  // Re-initialize camera on resize/orientation change to recalculate constraints and reset zoom
+  // Orientation change requires new constraints and zoom reset
   useEffect(() => {
     if (!isReady) return;
 

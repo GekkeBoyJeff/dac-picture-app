@@ -28,7 +28,7 @@ function wasDismissed() {
   try {
     const dismissed = localStorage.getItem(DISMISS_KEY);
     if (!dismissed) return false;
-    // Show again after 7 days
+    // Re-show after 7 days so returning users get another chance
     return Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000;
   } catch {
     return false;
@@ -83,9 +83,7 @@ export function useInstallPrompt() {
     setShowIOSBanner(false);
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, []);
 
   return {
