@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DAC Photo Booth
 
-## Getting Started
+Photo booth applicatie voor **Dutch Anime Community (DAC)** — gebouwd voor gebruik op conventies zoals HMIA (Heroes Made in Asia), Anime Con, en andere evenementen.
 
-First, run the development server:
+## Features
+
+- **Live camera feed** met 16:9 aspect ratio en DAC branding overlays
+- **Countdown timer** (3 seconden) met animatie
+- **Flash effect** bij het maken van een foto
+- **Photo compositing** — overlay graphics, tekst en branding worden in de foto verwerkt
+- **Discord integratie** — foto's worden automatisch naar een Discord kanaal gestuurd
+- **Lokale galerij** — foto's worden lokaal opgeslagen in de browser (max 20)
+- **Multi-camera support** — schakel tussen aangesloten camera's
+- **Automatische mirror detectie** — externe cameras worden niet gespiegeld
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org/) 16
+- [React](https://react.dev/) 19
+- [TypeScript](https://www.typescriptlang.org/) 5
+- [Tailwind CSS](https://tailwindcss.com/) 4
+
+## Aan de slag
+
+### Vereisten
+
+- Node.js 20+
+- npm
+
+### Installatie
+
+```bash
+git clone https://github.com/GekkeBoyJeff/dac-picture-app.git
+cd dac-picture-app
+npm install
+```
+
+### Ontwikkeling
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in je browser. Sta cameratoegang toe wanneer gevraagd.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Discord Webhook (optioneel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Maak een `.env.local` bestand aan om foto's naar Discord te sturen:
 
-## Learn More
+```env
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
 
-To learn more about Next.js, take a look at the following resources:
+> Op GitHub Pages is de Discord functie niet beschikbaar (static hosting). Gebruik een eigen server of Vercel voor Discord integratie.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Productie build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build
+```
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### GitHub Pages
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+De app wordt automatisch gedeployed naar GitHub Pages via GitHub Actions bij elke push naar `main`.
+
+**Setup:**
+1. Ga naar repository **Settings** > **Pages**
+2. Zet **Source** op **GitHub Actions**
+3. Push naar `main` — de workflow bouwt en deployt automatisch
+
+Live op: `https://gekkeboyjeff.github.io/dac-picture-app/`
+
+### Conventie setup
+
+Voor gebruik op een conventie (HMIA, Anime Con, etc.):
+
+1. Sluit een externe camera aan (Elgato, Logitech, etc.)
+2. Open de app in Chrome/Edge op volledig scherm (F11)
+3. De app detecteert automatisch externe cameras en schakelt mirroring uit
+4. Bezoekers drukken op de shutter knop om een foto te maken
+
+## DAC Kleuren
+
+| Kleur | Hex |
+|-------|-----|
+| Goud | `#e6c189` |
+| Creme | `#F0EAD2` |
+| Paars | `#6d41e7` |
+
+## Licentie
+
+Intern project van Dutch Anime Community.
