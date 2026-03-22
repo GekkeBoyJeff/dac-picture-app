@@ -19,6 +19,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function getDesignScale(canvasW: number, canvasH: number): number {
+  const isPortrait = canvasH > canvasW;
+  const designW = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
+  const designH = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
+  return Math.min(canvasW / designW, canvasH / designH);
+}
+
 function calcDrawRect(
   img: HTMLImageElement,
   canvasW: number,
@@ -30,7 +37,7 @@ function calcDrawRect(
   }
 
   // Uniform scale so overlays keep correct proportions on any aspect ratio
-  const scale = Math.min(canvasW / VIDEO.DESIGN_WIDTH, canvasH / VIDEO.DESIGN_HEIGHT);
+  const scale = getDesignScale(canvasW, canvasH);
   const scaledMaxW = config.maxWidth * scale;
   const scaledMaxH = config.maxHeight * scale;
   const scaledPad = config.padding * scale;
@@ -107,7 +114,7 @@ export async function compositePhoto(
   }
 
   // Uniform scale for all decorations
-  const scale = Math.min(width / VIDEO.DESIGN_WIDTH, height / VIDEO.DESIGN_HEIGHT);
+  const scale = getDesignScale(width, height);
 
   const cornerResults = await Promise.allSettled(
     CORNERS.map((c) => loadImage(c.src).then((img) => ({ img, position: c.position })))

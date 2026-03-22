@@ -6,10 +6,15 @@ export function getOverlayStyle(config: OverlayConfig): React.CSSProperties {
     return { position: "absolute", inset: 0, width: "100%", height: "100%" };
   }
 
-  const padPercX = (config.padding / VIDEO.DESIGN_WIDTH) * 100;
-  const padPercY = (config.padding / VIDEO.DESIGN_HEIGHT) * 100;
-  const widthPerc = (config.maxWidth / VIDEO.DESIGN_WIDTH) * 100;
-  const heightPerc = (config.maxHeight / VIDEO.DESIGN_HEIGHT) * 100;
+  // In portrait the short side is width, so swap design dimensions to match
+  const isPortrait = typeof window !== "undefined" && window.innerHeight > window.innerWidth;
+  const designW = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
+  const designH = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
+
+  const padPercX = (config.padding / designW) * 100;
+  const padPercY = (config.padding / designH) * 100;
+  const widthPerc = (config.maxWidth / designW) * 100;
+  const heightPerc = (config.maxHeight / designH) * 100;
 
   const style: React.CSSProperties = {
     position: "absolute",
