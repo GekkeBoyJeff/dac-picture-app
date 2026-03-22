@@ -29,11 +29,11 @@ function calcDrawRect(
     return { x: 0, y: 0, w: canvasW, h: canvasH };
   }
 
-  const scaleX = canvasW / VIDEO.DESIGN_WIDTH;
-  const scaleY = canvasH / VIDEO.DESIGN_HEIGHT;
-  const scaledMaxW = config.maxWidth * scaleX;
-  const scaledMaxH = config.maxHeight * scaleY;
-  const scaledPad = config.padding * scaleX;
+  // Uniform scale so overlays keep correct proportions on any aspect ratio
+  const scale = Math.min(canvasW / VIDEO.DESIGN_WIDTH, canvasH / VIDEO.DESIGN_HEIGHT);
+  const scaledMaxW = config.maxWidth * scale;
+  const scaledMaxH = config.maxHeight * scale;
+  const scaledPad = config.padding * scale;
 
   const aspect = img.naturalWidth / img.naturalHeight;
   let w = Math.min(scaledMaxW, canvasW * 0.4);
@@ -67,13 +67,8 @@ export async function compositePhoto(
   overlays: OverlayConfig[],
   mirror: boolean = true
 ): Promise<CompositeResult> {
-  const vw = video.videoWidth || 1920;
-  const vh = video.videoHeight || 1080;
-
-  // Always use portrait or landscape design dimensions for consistent output
-  const isPortrait = vh > vw;
-  const width = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
-  const height = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
+  const width = video.videoWidth || 1920;
+  const height = video.videoHeight || 1080;
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -82,28 +77,14 @@ export async function compositePhoto(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to get canvas 2D context");
 
-  // Draw video cropped-to-fill (like object-fit: cover)
-  const canvasAspect = width / height;
-  const videoAspect = vw / vh;
-  let sx = 0, sy = 0, sw = vw, sh = vh;
-  if (videoAspect > canvasAspect) {
-    // Video is wider — crop sides
-    sw = vh * canvasAspect;
-    sx = (vw - sw) / 2;
-  } else {
-    // Video is taller — crop top/bottom
-    sh = vw / canvasAspect;
-    sy = (vh - sh) / 2;
-  }
-
   if (mirror) {
     ctx.save();
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
+    ctx.drawImage(video, 0, 0, width, height);
     ctx.restore();
   } else {
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
+    ctx.drawImage(video, 0, 0, width, height);
   }
 
   const loadResults = await Promise.allSettled(
@@ -125,33 +106,35 @@ export async function compositePhoto(
     ctx.restore();
   }
 
+  // Uniform scale for all decorations
+  const scale = Math.min(width / VIDEO.DESIGN_WIDTH, height / VIDEO.DESIGN_HEIGHT);
+
   const cornerResults = await Promise.allSettled(
     CORNERS.map((c) => loadImage(c.src).then((img) => ({ img, position: c.position })))
   );
+  const scaledCornerSize = CORNER_SIZE * scale;
+  const scaledCornerOffset = CORNER_OFFSET * scale;
   for (const result of cornerResults) {
     if (result.status === "rejected") continue;
     const { img, position } = result.value;
-    const x = position.includes("left") ? CORNER_OFFSET : width - CORNER_SIZE - CORNER_OFFSET;
-    const y = position.includes("top") ? CORNER_OFFSET : height - CORNER_SIZE - CORNER_OFFSET;
-    ctx.drawImage(img, x, y, CORNER_SIZE, CORNER_SIZE);
+    const x = position.includes("left") ? scaledCornerOffset : width - scaledCornerSize - scaledCornerOffset;
+    const y = position.includes("top") ? scaledCornerOffset : height - scaledCornerSize - scaledCornerOffset;
+    ctx.drawImage(img, x, y, scaledCornerSize, scaledCornerSize);
   }
 
-  // Draw text overlays (scaled to canvas dimensions)
+  // Draw text overlays
   {
-    const sx = width / VIDEO.DESIGN_WIDTH;
-    const sy = height / VIDEO.DESIGN_HEIGHT;
-
     // "Dutch Anime Community" title
     ctx.save();
     ctx.globalAlpha = 0.9;
-    ctx.font = `600 ${24 * sy}px Arial, sans-serif`;
+    ctx.font = `600 ${24 * scale}px Arial, sans-serif`;
     ctx.fillStyle = "white";
-    ctx.letterSpacing = `${4 * sx}px`;
+    ctx.letterSpacing = `${4 * scale}px`;
     ctx.shadowColor = "rgba(0,0,0,0.8)";
-    ctx.shadowBlur = 12 * sx;
-    ctx.shadowOffsetY = 2 * sy;
-    ctx.fillText("DUTCH ANIME", 100 * sx, 48 * sy);
-    ctx.fillText("COMMUNITY", 100 * sx, 74 * sy);
+    ctx.shadowBlur = 12 * scale;
+    ctx.shadowOffsetY = 2 * scale;
+    ctx.fillText("DUTCH ANIME", 100 * scale, 48 * scale);
+    ctx.fillText("COMMUNITY", 100 * scale, 74 * scale);
     ctx.restore();
 
     // Date stamp
@@ -162,23 +145,22 @@ export async function compositePhoto(
     });
     ctx.save();
     ctx.globalAlpha = 0.7;
-    ctx.font = `${14 * sy}px 'Courier New', monospace`;
+    ctx.font = `${14 * scale}px 'Courier New', monospace`;
     ctx.fillStyle = "white";
     ctx.shadowColor = "rgba(0,0,0,0.9)";
-    ctx.shadowBlur = 4 * sx;
+    ctx.shadowBlur = 4 * scale;
     const textWidth = ctx.measureText(today).width;
     ctx.fillText(today, (width - textWidth) / 2, height * 0.968);
     ctx.restore();
   }
 
-  // Draw QR code scaled to canvas dimensions
+  // Draw QR code
   try {
     const qrImg = await loadImage(QR_CODE.src);
-    const sx = width / VIDEO.DESIGN_WIDTH;
-    const sy = height / VIDEO.DESIGN_HEIGHT;
+    const qrSize = QR_CODE.size * scale;
     ctx.save();
     ctx.globalAlpha = QR_CODE.opacity;
-    ctx.drawImage(qrImg, QR_CODE.left * sx, QR_CODE.top * sy, QR_CODE.size * sx, QR_CODE.size * sy);
+    ctx.drawImage(qrImg, QR_CODE.left * scale, QR_CODE.top * scale, qrSize, qrSize);
     ctx.restore();
   } catch {
     // QR code load failed — continue without it

@@ -54,13 +54,18 @@ export function useCamera() {
               : isMobile
                 ? { facingMode: "user" }
                 : {}),
-            // On mobile, skip resolution constraints to avoid forced cropping/zoom
-            // on front cameras. CSS object-fit: cover handles the display.
-            ...(!isMobile && {
-              width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
-              height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
-              aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
-            }),
+            // On mobile, request max resolution without aspect ratio constraint
+            // to avoid forced cropping/zoom. On desktop, target 16:9.
+            ...(isMobile
+              ? {
+                  width: { ideal: 4096 },
+                  height: { ideal: 4096 },
+                }
+              : {
+                  width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
+                  height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
+                  aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
+                }),
           } as MediaTrackConstraints,
         };
 
