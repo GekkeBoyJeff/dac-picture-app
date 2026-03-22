@@ -32,6 +32,7 @@ export function getOverlayStyle(config: OverlayConfig): React.CSSProperties {
   } else {
     style.width = `${widthPerc}%`;
     style.height = "auto";
+    style.maxHeight = `${heightPerc}%`;
   }
 
   const padX = config.fixedSize ? `${config.padding}px` : `${padPercX}%`;

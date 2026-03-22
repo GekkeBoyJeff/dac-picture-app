@@ -44,7 +44,7 @@ export const CameraView = memo(function CameraView({
   return (
     <main className="flex items-center justify-center w-screen h-screen bg-black">
       <div
-        className="relative overflow-hidden max-h-screen landscape:aspect-video landscape:h-screen landscape:w-auto portrait:aspect-9/16 portrait:w-screen portrait:h-auto"
+        className="relative overflow-hidden max-h-screen landscape:aspect-video landscape:h-screen landscape:w-auto portrait:aspect-9/16 portrait:h-screen portrait:w-auto portrait:max-w-screen"
       >
       <video
         ref={videoRef}
@@ -187,7 +187,7 @@ export const CameraView = memo(function CameraView({
         </div>
       )}
 
-      <div className="absolute top-5 right-29 z-10">
+      <div className="absolute top-5 right-29 z-10 hidden md:block">
         <button
           onClick={() => onCloseAppQr()}
           className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
@@ -238,7 +238,7 @@ export const CameraView = memo(function CameraView({
       {canInstall && (
         <button
           onClick={onInstall}
-          className="absolute top-5 right-41 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
+          className="absolute top-5 right-41 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hidden md:flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
           aria-label="Installeer app"
         >
           <svg
@@ -265,7 +265,7 @@ export const CameraView = memo(function CameraView({
             document.documentElement.requestFullscreen().catch(() => {});
           }
         }}
-        className="absolute top-5 right-5 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
+        className="absolute top-5 right-5 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hidden md:flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
         aria-label="Volledig scherm"
       >
         <svg
@@ -285,7 +285,7 @@ export const CameraView = memo(function CameraView({
 
       <button
         onClick={onGalleryToggle}
-        className="absolute top-5 right-17 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
+        className="absolute top-5 right-5 md:right-17 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer z-10"
         aria-label="Galerij"
       >
         <svg
