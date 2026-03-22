@@ -90,16 +90,26 @@ function calcDrawRect(
 interface CompositeResult {
   exportDataUrl: string;
   galleryDataUrl: string;
-  blob: Blob;
 }
+
+// Maximum canvas pixels to prevent mobile browsers from hanging or running out of memory
+const MAX_CANVAS_PIXELS = 1920 * 1080;
 
 export async function compositePhoto(
   video: HTMLVideoElement,
   overlays: OverlayConfig[],
   mirror: boolean = true
 ): Promise<CompositeResult> {
-  const width = video.videoWidth || 1920;
-  const height = video.videoHeight || 1080;
+  let width = video.videoWidth || 1920;
+  let height = video.videoHeight || 1080;
+
+  // Scale down if canvas would be too large (common on mobile with high-res cameras)
+  const totalPixels = width * height;
+  if (totalPixels > MAX_CANVAS_PIXELS) {
+    const scale = Math.sqrt(MAX_CANVAS_PIXELS / totalPixels);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -202,13 +212,5 @@ export async function compositePhoto(
   const exportDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.EXPORT_QUALITY);
   const galleryDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.GALLERY_QUALITY);
 
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
-      IMAGE.FORMAT,
-      IMAGE.EXPORT_QUALITY
-    )
-  );
-
-  return { exportDataUrl, galleryDataUrl, blob };
+  return { exportDataUrl, galleryDataUrl };
 }

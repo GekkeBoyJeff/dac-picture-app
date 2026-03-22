@@ -14,7 +14,7 @@ type GestureResult = {
 };
 
 const DETECTION_INTERVAL_MS = 500;
-const CONFIDENCE_THRESHOLD = 0.45;
+const CONFIDENCE_THRESHOLD = 0.3;
 // Consecutive detections required before firing
 const REQUIRED_CONSECUTIVE_VICTORY = 3;
 const REQUIRED_CONSECUTIVE_FIST_PALM = 2;
