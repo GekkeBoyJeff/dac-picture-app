@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/useToast";
 import { useHandGesture } from "@/hooks/useHandGesture";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
-import { OVERLAYS, COUNTDOWN_SECONDS } from "@/lib/config";
+import { OVERLAYS, COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config";
 import { CameraView } from "./CameraView";
 import { Countdown } from "./Countdown";
 import { FlashEffect } from "./FlashEffect";
@@ -66,7 +66,12 @@ export function PhotoBooth() {
   }, [startCamera]);
 
   const handleCapture = useCallback(() => {
-    if (appState !== "camera" || !isReady) return;
+    if (!isReady) return;
+    if (appState === "countdown") {
+      setAppState("camera");
+      return;
+    }
+    if (appState !== "camera") return;
     setAppState("countdown");
   }, [appState, isReady]);
 
@@ -135,7 +140,7 @@ export function PhotoBooth() {
         onCapture={handleCapture}
         onGalleryToggle={() => setShowGallery(true)}
         galleryCount={photos.length}
-        disabled={appState !== "camera"}
+        disabled={appState !== "camera" && appState !== "countdown"}
         devices={devices}
         selectedDeviceId={selectedDeviceId}
         onSwitchCamera={switchCamera}
@@ -151,6 +156,7 @@ export function PhotoBooth() {
         <Countdown
           seconds={COUNTDOWN_SECONDS}
           onComplete={handleCountdownComplete}
+          showLookUp={LOOK_UP_PROMPT_ENABLED}
         />
       )}
 

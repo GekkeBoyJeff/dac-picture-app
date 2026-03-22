@@ -20,7 +20,10 @@ export const GALLERY = {
   STORAGE_KEY: "photobooth-gallery",
 } as const;
 
-export const COUNTDOWN_SECONDS = 3;
+export const COUNTDOWN_SECONDS = 5;
+
+/** Show "look up" prompt with arrow during countdown — toggle this to enable/disable */
+export const LOOK_UP_PROMPT_ENABLED = true;
 export const TOAST_DURATION_MS = 1500;
 
 export const CORNERS = [
