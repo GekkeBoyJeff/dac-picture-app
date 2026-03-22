@@ -67,8 +67,13 @@ export async function compositePhoto(
   overlays: OverlayConfig[],
   mirror: boolean = true
 ): Promise<CompositeResult> {
-  const width = video.videoWidth || 1920;
-  const height = video.videoHeight || 1080;
+  const vw = video.videoWidth || 1920;
+  const vh = video.videoHeight || 1080;
+
+  // Always use portrait or landscape design dimensions for consistent output
+  const isPortrait = vh > vw;
+  const width = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
+  const height = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -77,14 +82,28 @@ export async function compositePhoto(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to get canvas 2D context");
 
+  // Draw video cropped-to-fill (like object-fit: cover)
+  const canvasAspect = width / height;
+  const videoAspect = vw / vh;
+  let sx = 0, sy = 0, sw = vw, sh = vh;
+  if (videoAspect > canvasAspect) {
+    // Video is wider — crop sides
+    sw = vh * canvasAspect;
+    sx = (vw - sw) / 2;
+  } else {
+    // Video is taller — crop top/bottom
+    sh = vw / canvasAspect;
+    sy = (vh - sh) / 2;
+  }
+
   if (mirror) {
     ctx.save();
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
     ctx.restore();
   } else {
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
   }
 
   const loadResults = await Promise.allSettled(
