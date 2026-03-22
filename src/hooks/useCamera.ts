@@ -52,7 +52,8 @@ export function useCamera() {
             width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
             height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
             aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
-          },
+            resizeMode: "none",
+          } as MediaTrackConstraints,
         };
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -71,6 +72,29 @@ export function useCamera() {
           label.includes("usb") ||
           label.includes("capture");
         setIsMirrored(!isExternal);
+
+        // Set zoom to minimum (widest angle) and enable image stabilization
+        // These properties exist at runtime on mobile browsers but not in TS types
+        try {
+          const caps = track?.getCapabilities?.() as Record<string, unknown> | undefined;
+          const advanced: Record<string, unknown>[] = [];
+
+          const zoom = caps?.zoom as { min: number } | undefined;
+          if (zoom) {
+            advanced.push({ zoom: zoom.min });
+          }
+
+          const stabilization = caps?.imageStabilization as string[] | undefined;
+          if (stabilization?.includes("on")) {
+            advanced.push({ imageStabilization: "on" });
+          }
+
+          if (advanced.length > 0) {
+            await track.applyConstraints({ advanced } as MediaTrackConstraints);
+          }
+        } catch {
+          // Not all browsers/devices support these capabilities
+        }
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -101,6 +125,27 @@ export function useCamera() {
     },
     [startCamera]
   );
+
+  // Re-initialize camera on resize/orientation change to recalculate constraints and reset zoom
+  useEffect(() => {
+    if (!isReady) return;
+
+    let timeout: ReturnType<typeof setTimeout>;
+    const handler = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        startCamera(selectedDeviceId);
+      }, 500);
+    };
+
+    window.addEventListener("resize", handler);
+    window.addEventListener("orientationchange", handler);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", handler);
+      window.removeEventListener("orientationchange", handler);
+    };
+  }, [isReady, selectedDeviceId, startCamera]);
 
   useEffect(() => {
     return () => {

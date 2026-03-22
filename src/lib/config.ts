@@ -32,6 +32,14 @@ export const CORNERS = [
 export const CORNER_SIZE = 72;
 export const CORNER_OFFSET = 8;
 
+export const QR_CODE = {
+  src: `${BASE_PATH}/overlays/qr-discord.svg`,
+  size: 130,
+  top: 95,
+  left: 20,
+  opacity: 0.85,
+} as const;
+
 export const OVERLAYS: OverlayConfig[] = [
   {
     path: `${BASE_PATH}/overlays/logo.png`,
@@ -46,19 +54,20 @@ export const OVERLAYS: OverlayConfig[] = [
   {
     path: `${BASE_PATH}/overlays/DAC_Amelia.png`,
     position: "bottom-right",
-    maxWidth: 300,
-    maxHeight: 480,
+    maxWidth: 400,
+    maxHeight: 600,
     opacity: 0.85,
     padding: 35,
   },
   {
     path: `${BASE_PATH}/overlays/HMIA.png`,
     position: "bottom-left",
-    maxWidth: 280,
-    maxHeight: 200,
+    maxWidth: 500,
+    maxHeight: 350,
     opacity: 1,
     padding: 35,
   },
 ];
 
-export const DISCORD_MESSAGE = "📸 Nieuwe foto uit de photobooth!";
+export const DISCORD_MESSAGE =
+  "📸 Nieuwe foto vanuit de photobooth! Welkom bij de Dutch Anime Community! 🎉\nGa naar <#684064008827174930> om je te verifiëren en mee te doen met de grootste anime community van de benelux! 🚀";

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useCamera } from "@/hooks/useCamera";
 import { useGallery } from "@/hooks/useGallery";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useToast } from "@/hooks/useToast";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
@@ -30,6 +31,7 @@ export function PhotoBooth() {
     switchCamera,
   } = useCamera();
   const { photos, addPhoto, removePhoto } = useGallery();
+  const { canInstall, promptInstall } = useInstallPrompt();
   const toast = useToast();
 
   useEffect(() => {
@@ -111,6 +113,8 @@ export function PhotoBooth() {
         selectedDeviceId={selectedDeviceId}
         onSwitchCamera={switchCamera}
         isMirrored={isMirrored}
+        canInstall={canInstall}
+        onInstall={promptInstall}
       />
 
       {appState === "countdown" && (

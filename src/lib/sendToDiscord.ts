@@ -1,3 +1,5 @@
+import { DISCORD_MESSAGE } from "./config";
+
 const WEBHOOK_URL = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL || "";
 
 export async function sendToDiscord(imageBase64: string): Promise<boolean> {
@@ -13,7 +15,7 @@ export async function sendToDiscord(imageBase64: string): Promise<boolean> {
 
     // Send directly to Discord webhook from browser
     const formData = new FormData();
-    formData.append("content", "\u{1F4F8} Nieuwe foto uit de photobooth!");
+    formData.append("content", DISCORD_MESSAGE);
     formData.append("files[0]", blob, `photobooth-${Date.now()}.jpg`);
 
     const response = await fetch(WEBHOOK_URL, {

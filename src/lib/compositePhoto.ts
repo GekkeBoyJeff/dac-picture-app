@@ -1,5 +1,5 @@
 import type { OverlayConfig } from "./types";
-import { IMAGE, VIDEO, CORNERS, CORNER_SIZE, CORNER_OFFSET } from "./config";
+import { IMAGE, VIDEO, CORNERS, CORNER_SIZE, CORNER_OFFSET, QR_CODE } from "./config";
 
 const imageCache = new Map<string, HTMLImageElement>();
 
@@ -115,6 +115,54 @@ export async function compositePhoto(
     const x = position.includes("left") ? CORNER_OFFSET : width - CORNER_SIZE - CORNER_OFFSET;
     const y = position.includes("top") ? CORNER_OFFSET : height - CORNER_SIZE - CORNER_OFFSET;
     ctx.drawImage(img, x, y, CORNER_SIZE, CORNER_SIZE);
+  }
+
+  // Draw text overlays (scaled to canvas dimensions)
+  {
+    const sx = width / VIDEO.DESIGN_WIDTH;
+    const sy = height / VIDEO.DESIGN_HEIGHT;
+
+    // "Dutch Anime Community" title
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.font = `600 ${24 * sy}px Arial, sans-serif`;
+    ctx.fillStyle = "white";
+    ctx.letterSpacing = `${4 * sx}px`;
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 12 * sx;
+    ctx.shadowOffsetY = 2 * sy;
+    ctx.fillText("DUTCH ANIME", 100 * sx, 48 * sy);
+    ctx.fillText("COMMUNITY", 100 * sx, 74 * sy);
+    ctx.restore();
+
+    // Date stamp
+    const today = new Date().toLocaleDateString("nl-NL", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.font = `${14 * sy}px 'Courier New', monospace`;
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,0.9)";
+    ctx.shadowBlur = 4 * sx;
+    const textWidth = ctx.measureText(today).width;
+    ctx.fillText(today, (width - textWidth) / 2, height * 0.968);
+    ctx.restore();
+  }
+
+  // Draw QR code scaled to canvas dimensions
+  try {
+    const qrImg = await loadImage(QR_CODE.src);
+    const sx = width / VIDEO.DESIGN_WIDTH;
+    const sy = height / VIDEO.DESIGN_HEIGHT;
+    ctx.save();
+    ctx.globalAlpha = QR_CODE.opacity;
+    ctx.drawImage(qrImg, QR_CODE.left * sx, QR_CODE.top * sy, QR_CODE.size * sx, QR_CODE.size * sy);
+    ctx.restore();
+  } catch {
+    // QR code load failed — continue without it
   }
 
   const exportDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.EXPORT_QUALITY);
