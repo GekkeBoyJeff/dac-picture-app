@@ -1,5 +1,5 @@
-import type { OverlayConfig, TextOverlayConfig } from "./types";
-import { IMAGE, VIDEO } from "./config";
+import type { OverlayConfig } from "./types";
+import { IMAGE, VIDEO, CORNERS, CORNER_SIZE, CORNER_OFFSET } from "./config";
 
 const imageCache = new Map<string, HTMLImageElement>();
 
@@ -65,7 +65,6 @@ interface CompositeResult {
 export async function compositePhoto(
   video: HTMLVideoElement,
   overlays: OverlayConfig[],
-  textOverlays?: TextOverlayConfig[],
   mirror: boolean = true
 ): Promise<CompositeResult> {
   const width = video.videoWidth || 1920;
@@ -107,19 +106,15 @@ export async function compositePhoto(
     ctx.restore();
   }
 
-  if (textOverlays) {
-    const sx = width / VIDEO.DESIGN_WIDTH;
-    const sy = height / VIDEO.DESIGN_HEIGHT;
-
-    for (const t of textOverlays) {
-      ctx.save();
-      ctx.globalAlpha = t.opacity;
-      ctx.font = `${t.fontSize * sy}px ${t.font}`;
-      ctx.fillStyle = t.color;
-      if (t.letterSpacing) ctx.letterSpacing = `${t.letterSpacing * sx}px`;
-      ctx.fillText(t.text, t.x * sx, t.y * sy);
-      ctx.restore();
-    }
+  const cornerResults = await Promise.allSettled(
+    CORNERS.map((c) => loadImage(c.src).then((img) => ({ img, position: c.position })))
+  );
+  for (const result of cornerResults) {
+    if (result.status === "rejected") continue;
+    const { img, position } = result.value;
+    const x = position.includes("left") ? CORNER_OFFSET : width - CORNER_SIZE - CORNER_OFFSET;
+    const y = position.includes("top") ? CORNER_OFFSET : height - CORNER_SIZE - CORNER_OFFSET;
+    ctx.drawImage(img, x, y, CORNER_SIZE, CORNER_SIZE);
   }
 
   const exportDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.EXPORT_QUALITY);

@@ -42,6 +42,16 @@ export function useGallery() {
     });
   }, []);
 
+  const removePhoto = useCallback((id: string) => {
+    setPhotos((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      try {
+        localStorage.setItem(GALLERY.STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, []);
+
   const clearPhotos = useCallback(() => {
     setPhotos([]);
     try {
@@ -49,5 +59,5 @@ export function useGallery() {
     } catch {}
   }, []);
 
-  return { photos, addPhoto, clearPhotos };
+  return { photos, addPhoto, removePhoto, clearPhotos };
 }

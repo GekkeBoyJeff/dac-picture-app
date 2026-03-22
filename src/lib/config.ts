@@ -1,4 +1,4 @@
-import type { OverlayConfig, TextOverlayConfig } from "./types";
+import type { OverlayConfig } from "./types";
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -23,15 +23,16 @@ export const GALLERY = {
 export const COUNTDOWN_SECONDS = 3;
 export const TOAST_DURATION_MS = 1500;
 
+export const CORNERS = [
+  { src: `${BASE_PATH}/overlays/corner-tl.svg`, position: "top-left" as const },
+  { src: `${BASE_PATH}/overlays/corner-tr.svg`, position: "top-right" as const },
+  { src: `${BASE_PATH}/overlays/corner-bl.svg`, position: "bottom-left" as const },
+  { src: `${BASE_PATH}/overlays/corner-br.svg`, position: "bottom-right" as const },
+];
+export const CORNER_SIZE = 72;
+export const CORNER_OFFSET = 8;
+
 export const OVERLAYS: OverlayConfig[] = [
-  {
-    path: `${BASE_PATH}/overlays/frame.svg`,
-    position: "full",
-    maxWidth: 1920,
-    maxHeight: 1080,
-    opacity: 1,
-    padding: 0,
-  },
   {
     path: `${BASE_PATH}/overlays/logo.png`,
     position: "top-left",
@@ -40,6 +41,7 @@ export const OVERLAYS: OverlayConfig[] = [
     opacity: 1,
     padding: 30,
     invert: true,
+    fixedSize: true,
   },
   {
     path: `${BASE_PATH}/overlays/DAC_Amelia.png`,
@@ -58,45 +60,5 @@ export const OVERLAYS: OverlayConfig[] = [
     padding: 35,
   },
 ];
-
-export function getTextOverlays(): TextOverlayConfig[] {
-  const today = new Date().toLocaleDateString("nl-NL", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-
-  return [
-    {
-      text: "DUTCH ANIME",
-      x: 100,
-      y: 48,
-      fontSize: 24,
-      color: "rgba(255,255,255,0.9)",
-      opacity: 1,
-      font: "600 'Arial', sans-serif",
-      letterSpacing: 4,
-    },
-    {
-      text: "COMMUNITY",
-      x: 100,
-      y: 74,
-      fontSize: 24,
-      color: "rgba(255,255,255,0.9)",
-      opacity: 1,
-      font: "600 'Arial', sans-serif",
-      letterSpacing: 4,
-    },
-    {
-      text: today,
-      x: 330,
-      y: 1080 - 45,
-      fontSize: 14,
-      color: "rgba(255,255,255,0.5)",
-      opacity: 1,
-      font: "'Courier New', monospace",
-    },
-  ];
-}
 
 export const DISCORD_MESSAGE = "📸 Nieuwe foto uit de photobooth!";

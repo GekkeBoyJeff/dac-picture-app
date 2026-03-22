@@ -12,17 +12,7 @@ export interface OverlayConfig {
   opacity: number;
   padding: number;
   invert?: boolean;
-}
-
-export interface TextOverlayConfig {
-  text: string;
-  x: number;
-  y: number;
-  fontSize: number;
-  color: string;
-  opacity: number;
-  font: string;
-  letterSpacing?: number;
+  fixedSize?: boolean;
 }
 
 export interface PhotoEntry {

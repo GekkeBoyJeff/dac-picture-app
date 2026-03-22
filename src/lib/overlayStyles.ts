@@ -17,8 +17,10 @@ export function getOverlayStyle(config: OverlayConfig): React.CSSProperties {
     pointerEvents: "none",
   };
 
-  const isPortrait = config.maxHeight > config.maxWidth * 1.5;
-  if (isPortrait) {
+  if (config.fixedSize) {
+    style.width = `${config.maxWidth}px`;
+    style.height = `${config.maxHeight}px`;
+  } else if (config.maxHeight > config.maxWidth * 1.5) {
     style.maxHeight = `${heightPerc}%`;
     style.width = "auto";
     style.maxWidth = `${widthPerc}%`;
@@ -27,17 +29,20 @@ export function getOverlayStyle(config: OverlayConfig): React.CSSProperties {
     style.height = "auto";
   }
 
+  const padX = config.fixedSize ? `${config.padding}px` : `${padPercX}%`;
+  const padY = config.fixedSize ? `${config.padding}px` : `${padPercY}%`;
+
   if (config.position.includes("top")) {
-    style.top = `${padPercY}%`;
+    style.top = padY;
   }
   if (config.position.includes("bottom")) {
-    style.bottom = `${padPercY}%`;
+    style.bottom = padY;
   }
   if (config.position.includes("left")) {
-    style.left = `${padPercX}%`;
+    style.left = padX;
   }
   if (config.position.includes("right")) {
-    style.right = `${padPercX}%`;
+    style.right = padX;
   }
   if (config.position === "middle-right") {
     style.right = `${padPercX}%`;

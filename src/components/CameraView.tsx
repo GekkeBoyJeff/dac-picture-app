@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, RefObject, useState } from "react";
-import { OVERLAYS } from "@/lib/config";
+import { OVERLAYS, CORNERS, CORNER_SIZE, CORNER_OFFSET } from "@/lib/config";
 import { getOverlayStyle, getOverlayClassName } from "@/lib/overlayStyles";
 import type { CameraDevice } from "@/hooks/useCamera";
 
@@ -55,6 +55,15 @@ export const CameraView = memo(function CameraView({
 
       <div className="absolute top-0 left-0 right-0 h-[20%] pointer-events-none bg-linear-to-b from-black/40 to-transparent" />
 
+      {CORNERS.map((corner) => {
+        const style: React.CSSProperties = { width: CORNER_SIZE, height: CORNER_SIZE };
+        if (corner.position.includes("top")) style.top = CORNER_OFFSET;
+        if (corner.position.includes("bottom")) style.bottom = CORNER_OFFSET;
+        if (corner.position.includes("left")) style.left = CORNER_OFFSET;
+        if (corner.position.includes("right")) style.right = CORNER_OFFSET;
+        return <img key={corner.src} src={corner.src} alt="" draggable={false} className="absolute pointer-events-none" style={style} />;
+      })}
+
       {OVERLAYS.map((config) => (
         <img
           key={config.path}
@@ -68,7 +77,7 @@ export const CameraView = memo(function CameraView({
 
       <div
         className="absolute flex items-center gap-3 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
-        style={{ top: "2.8%", left: "5.2%" }}
+        style={{ top: 30, left: 100 }}
       >
         <span className="text-white/90 text-2xl font-semibold tracking-[0.15em] uppercase leading-tight">
           Dutch Anime<br />Community

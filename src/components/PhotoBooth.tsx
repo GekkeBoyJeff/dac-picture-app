@@ -6,7 +6,7 @@ import { useGallery } from "@/hooks/useGallery";
 import { useToast } from "@/hooks/useToast";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
-import { OVERLAYS, getTextOverlays, COUNTDOWN_SECONDS } from "@/lib/config";
+import { OVERLAYS, COUNTDOWN_SECONDS } from "@/lib/config";
 import { CameraView } from "./CameraView";
 import { Countdown } from "./Countdown";
 import { FlashEffect } from "./FlashEffect";
@@ -29,7 +29,7 @@ export function PhotoBooth() {
     startCamera,
     switchCamera,
   } = useCamera();
-  const { photos, addPhoto } = useGallery();
+  const { photos, addPhoto, removePhoto } = useGallery();
   const toast = useToast();
 
   useEffect(() => {
@@ -52,7 +52,6 @@ export function PhotoBooth() {
       const { exportDataUrl, galleryDataUrl } = await compositePhoto(
         video,
         OVERLAYS,
-        getTextOverlays(),
         isMirrored
       );
 
@@ -133,6 +132,7 @@ export function PhotoBooth() {
         photos={photos}
         isOpen={showGallery}
         onClose={() => setShowGallery(false)}
+        onRemove={removePhoto}
       />
     </>
   );
