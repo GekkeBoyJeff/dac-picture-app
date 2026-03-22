@@ -33,8 +33,7 @@ export const CameraView = memo(function CameraView({
   return (
     <main className="flex items-center justify-center w-screen h-screen bg-black">
       <div
-        className="relative aspect-video overflow-hidden"
-        style={{ width: "min(100vw, calc(100vh * 16 / 9))" }}
+        className="relative overflow-hidden max-h-screen landscape:aspect-video landscape:h-screen landscape:w-auto portrait:aspect-9/16 portrait:w-screen portrait:h-auto"
       >
       <video
         ref={videoRef}

@@ -45,12 +45,13 @@ export function useCamera() {
         setError(null);
         stopCamera();
 
+        const isPortrait = window.innerHeight > window.innerWidth;
         const constraints: MediaStreamConstraints = {
           video: {
             ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-            width: { ideal: VIDEO.IDEAL_WIDTH },
-            height: { ideal: VIDEO.IDEAL_HEIGHT },
-            aspectRatio: { exact: 16 / 9 },
+            width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
+            height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
+            aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
           },
         };
 

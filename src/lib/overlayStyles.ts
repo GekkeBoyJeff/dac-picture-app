@@ -19,7 +19,7 @@ export function getOverlayStyle(config: OverlayConfig): React.CSSProperties {
 
   const isPortrait = config.maxHeight > config.maxWidth * 1.5;
   if (isPortrait) {
-    style.height = `${heightPerc}%`;
+    style.maxHeight = `${heightPerc}%`;
     style.width = "auto";
     style.maxWidth = `${widthPerc}%`;
   } else {
