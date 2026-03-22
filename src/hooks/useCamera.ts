@@ -48,11 +48,14 @@ export function useCamera() {
         const isPortrait = window.innerHeight > window.innerWidth;
         const constraints: MediaStreamConstraints = {
           video: {
-            ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+            ...(deviceId
+              ? { deviceId: { exact: deviceId } }
+              : /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+                ? { facingMode: "user" }
+                : {}),
             width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
             height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
             aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
-            resizeMode: "none",
           } as MediaTrackConstraints,
         };
 

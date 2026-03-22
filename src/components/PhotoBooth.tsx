@@ -12,6 +12,7 @@ import { CameraView } from "./CameraView";
 import { Countdown } from "./Countdown";
 import { FlashEffect } from "./FlashEffect";
 import { Gallery } from "./Gallery";
+import { InstallBanner } from "./InstallBanner";
 
 type AppState = "camera" | "countdown" | "capturing" | "sending";
 
@@ -31,7 +32,7 @@ export function PhotoBooth() {
     switchCamera,
   } = useCamera();
   const { photos, addPhoto, removePhoto } = useGallery();
-  const { canInstall, promptInstall } = useInstallPrompt();
+  const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt();
   const toast = useToast();
 
   useEffect(() => {
@@ -138,6 +139,14 @@ export function PhotoBooth() {
         onClose={() => setShowGallery(false)}
         onRemove={removePhoto}
       />
+
+      {showBanner && (
+        <InstallBanner
+          isIOS={isIOS}
+          onInstall={promptInstall}
+          onDismiss={dismissBanner}
+        />
+      )}
     </>
   );
 }
