@@ -11,7 +11,8 @@
       "Bash(find /Users/jeffrey/Documents/projects/picture-app/node_modules/next/dist/docs/01-app -name *export* -o -name *static*)",
       "Bash(npx tsc:*)",
       "Bash(find /Users/jeffrey/Documents/projects/picture-app/node_modules/next/dist/docs/01-app -name *dynamic* -o -name *lazy* -o -name *import*)",
-      "Bash(GITHUB_ACTIONS=true npx next build)"
+      "Bash(GITHUB_ACTIONS=true npx next build)",
+      "Bash(gh api:*)"
     ]
   }
 }
