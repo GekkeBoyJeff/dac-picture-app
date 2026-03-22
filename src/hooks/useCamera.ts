@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { VIDEO } from "@/lib/config";
+
 
 export interface CameraDevice {
   deviceId: string;
@@ -62,8 +62,8 @@ export function useCamera() {
                   height: { ideal: 4096 },
                 }
               : {
-                  width: { ideal: isPortrait ? VIDEO.IDEAL_HEIGHT : VIDEO.IDEAL_WIDTH },
-                  height: { ideal: isPortrait ? VIDEO.IDEAL_WIDTH : VIDEO.IDEAL_HEIGHT },
+                  width: { ideal: 4096 },
+                  height: { ideal: 4096 },
                   aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
                 }),
           } as MediaTrackConstraints,
