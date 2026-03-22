@@ -4,6 +4,7 @@ import { memo, RefObject, useState } from "react";
 import { OVERLAYS, CORNERS, CORNER_SIZE, CORNER_OFFSET, QR_CODE } from "@/lib/config";
 import { getOverlayStyle, getOverlayClassName } from "@/lib/overlayStyles";
 import type { CameraDevice } from "@/hooks/useCamera";
+import type { ActiveGesture } from "@/hooks/useHandGesture";
 
 interface CameraViewProps {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -17,7 +18,9 @@ interface CameraViewProps {
   isMirrored: boolean;
   canInstall: boolean;
   onInstall: () => void;
-  gestureActive: boolean;
+  activeGesture: ActiveGesture;
+  showAppQr: boolean;
+  onCloseAppQr: () => void;
 }
 
 export const CameraView = memo(function CameraView({
@@ -32,10 +35,11 @@ export const CameraView = memo(function CameraView({
   isMirrored,
   canInstall,
   onInstall,
-  gestureActive,
+  activeGesture,
+  showAppQr,
+  onCloseAppQr,
 }: CameraViewProps) {
   const [showCameraMenu, setShowCameraMenu] = useState(false);
-  const [showAppQr, setShowAppQr] = useState(false);
 
   return (
     <main className="flex items-center justify-center w-screen h-screen bg-black">
@@ -110,9 +114,15 @@ export const CameraView = memo(function CameraView({
         })}
       </span>
 
-      {gestureActive && (
+      {activeGesture === "Victory" && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/20 animate-pulse">
           <span className="text-2xl">✌️</span>
+          <span className="text-white text-sm font-medium">Houd vast...</span>
+        </div>
+      )}
+      {activeGesture === "Closed_Fist" && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/20 animate-pulse">
+          <span className="text-2xl">✊</span>
           <span className="text-white text-sm font-medium">Houd vast...</span>
         </div>
       )}
@@ -179,7 +189,7 @@ export const CameraView = memo(function CameraView({
 
       <div className="absolute top-5 right-17 z-10">
         <button
-          onClick={() => setShowAppQr((v) => !v)}
+          onClick={() => onCloseAppQr()}
           className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
           aria-label="Open op telefoon"
         >
@@ -202,7 +212,7 @@ export const CameraView = memo(function CameraView({
       {showAppQr && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowAppQr(false)}
+          onClick={() => onCloseAppQr()}
         >
           <div
             className="bg-gray-950/95 border border-white/10 rounded-2xl p-6 shadow-2xl max-w-xs w-full mx-4"
@@ -216,8 +226,8 @@ export const CameraView = memo(function CameraView({
               className="w-full aspect-square"
             />
             <button
-              onClick={() => setShowAppQr(false)}
-              className="mt-4 w-full py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-colors cursor-pointer"
+              onClick={() => onCloseAppQr()}
+              className="mt-2 w-full py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-colors cursor-pointer"
             >
               Sluiten
             </button>

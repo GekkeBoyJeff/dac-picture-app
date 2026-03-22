@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCamera } from "@/hooks/useCamera";
 import { useGallery } from "@/hooks/useGallery";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -21,6 +21,8 @@ export function PhotoBooth() {
   const [appState, setAppState] = useState<AppState>("camera");
   const [showFlash, setShowFlash] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showAppQr, setShowAppQr] = useState(false);
+  const appQrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     videoRef,
@@ -42,10 +44,21 @@ export function PhotoBooth() {
     }
   }, [appState, isReady]);
 
-  const { gestureActive } = useHandGesture(
+  const handleFist = useCallback(() => {
+    if (appQrTimerRef.current) clearTimeout(appQrTimerRef.current);
+    setShowAppQr(true);
+    appQrTimerRef.current = setTimeout(() => setShowAppQr(false), 5000);
+  }, []);
+
+  const gestureCallbacks = useMemo(() => ({
+    onVictory: handlePeaceSign,
+    onClosedFist: handleFist,
+  }), [handlePeaceSign, handleFist]);
+
+  const { activeGesture } = useHandGesture(
     videoRef,
     appState === "camera" && isReady,
-    handlePeaceSign
+    gestureCallbacks
   );
 
   useEffect(() => {
@@ -129,7 +142,9 @@ export function PhotoBooth() {
         isMirrored={isMirrored}
         canInstall={canInstall}
         onInstall={promptInstall}
-        gestureActive={gestureActive}
+        activeGesture={activeGesture}
+        showAppQr={showAppQr}
+        onCloseAppQr={() => setShowAppQr(false)}
       />
 
       {appState === "countdown" && (

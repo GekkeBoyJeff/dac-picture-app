@@ -19,11 +19,21 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function getDesignScale(canvasW: number, canvasH: number): number {
+/**
+ * Returns per-axis scale factors that match CSS percentage calculations.
+ * In portrait mode, the design dimensions are swapped so that designW
+ * always corresponds to the short side of the canvas.
+ */
+function getDesignScales(canvasW: number, canvasH: number) {
   const isPortrait = canvasH > canvasW;
   const designW = isPortrait ? VIDEO.DESIGN_HEIGHT : VIDEO.DESIGN_WIDTH;
   const designH = isPortrait ? VIDEO.DESIGN_WIDTH : VIDEO.DESIGN_HEIGHT;
-  return Math.min(canvasW / designW, canvasH / designH);
+  return {
+    scaleX: canvasW / designW,
+    scaleY: canvasH / designH,
+    // Uniform scale for elements that must stay square (corners, QR)
+    scaleUniform: Math.min(canvasW / designW, canvasH / designH),
+  };
 }
 
 function calcDrawRect(
@@ -36,29 +46,43 @@ function calcDrawRect(
     return { x: 0, y: 0, w: canvasW, h: canvasH };
   }
 
-  // Uniform scale so overlays keep correct proportions on any aspect ratio
-  const scale = getDesignScale(canvasW, canvasH);
-  const scaledMaxW = config.maxWidth * scale;
-  const scaledMaxH = config.maxHeight * scale;
-  const scaledPad = config.padding * scale;
+  // Per-axis scaling to match CSS percentage positioning exactly
+  const { scaleX, scaleY } = getDesignScales(canvasW, canvasH);
+  const scaledMaxW = config.maxWidth * scaleX;
+  const scaledMaxH = config.maxHeight * scaleY;
+  const scaledPadX = config.padding * scaleX;
+  const scaledPadY = config.padding * scaleY;
 
   const aspect = img.naturalWidth / img.naturalHeight;
-  let w = Math.min(scaledMaxW, canvasW * 0.4);
-  let h = w / aspect;
+  let w: number;
+  let h: number;
 
-  if (h > scaledMaxH) {
+  if (config.fixedSize) {
+    // fixedSize in CSS uses fixed px — scale proportionally to canvas
+    w = config.maxWidth * scaleX;
+    h = config.maxHeight * scaleY;
+  } else if (config.maxHeight > config.maxWidth * 1.5) {
+    // Height-constrained (matches CSS: maxHeight as % of container height)
     h = scaledMaxH;
     w = h * aspect;
+    if (w > scaledMaxW) {
+      w = scaledMaxW;
+      h = w / aspect;
+    }
+  } else {
+    // Width-constrained (matches CSS: width as % of container width)
+    w = scaledMaxW;
+    h = w / aspect;
   }
 
-  let x = scaledPad;
-  let y = scaledPad;
+  let x = scaledPadX;
+  let y = scaledPadY;
 
   if (config.position === "middle-right") {
-    return { x: canvasW - w - scaledPad, y: (canvasH - h) / 2, w, h };
+    return { x: canvasW - w - scaledPadX, y: (canvasH - h) / 2, w, h };
   }
-  if (config.position.includes("right")) x = canvasW - w - scaledPad;
-  if (config.position.includes("bottom")) y = canvasH - h - scaledPad;
+  if (config.position.includes("right")) x = canvasW - w - scaledPadX;
+  if (config.position.includes("bottom")) y = canvasH - h - scaledPadY;
 
   return { x, y, w, h };
 }
@@ -113,35 +137,37 @@ export async function compositePhoto(
     ctx.restore();
   }
 
-  // Uniform scale for all decorations
-  const scale = getDesignScale(width, height);
+  // Per-axis scales for decorations
+  const { scaleX, scaleY, scaleUniform } = getDesignScales(width, height);
 
+  // Corners (square, use uniform scale to keep aspect ratio)
   const cornerResults = await Promise.allSettled(
     CORNERS.map((c) => loadImage(c.src).then((img) => ({ img, position: c.position })))
   );
-  const scaledCornerSize = CORNER_SIZE * scale;
-  const scaledCornerOffset = CORNER_OFFSET * scale;
+  const scaledCornerSize = CORNER_SIZE * scaleUniform;
+  const scaledCornerOffsetX = CORNER_OFFSET * scaleX;
+  const scaledCornerOffsetY = CORNER_OFFSET * scaleY;
   for (const result of cornerResults) {
     if (result.status === "rejected") continue;
     const { img, position } = result.value;
-    const x = position.includes("left") ? scaledCornerOffset : width - scaledCornerSize - scaledCornerOffset;
-    const y = position.includes("top") ? scaledCornerOffset : height - scaledCornerSize - scaledCornerOffset;
+    const x = position.includes("left") ? scaledCornerOffsetX : width - scaledCornerSize - scaledCornerOffsetX;
+    const y = position.includes("top") ? scaledCornerOffsetY : height - scaledCornerSize - scaledCornerOffsetY;
     ctx.drawImage(img, x, y, scaledCornerSize, scaledCornerSize);
   }
 
   // Draw text overlays
   {
-    // "Dutch Anime Community" title
+    // "Dutch Anime Community" title — position scales per-axis
     ctx.save();
     ctx.globalAlpha = 0.9;
-    ctx.font = `600 ${24 * scale}px Arial, sans-serif`;
+    ctx.font = `600 ${24 * scaleUniform}px Arial, sans-serif`;
     ctx.fillStyle = "white";
-    ctx.letterSpacing = `${4 * scale}px`;
+    ctx.letterSpacing = `${4 * scaleUniform}px`;
     ctx.shadowColor = "rgba(0,0,0,0.8)";
-    ctx.shadowBlur = 12 * scale;
-    ctx.shadowOffsetY = 2 * scale;
-    ctx.fillText("DUTCH ANIME", 100 * scale, 48 * scale);
-    ctx.fillText("COMMUNITY", 100 * scale, 74 * scale);
+    ctx.shadowBlur = 12 * scaleUniform;
+    ctx.shadowOffsetY = 2 * scaleUniform;
+    ctx.fillText("DUTCH ANIME", 100 * scaleX, 48 * scaleY);
+    ctx.fillText("COMMUNITY", 100 * scaleX, 74 * scaleY);
     ctx.restore();
 
     // Date stamp
@@ -152,22 +178,22 @@ export async function compositePhoto(
     });
     ctx.save();
     ctx.globalAlpha = 0.7;
-    ctx.font = `${14 * scale}px 'Courier New', monospace`;
+    ctx.font = `${14 * scaleUniform}px 'Courier New', monospace`;
     ctx.fillStyle = "white";
     ctx.shadowColor = "rgba(0,0,0,0.9)";
-    ctx.shadowBlur = 4 * scale;
+    ctx.shadowBlur = 4 * scaleUniform;
     const textWidth = ctx.measureText(today).width;
     ctx.fillText(today, (width - textWidth) / 2, height * 0.968);
     ctx.restore();
   }
 
-  // Draw QR code
+  // Draw QR code (square, use uniform scale)
   try {
     const qrImg = await loadImage(QR_CODE.src);
-    const qrSize = QR_CODE.size * scale;
+    const qrSize = QR_CODE.size * scaleUniform;
     ctx.save();
     ctx.globalAlpha = QR_CODE.opacity;
-    ctx.drawImage(qrImg, QR_CODE.left * scale, QR_CODE.top * scale, qrSize, qrSize);
+    ctx.drawImage(qrImg, QR_CODE.left * scaleX, QR_CODE.top * scaleY, qrSize, qrSize);
     ctx.restore();
   } catch {
     // QR code load failed — continue without it

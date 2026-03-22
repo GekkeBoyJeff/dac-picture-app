@@ -15,27 +15,41 @@ type GestureResult = {
 
 const DETECTION_INTERVAL_MS = 500;
 const CONFIDENCE_THRESHOLD = 0.65;
-// Require the peace sign to be held for this many consecutive detections
-const REQUIRED_CONSECUTIVE = 3;
+// Consecutive detections required before firing
+const REQUIRED_CONSECUTIVE_VICTORY = 3;
+const REQUIRED_CONSECUTIVE_FIST_PALM = 2;
+// Cooldown after fist/palm fires to prevent rapid toggling
+const FIST_PALM_COOLDOWN_MS = 2000;
+
+export type ActiveGesture = "Victory" | "Closed_Fist" | null;
+
+interface GestureCallbacks {
+  onVictory: () => void;
+  onClosedFist?: () => void;
+}
 
 export function useHandGesture(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-  onPeaceSign: () => void
+  callbacks: GestureCallbacks
 ) {
   const recognizerRef = useRef<GestureRecognizer | null>(null);
   const animFrameRef = useRef<number>(0);
-  const consecutiveRef = useRef(0);
-  const firedRef = useRef(false);
   const lastTimestampRef = useRef(-1);
-  const [gestureActive, setGestureActive] = useState(false);
+  const [activeGesture, setActiveGesture] = useState<ActiveGesture>(null);
 
-  // Reset fired state when re-enabled
+  // Per-gesture tracking
+  const victoryConsecutiveRef = useRef(0);
+  const victoryFiredRef = useRef(false);
+  const fistConsecutiveRef = useRef(0);
+  const fistCooldownRef = useRef(false);
+
+  // Reset victory fired state when re-enabled
   useEffect(() => {
     if (enabled) {
-      firedRef.current = false;
-      consecutiveRef.current = 0;
-      setGestureActive(false);
+      victoryFiredRef.current = false;
+      victoryConsecutiveRef.current = 0;
+      setActiveGesture(null);
     }
   }, [enabled]);
 
@@ -67,7 +81,7 @@ export function useHandGesture(
       if (stopped) return;
 
       const detect = () => {
-        if (stopped || !enabled || firedRef.current) return;
+        if (stopped || !enabled) return;
 
         const video = videoRef.current;
         const recognizer = recognizerRef.current;
@@ -82,8 +96,6 @@ export function useHandGesture(
           if (now > lastTimestampRef.current) {
             lastTimestampRef.current = now;
             try {
-              // Suppress MediaPipe WASM info/warning messages that Next.js
-              // dev overlay incorrectly treats as errors
               const origError = console.error;
               const origWarn = console.warn;
               console.error = () => {};
@@ -96,30 +108,60 @@ export function useHandGesture(
                 console.warn = origWarn;
               }
 
-              const isPeace = (result as GestureResult).gestures.some(
-                (gestureList: GestureCategory[]) =>
-                  gestureList.some(
-                    (g: GestureCategory) =>
-                      g.categoryName === "Victory" &&
-                      g.score >= CONFIDENCE_THRESHOLD
-                  )
-              );
+              const gestures = (result as GestureResult).gestures;
 
-              if (isPeace) {
-                consecutiveRef.current++;
-                setGestureActive(true);
+              // Find the best gesture across all detected hands
+              let bestGesture: string | null = null;
+              let bestScore = 0;
+              for (const gestureList of gestures) {
+                for (const g of gestureList) {
+                  if (g.score >= CONFIDENCE_THRESHOLD && g.score > bestScore) {
+                    bestGesture = g.categoryName;
+                    bestScore = g.score;
+                  }
+                }
+              }
+
+              // Victory (peace sign) → take photo
+              if (bestGesture === "Victory") {
+                victoryConsecutiveRef.current++;
+                fistConsecutiveRef.current = 0;
+                setActiveGesture("Victory");
+
                 if (
-                  consecutiveRef.current >= REQUIRED_CONSECUTIVE &&
-                  !firedRef.current
+                  victoryConsecutiveRef.current >= REQUIRED_CONSECUTIVE_VICTORY &&
+                  !victoryFiredRef.current
                 ) {
-                  firedRef.current = true;
-                  setGestureActive(false);
-                  onPeaceSign();
+                  victoryFiredRef.current = true;
+                  setActiveGesture(null);
+                  callbacks.onVictory();
                   return;
                 }
-              } else {
-                consecutiveRef.current = 0;
-                setGestureActive(false);
+              }
+              // Closed fist → open dialog
+              else if (bestGesture === "Closed_Fist" && callbacks.onClosedFist) {
+                fistConsecutiveRef.current++;
+                victoryConsecutiveRef.current = 0;
+                setActiveGesture("Closed_Fist");
+
+                if (
+                  fistConsecutiveRef.current >= REQUIRED_CONSECUTIVE_FIST_PALM &&
+                  !fistCooldownRef.current
+                ) {
+                  fistCooldownRef.current = true;
+                  fistConsecutiveRef.current = 0;
+                  setActiveGesture(null);
+                  callbacks.onClosedFist();
+                  setTimeout(() => {
+                    fistCooldownRef.current = false;
+                  }, FIST_PALM_COOLDOWN_MS);
+                }
+              }
+              // No recognized gesture
+              else {
+                victoryConsecutiveRef.current = 0;
+                fistConsecutiveRef.current = 0;
+                setActiveGesture(null);
               }
             } catch {
               // Frame processing error, skip
@@ -143,7 +185,7 @@ export function useHandGesture(
       stopped = true;
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [enabled, videoRef, onPeaceSign, initRecognizer]);
+  }, [enabled, videoRef, callbacks, initRecognizer]);
 
   // Cleanup recognizer on unmount
   useEffect(() => {
@@ -153,5 +195,5 @@ export function useHandGesture(
     };
   }, []);
 
-  return { gestureActive };
+  return { activeGesture };
 }
