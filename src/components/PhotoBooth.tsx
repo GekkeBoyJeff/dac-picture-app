@@ -92,7 +92,7 @@ export function PhotoBooth() {
       const container = containerRef.current;
       if (!container) throw new Error("Container element not available");
 
-      const { exportDataUrl, galleryDataUrl } = await compositePhoto(
+      const { exportBlob, galleryDataUrl } = await compositePhoto(
         video,
         container,
         isMirrored
@@ -101,7 +101,7 @@ export function PhotoBooth() {
       addPhoto(galleryDataUrl);
       setAppState("sending");
 
-      const success = await sendToDiscord(exportDataUrl);
+      const success = await sendToDiscord(exportBlob);
       toast.show(success ? "Verzonden!" : "Verzenden naar Discord mislukt");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Er ging iets mis";

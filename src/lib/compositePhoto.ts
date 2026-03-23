@@ -20,7 +20,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 interface CompositeResult {
-  exportDataUrl: string;
+  exportBlob: Blob;
   galleryDataUrl: string;
 }
 
@@ -172,10 +172,17 @@ export async function compositePhoto(
     drawDate(ctx, dateEl, containerRect, scaleX, scaleY);
   }
 
-  const exportDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.EXPORT_QUALITY);
+  const exportBlob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+      IMAGE.FORMAT,
+      IMAGE.EXPORT_QUALITY,
+    );
+  });
+
   const galleryDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.GALLERY_QUALITY);
 
-  return { exportDataUrl, galleryDataUrl };
+  return { exportBlob, galleryDataUrl };
 }
 
 // ---------- Helpers ----------

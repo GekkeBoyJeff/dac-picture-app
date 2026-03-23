@@ -13,8 +13,8 @@ export {
 
 export const IMAGE = {
   EXPORT_QUALITY: 1.0,
-  GALLERY_QUALITY: 1.0,
-  FORMAT: "image/jpeg" as const,
+  GALLERY_QUALITY: 0.75,
+  FORMAT: "image/webp" as const,
 } as const;
 
 export const GALLERY = {

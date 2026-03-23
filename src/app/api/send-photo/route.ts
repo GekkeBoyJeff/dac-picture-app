@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     // Decode base64 to buffer
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
-    const blob = new Blob([buffer], { type: "image/jpeg" });
+    const blob = new Blob([buffer], { type: "image/webp" });
 
     // Build form data
     const formData = new FormData();
-    formData.append("file", blob, `photobooth-${Date.now()}.jpg`);
+    formData.append("file", blob, `photobooth-${Date.now()}.webp`);
     formData.append(
       "payload_json",
       JSON.stringify({ content: "📸 Nieuwe foto uit de photobooth!" })
