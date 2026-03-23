@@ -138,7 +138,7 @@ export function Overlays({ layout, mascot, activeConvention }: OverlaysProps) {
       {/* Logo */}
       <img
         src={LOGO.src} alt="" data-overlay="image" draggable={false}
-        className="pointer-events-none brightness-0 invert"
+        className="pointer-events-none"
         style={positionStyle(layout.logo.position, inset, { maxWidth: logoSize, maxHeight: logoSize }, { fixedSize: true, padding: layout.logo.padding?.[bp] })}
       />
 

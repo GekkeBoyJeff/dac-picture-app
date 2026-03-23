@@ -11,7 +11,7 @@ export const CORNERS = [
 ];
 
 export const LOGO = {
-  src: `${BASE_PATH}/overlays/logo.png`,
+  src: `${BASE_PATH}/overlays/logo.svg`,
 } as const;
 
 export const QR_CODE = {
