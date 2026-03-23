@@ -34,7 +34,7 @@ export const CONVENTIONS: Convention[] = [
     {
         slug: "dcc-2026",
         name: "Dutch Comic Con",
-        startDate: "2026-02-20",
+        startDate: "2026-06-20",
         endDate: "2026-06-21",
         bannerPath: `${BASE_PATH}/overlays/conventions/dcc-2026/banner.svg`,
         position: "bottom-left",
