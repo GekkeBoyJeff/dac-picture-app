@@ -2,7 +2,6 @@ import type { ActiveGesture } from "@/hooks/useHandGesture";
 
 const GESTURE_CONFIG = {
   Victory: { emoji: "\u270C\uFE0F", label: "Houd vast..." },
-  Closed_Fist: { emoji: "\u270A", label: "Houd vast..." },
 } as const;
 
 export function GestureIndicator({ gesture }: { gesture: ActiveGesture }) {

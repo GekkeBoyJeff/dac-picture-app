@@ -9,7 +9,7 @@ Photo booth web app voor **Dutch Anime Community (DAC)**, gebouwd om onboarding 
 - **Mascot picker** — kies uit meerdere mascot-karakters via een bottom drawer
 - **Layout picker** — wissel tussen overlay-layouts (classic, minimal, centered mascot)
 - **Pixel-perfecte foto's** — captured foto's matchen exact de live preview via DOM-meting
-- **Hand gesture detection** — peace sign start countdown, vuist toont QR-code
+- **Hand gesture detection** — peace sign start countdown
 - **Discord integratie** — foto's worden automatisch naar een Discord-kanaal gestuurd
 - **PWA** — installeerbaar als standalone app op elk apparaat
 - **Responsive** — werkt op telefoons, tablets, desktops en elk schermformaat
@@ -57,11 +57,11 @@ FlashEffect + compositePhoto()
     ├─ Leest overlay posities uit DOM
     ├─ Tekent video frame op canvas (gecropped naar container aspect ratio)
     ├─ Tekent vignettes, corners, mascot, banner, QR, logo, titel, datum
-    └─ Retourneert exportDataUrl (hoge kwaliteit) + galleryDataUrl (display)
+    └─ Retourneert exportBlob (WebP, hoge kwaliteit) + galleryDataUrl (display)
     ↓
 addPhoto(galleryDataUrl) → localStorage
     ↓
-sendToDiscord(exportDataUrl) → Discord webhook
+sendToDiscord(exportBlob) → Discord webhook
     ↓
 Toast notificatie → terug naar camera state
 ```
@@ -93,7 +93,7 @@ src/
 │       ├── CaptureButton.tsx     # Shutter knop met pulse-animatie
 │       ├── LayoutPicker.tsx      # Layout selectie drawer
 │       ├── MascotPicker.tsx      # Mascot selectie drawer
-│       ├── AppQrModal.tsx        # QR-code modal (getriggerd door vuist-gesture)
+│       ├── AppQrModal.tsx        # QR-code modal
 │       └── GestureIndicator.tsx  # Indicator voor herkend handgebaar
 │
 ├── hooks/
@@ -162,7 +162,6 @@ Beheert camera-stream, permissies en device-enumeratie. Detecteert automatisch f
 
 Gebruikt MediaPipe Vision voor continu hand gesture detectie:
 - **Peace sign (Victory)** — 3 opeenvolgende detecties nodig → start countdown
-- **Vuist (Closed_Fist)** — 2 opeenvolgende detecties → toont QR-code modal
 - Elke 500ms een check, met confidence threshold van 0.3
 
 ### `useOverlaySettings.ts` — Overlay voorkeuren

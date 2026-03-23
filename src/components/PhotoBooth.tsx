@@ -26,7 +26,6 @@ export function PhotoBooth() {
   const [showAppQr, setShowAppQr] = useState(false);
   const [showMascotPicker, setShowMascotPicker] = useState(false);
   const [showLayoutPicker, setShowLayoutPicker] = useState(false);
-  const appQrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -50,16 +49,9 @@ export function PhotoBooth() {
     }
   }, [appState, isReady]);
 
-  const handleFist = useCallback(() => {
-    if (appQrTimerRef.current) clearTimeout(appQrTimerRef.current);
-    setShowAppQr(true);
-    appQrTimerRef.current = setTimeout(() => setShowAppQr(false), 5000);
-  }, []);
-
   const gestureCallbacks = useMemo(() => ({
     onVictory: handlePeaceSign,
-    onClosedFist: handleFist,
-  }), [handlePeaceSign, handleFist]);
+  }), [handlePeaceSign]);
 
   const { activeGesture } = useHandGesture(
     videoRef,

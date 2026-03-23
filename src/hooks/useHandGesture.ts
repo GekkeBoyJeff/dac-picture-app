@@ -13,18 +13,14 @@ type GestureResult = {
   gestures: GestureCategory[][];
 };
 
-const DETECTION_INTERVAL_MS = 500;
+const DETECTION_INTERVAL_MS = 1000;
 const CONFIDENCE_THRESHOLD = 0.3;
-// Require multiple consecutive detections to avoid false positives from brief hand movements
-const REQUIRED_CONSECUTIVE_VICTORY = 3;
-const REQUIRED_CONSECUTIVE_FIST_PALM = 2;
-const FIST_PALM_COOLDOWN_MS = 2000;
+const REQUIRED_CONSECUTIVE_VICTORY = 2;
 
-export type ActiveGesture = "Victory" | "Closed_Fist" | null;
+export type ActiveGesture = "Victory" | null;
 
 interface GestureCallbacks {
   onVictory: () => void;
-  onClosedFist?: () => void;
 }
 
 export function useHandGesture(
@@ -39,8 +35,6 @@ export function useHandGesture(
 
   const victoryConsecutiveRef = useRef(0);
   const victoryFiredRef = useRef(false);
-  const fistConsecutiveRef = useRef(0);
-  const fistCooldownRef = useRef(false);
 
   // Reset so a new countdown can be triggered after the previous one completes
   useEffect(() => {
@@ -65,7 +59,7 @@ export function useHandGesture(
         delegate: "GPU" as const,
       },
       runningMode: "VIDEO" as const,
-      numHands: 2,
+      numHands: 1,
     };
 
     // MediaPipe WASM logs "INFO: Created TensorFlow Lite XNNPACK delegate"
@@ -148,7 +142,6 @@ export function useHandGesture(
 
               if (bestGesture === "Victory") {
                 victoryConsecutiveRef.current++;
-                fistConsecutiveRef.current = 0;
                 setActiveGesture("Victory");
 
                 if (
@@ -160,28 +153,8 @@ export function useHandGesture(
                   callbacks.onVictory();
                   return;
                 }
-              }
-              else if (bestGesture === "Closed_Fist" && callbacks.onClosedFist) {
-                fistConsecutiveRef.current++;
+              } else {
                 victoryConsecutiveRef.current = 0;
-                setActiveGesture("Closed_Fist");
-
-                if (
-                  fistConsecutiveRef.current >= REQUIRED_CONSECUTIVE_FIST_PALM &&
-                  !fistCooldownRef.current
-                ) {
-                  fistCooldownRef.current = true;
-                  fistConsecutiveRef.current = 0;
-                  setActiveGesture(null);
-                  callbacks.onClosedFist();
-                  setTimeout(() => {
-                    fistCooldownRef.current = false;
-                  }, FIST_PALM_COOLDOWN_MS);
-                }
-              }
-              else {
-                victoryConsecutiveRef.current = 0;
-                fistConsecutiveRef.current = 0;
                 setActiveGesture(null);
               }
             } catch {}
