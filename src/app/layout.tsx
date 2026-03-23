@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Take a photo and share it on Discord!",
   manifest: "./manifest.json",
   icons: {
-    icon: "/overlays/logo.png",
+    icon: "/favicon.png",
     apple: "/overlays/logo.png",
   },
   appleWebApp: {
