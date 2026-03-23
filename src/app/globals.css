@@ -70,6 +70,22 @@ body {
   }
 }
 
+@keyframes slide-down {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @keyframes shutter-pulse {
   0%, 100% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);

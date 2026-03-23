@@ -6,6 +6,7 @@ import { useGallery } from "@/hooks/useGallery";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useToast } from "@/hooks/useToast";
 import { useHandGesture } from "@/hooks/useHandGesture";
+import { useOverlaySettings } from "@/hooks/useOverlaySettings";
 import { compositePhoto } from "@/lib/compositePhoto";
 import { sendToDiscord } from "@/lib/sendToDiscord";
 import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config";
@@ -23,6 +24,8 @@ export function PhotoBooth() {
   const [showFlash, setShowFlash] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showAppQr, setShowAppQr] = useState(false);
+  const [showMascotPicker, setShowMascotPicker] = useState(false);
+  const [showLayoutPicker, setShowLayoutPicker] = useState(false);
   const appQrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +42,7 @@ export function PhotoBooth() {
   const { photos, addPhoto, removePhoto } = useGallery();
   const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt();
   const toast = useToast();
+  const { layout, mascot, activeConvention, setLayoutId, setMascotId } = useOverlaySettings();
 
   const handlePeaceSign = useCallback(() => {
     if (appState === "camera" && isReady) {
@@ -144,6 +148,17 @@ export function PhotoBooth() {
         activeGesture={activeGesture}
         showAppQr={showAppQr}
         onCloseAppQr={() => setShowAppQr(false)}
+        layout={layout}
+        mascot={mascot}
+        activeConvention={activeConvention}
+        setLayoutId={setLayoutId}
+        setMascotId={setMascotId}
+        showMascotPicker={showMascotPicker}
+        showLayoutPicker={showLayoutPicker}
+        onOpenMascotPicker={() => setShowMascotPicker(true)}
+        onCloseMascotPicker={() => setShowMascotPicker(false)}
+        onOpenLayoutPicker={() => setShowLayoutPicker(true)}
+        onCloseLayoutPicker={() => setShowLayoutPicker(false)}
       />
 
       {appState === "countdown" && (

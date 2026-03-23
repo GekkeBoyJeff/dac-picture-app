@@ -11,8 +11,12 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "DAC Photo Booth",
-  description: "Maak een foto en deel het op Discord!",
+  description: "Take a photo and share it on Discord!",
   manifest: "./manifest.json",
+  icons: {
+    icon: "/overlays/logo.png",
+    apple: "/overlays/logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

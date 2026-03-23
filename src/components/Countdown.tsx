@@ -31,30 +31,23 @@ export function Countdown({ seconds, onComplete, showLookUp = false }: Countdown
   if (count <= 0) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none">
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center pointer-events-none">
+      {showLookUp && (
+        <span className="absolute top-[18%] left-1/2 -translate-x-1/2 text-white/80 text-lg md:text-2xl font-semibold tracking-wide drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] animate-pulse whitespace-nowrap">
+          Kijk naar de webcam 📸
+        </span>
+      )}
       <span
         key={count}
         className="text-[6rem] md:text-[12rem] font-black text-white drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-countdown select-none"
       >
         {count}
       </span>
-      {showLookUp && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-          <svg
-            className="w-16 h-16 text-white drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-          </svg>
-          <span className="text-white text-2xl font-bold tracking-wide drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] text-center">
-            Look up!<br />
-            Kijk omhoog!
-          </span>
-        </div>
-      )}
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
+        <span className="text-white/40 text-xs md:text-sm drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+          Druk opnieuw om te annuleren
+        </span>
+      </div>
     </div>
   );
 }

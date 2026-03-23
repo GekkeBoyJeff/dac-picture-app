@@ -68,6 +68,19 @@ export function useHandGesture(
       numHands: 2,
     };
 
+    // MediaPipe WASM logs "INFO: Created TensorFlow Lite XNNPACK delegate"
+    // via stderr which Next.js dev overlay catches as an error. Suppress it.
+    const origError = console.error;
+    const origWarn = console.warn;
+    console.error = (...args: unknown[]) => {
+      if (typeof args[0] === "string" && args[0].includes("TensorFlow Lite")) return;
+      origError(...args);
+    };
+    console.warn = (...args: unknown[]) => {
+      if (typeof args[0] === "string" && args[0].includes("TensorFlow Lite")) return;
+      origWarn(...args);
+    };
+
     try {
       recognizerRef.current = await GestureRecognizer.createFromOptions(vision, modelOptions);
     } catch {
@@ -76,6 +89,9 @@ export function useHandGesture(
         ...modelOptions,
         baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" as const },
       });
+    } finally {
+      console.error = origError;
+      console.warn = origWarn;
     }
   }, []);
 

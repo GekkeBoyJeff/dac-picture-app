@@ -3,7 +3,7 @@ export function CaptureButton({ onClick, disabled }: { onClick: () => void; disa
     <button
       onClick={onClick}
       disabled={disabled}
-      className="absolute bottom-[12%] left-1/2 -translate-x-1/2 z-10 cursor-pointer disabled:cursor-not-allowed group"
+      className="absolute bottom-[12%] left-1/2 -translate-x-1/2 max-lg:landscape:bottom-auto max-lg:landscape:left-auto max-lg:landscape:translate-x-0 max-lg:landscape:right-[8%] max-lg:landscape:top-1/2 max-lg:landscape:-translate-y-1/2 z-10 cursor-pointer disabled:cursor-not-allowed group"
       aria-label="Maak foto"
     >
       <div

@@ -20,24 +20,24 @@ export function InstallBanner({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold">
-              Installeer Photo Booth
+              Install Photo Booth
             </p>
             {isIOS ? (
               <p className="text-white/50 text-xs mt-0.5">
-                Tik op{" "}
+                Druk{" "}
                 <ShareIcon className="inline w-4 h-4 text-white/70 align-text-bottom" />{" "}
-                en kies &ldquo;Zet op beginscherm&rdquo;
+               en kies &ldquo;voeg toe aan homescherm&rdquo;
               </p>
             ) : (
               <p className="text-white/50 text-xs mt-0.5">
-                Voeg de app toe aan je startscherm
+                Voeg de app toe aan je homescherm
               </p>
             )}
           </div>
           <button
             onClick={onDismiss}
             className="text-white/30 hover:text-white/60 transition-colors cursor-pointer flex-shrink-0"
-            aria-label="Sluiten"
+            aria-label="Close"
           >
             <CloseIcon className="w-5 h-5" />
           </button>

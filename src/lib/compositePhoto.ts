@@ -1,5 +1,6 @@
 import { IMAGE } from "./config";
 
+// Overlay images are cached across captures to avoid re-fetching on every photo.
 const imageCache = new Map<string, HTMLImageElement>();
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -23,11 +24,17 @@ interface CompositeResult {
   galleryDataUrl: string;
 }
 
+// Cap canvas size to prevent mobile browsers from running out of memory on 4K cameras.
 const MAX_PIXELS = 1920 * 1080;
 
 /**
- * Composite a photo by measuring actual DOM overlay positions.
- * The CSS rendering is the single source of truth — no JS replication needed.
+ * Creates a photo by reading overlay positions directly from the DOM.
+ *
+ * Why DOM measurement instead of recalculating positions in JS?
+ * CSS is the single source of truth for overlay placement. By reading
+ * getBoundingClientRect() at capture time, the photo is guaranteed to
+ * match the on-screen preview exactly — regardless of screen size,
+ * orientation, or aspect ratio. No duplication of layout logic needed.
  */
 export async function compositePhoto(
   video: HTMLVideoElement,
@@ -108,8 +115,9 @@ export async function compositePhoto(
       let w = elRect.width * scaleX;
       let h = elRect.height * scaleY;
 
-      // object-fit: contain means the image is smaller than the element box.
-      // Recalculate the actual rendered image rect within the box.
+      // When CSS uses object-fit: contain, the browser renders the image
+      // smaller than the element box. getBoundingClientRect returns the BOX
+      // size, not the image size — so we must recalculate to avoid stretching.
       if (objectFit === "contain" && img.naturalWidth && img.naturalHeight) {
         const imgAspect = img.naturalWidth / img.naturalHeight;
         const boxW = elRect.width;
