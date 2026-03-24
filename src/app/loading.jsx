@@ -2,7 +2,7 @@ export default function Loading() {
   return (
     <div className="w-dvw h-dvh bg-black flex flex-col items-center justify-center">
       <img
-        src="/overlays/logo.svg"
+        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/overlays/logo.svg`}
         alt=""
         className="w-32 h-32 md:w-40 md:h-40 opacity-40 animate-pulse"
         draggable={false}
@@ -19,6 +19,7 @@ export default function Loading() {
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
         <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/50 animate-spin" />
         <p className="text-white/20 text-xs tracking-widest uppercase">Laden...</p>
+        <p className="text-white/10 text-[10px] tracking-wider mt-1">v1.0.1</p>
       </div>
     </div>
   );

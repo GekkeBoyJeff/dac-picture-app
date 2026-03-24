@@ -34,7 +34,7 @@ export function SplashOverlay({ visible }) {
       }`}
     >
       <img
-        src="/overlays/logo.svg"
+        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/overlays/logo.svg`}
         alt=""
         className="w-32 h-32 md:w-40 md:h-40 animate-splash-logo drop-shadow-[0_0_40px_rgba(230,193,137,0.3)]"
         draggable={false}
@@ -47,6 +47,7 @@ export function SplashOverlay({ visible }) {
         <p className="text-white/40 text-sm mt-2 tracking-wide">
           Dutch Anime Community
         </p>
+        <p className="text-white/20 text-[10px] mt-1">v1.0.1</p>
       </div>
 
       <p

@@ -11,6 +11,10 @@ const geistSans = Geist({
 export const viewport = {
   themeColor: "#e6c189",
   colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 /** @type {import('next').Metadata} */
