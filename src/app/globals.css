@@ -15,6 +15,10 @@
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-shutter-pulse: shutter-pulse 2s ease-in-out infinite;
   --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-pop-in: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  --animate-splash-logo: splash-logo 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-splash-text: splash-text 0.5s ease-out backwards;
+  --animate-splash-dots: splash-dots 1.2s ease-in-out infinite;
 }
 
 body {
@@ -81,9 +85,50 @@ body {
   }
 }
 
-@keyframes fade-out {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes splash-logo {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+    filter: blur(8px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes splash-text {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-dots {
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0.2; }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes shutter-pulse {
