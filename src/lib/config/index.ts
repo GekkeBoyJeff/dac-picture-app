@@ -30,4 +30,4 @@ export const LOOK_UP_PROMPT_ENABLED = true;
 export const TOAST_DURATION_MS = 1500;
 
 export const DISCORD_MESSAGE =
-  "📸 New photo from the photobooth! Welcome to the Dutch Anime Community! 🎉\nGo to <#684064008827174930> to verify and join the biggest anime community of the Benelux! 🚀";
+  "📸 Nieuwe foto uit de photobooth! Welkom bij Dutch Anime Community! 🎉\nGa naar <#684064008827174930> om je te laten verifiëren en praat mee met de grootste anime community van de Benelux! 🚀";
