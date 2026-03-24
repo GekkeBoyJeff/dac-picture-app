@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { FullscreenIcon, DownloadIcon, GridIcon, MascotIcon, LayoutIcon, CameraSwitchIcon } from "../icons";
+import { FullscreenIcon, DownloadIcon, GridIcon, MascotIcon, LayoutIcon, CameraSwitchIcon, InfoIcon } from "../icons";
 import { useBooth } from "../BoothContext";
 
 const BTN_CLASS =
@@ -24,6 +24,7 @@ export function ControlBar() {
     devices,
     selectedDeviceId,
     switchCamera,
+    openAbout,
   } = useBooth();
 
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
@@ -100,6 +101,10 @@ export function ControlBar() {
         aria-label="Fullscreen"
       >
         <FullscreenIcon className="w-5 h-5 text-white/70" />
+      </button>
+
+      <button onClick={openAbout} className={BTN_CLASS} aria-label="About">
+        <InfoIcon className="w-5 h-5 text-white/70" />
       </button>
     </div>
   );

@@ -8,6 +8,7 @@ import { MascotPicker } from "./MascotPicker";
 import { LayoutPicker } from "./LayoutPicker";
 import { SplashOverlay } from "./SplashOverlay";
 import { StatusOverlay } from "./StatusOverlay";
+import { AboutDrawer } from "./AboutDrawer";
 import { useBooth } from "../BoothContext";
 
 const RECALIBRATE_MESSAGES = [
@@ -34,6 +35,7 @@ export function CameraView() {
     activeGesture,
     showMascotPicker,
     showLayoutPicker,
+    showAbout,
   } = useBooth();
 
   return (
@@ -68,6 +70,7 @@ export function CameraView() {
 
         {showMascotPicker && <MascotPicker />}
         {showLayoutPicker && <LayoutPicker />}
+        {showAbout && <AboutDrawer />}
       </div>
     </main>
   );

@@ -24,6 +24,7 @@ export function PhotoBooth() {
   const [showGallery, setShowGallery] = useState(false);
   const [showMascotPicker, setShowMascotPicker] = useState(false);
   const [showLayoutPicker, setShowLayoutPicker] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const containerRef = useRef(null);
   const [splashDone, setSplashDone] = useState(false);
 
@@ -55,6 +56,8 @@ export function PhotoBooth() {
   const closeMascotPicker = useCallback(() => setShowMascotPicker(false), []);
   const openLayoutPicker = useCallback(() => setShowLayoutPicker(true), []);
   const closeLayoutPicker = useCallback(() => setShowLayoutPicker(false), []);
+  const openAbout = useCallback(() => setShowAbout(true), []);
+  const closeAbout = useCallback(() => setShowAbout(false), []);
   const clearFlash = useCallback(() => setShowFlash(false), []);
 
   const handlePeaceSign = useCallback(() => {
@@ -152,6 +155,9 @@ export function PhotoBooth() {
     closeMascotPicker,
     openLayoutPicker,
     closeLayoutPicker,
+    showAbout,
+    openAbout,
+    closeAbout,
   }), [
     isReady, splashDone, isRecalibrating, isSwitching, isMirrored,
     devices, selectedDeviceId, switchCamera, handleCapture, appState,
@@ -159,6 +165,7 @@ export function PhotoBooth() {
     layout, mascot, activeConvention, setLayoutId, setMascotId,
     showMascotPicker, showLayoutPicker, openMascotPicker, closeMascotPicker,
     openLayoutPicker, closeLayoutPicker,
+    showAbout, openAbout, closeAbout,
   ]);
 
   if (error) {
