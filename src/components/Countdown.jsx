@@ -1,28 +1,28 @@
-"use client";
+"use client"
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react"
 
 export function Countdown({ seconds, onComplete, showLookUp = false }) {
-  const [count, setCount] = useState(seconds);
-  const firedRef = useRef(false);
+  const [count, setCount] = useState(seconds)
+  const firedRef = useRef(false)
 
   useEffect(() => {
     if (count <= 0) {
       if (!firedRef.current) {
-        firedRef.current = true;
-        onComplete();
+        firedRef.current = true
+        onComplete()
       }
-      return;
+      return
     }
 
     const timer = setTimeout(() => {
-      setCount((c) => c - 1);
-    }, 1000);
+      setCount((c) => c - 1)
+    }, 1000)
 
-    return () => clearTimeout(timer);
-  }, [count, onComplete]);
+    return () => clearTimeout(timer)
+  }, [count, onComplete])
 
-  if (count <= 0) return null;
+  if (count <= 0) return null
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center pointer-events-none">
@@ -43,5 +43,5 @@ export function Countdown({ seconds, onComplete, showLookUp = false }) {
         </span>
       </div>
     </div>
-  );
+  )
 }

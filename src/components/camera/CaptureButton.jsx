@@ -1,7 +1,7 @@
-import { useBooth } from "../BoothContext";
+import { useCameraContext } from "@/context"
 
 export function CaptureButton() {
-  const { onCapture, disabled } = useBooth();
+  const { onCapture, disabled } = useCameraContext()
 
   return (
     <button
@@ -18,5 +18,5 @@ export function CaptureButton() {
         <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white group-hover:bg-white/90 transition-colors" />
       </div>
     </button>
-  );
+  )
 }

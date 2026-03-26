@@ -1,41 +1,31 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { pickRandom } from "@/lib/random";
+import Image from "next/image"
+import { useMemo } from "react"
+import { assetPath } from "@/lib/config/basePath"
 
 const TIPS = [
   "Maak een peace-teken om de timer te starten",
   "Swipe door layouts voor de perfecte look",
   "Foto's worden automatisch naar Discord gestuurd",
   "Probeer de verschillende mascots!",
-];
+]
 
 export function SplashOverlay({ visible }) {
-  const [tipIndex, setTipIndex] = useState(0);
-  const [shouldRender, setShouldRender] = useState(true);
-
-  useEffect(() => {
-    setTipIndex(TIPS.indexOf(pickRandom(TIPS)));
-  }, []);
-
-  useEffect(() => {
-    if (!visible) {
-      const timer = setTimeout(() => setShouldRender(false), 600);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
-  if (!shouldRender) return null;
+  // Deterministic tip to avoid SSR/CSR hydration mismatches
+  const tipIndex = useMemo(() => 0, [])
 
   return (
     <div
-      className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black transition-opacity duration-600 ${
-        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+      className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black transition-opacity duration-600 pointer-events-none ${
+        visible ? "opacity-100" : "opacity-0"
       }`}
     >
-      <img
-        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/overlays/logo.svg`}
+      <Image
+        src={assetPath("/overlays/logo.svg")}
         alt=""
+        width={160}
+        height={160}
         className="w-32 h-32 md:w-40 md:h-40 animate-splash-logo drop-shadow-[0_0_40px_rgba(230,193,137,0.3)]"
         draggable={false}
       />
@@ -70,5 +60,5 @@ export function SplashOverlay({ visible }) {
         ))}
       </div>
     </div>
-  );
+  )
 }

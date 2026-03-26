@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react"
 
 // Animation duration kept in sync with CSS transition
-const ANIM_MS = 250;
+const ANIM_MS = 250
 
 /**
  * Reusable bottom drawer — slides up from the bottom with a backdrop.
  * Closes on: backdrop tap, handle bar, Escape key.
  */
 export function BottomDrawer({ title, onClose, children, fullHeight = false, closeOnSelect = false }) {
-  const [closing, setClosing] = useState(false);
-  const timerRef = useRef(null);
+  const [closing, setClosing] = useState(false)
+  const timerRef = useRef(null)
 
   useEffect(() => {
-    return () => clearTimeout(timerRef.current);
-  }, []);
+    return () => clearTimeout(timerRef.current)
+  }, [])
 
   const handleClose = useCallback(() => {
-    if (closing) return;
-    setClosing(true);
-    timerRef.current = setTimeout(onClose, ANIM_MS);
-  }, [onClose, closing]);
+    if (closing) return
+    setClosing(true)
+    timerRef.current = setTimeout(onClose, ANIM_MS)
+  }, [onClose, closing])
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") handleClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleClose]);
+    const handler = (e) => { if (e.key === "Escape") handleClose() }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [handleClose])
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={handleClose}>
@@ -64,5 +64,5 @@ export function BottomDrawer({ title, onClose, children, fullHeight = false, clo
         </div>
       </div>
     </div>
-  );
+  )
 }

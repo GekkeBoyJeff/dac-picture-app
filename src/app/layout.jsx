@@ -1,11 +1,12 @@
-import { Geist } from "next/font/google";
-import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
-import "./globals.css";
+import { Geist } from "next/font/google"
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar"
+import { assetPath } from "@/lib/config/basePath"
+import "./globals.css"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
 
 /** @type {import('next').Viewport} */
 export const viewport = {
@@ -15,15 +16,16 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-};
+}
 
 /** @type {import('next').Metadata} */
 export const metadata = {
   title: "DAC Photo Booth",
   description: "Take a photo and share it on Discord!",
-  manifest: "./manifest.json",
+  manifest: assetPath("/manifest.json"),
   icons: {
-    apple: "/overlays/logo.png",
+    icon: assetPath("/overlays/logo.png"),
+    apple: assetPath("/overlays/logo.png"),
   },
   appleWebApp: {
     capable: true,
@@ -33,15 +35,15 @@ export const metadata = {
   other: {
     "mobile-web-app-capable": "yes",
   },
-};
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="nl" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="h-full bg-black text-white overflow-hidden">
-        <ServiceWorkerRegistrar />
-        {children}
-      </body>
-    </html>
-  );
 }
+
+const RootLayout = ({ children }) => (
+  <html lang="nl" className={`${geistSans.variable} h-full antialiased`}>
+    <body className="h-full bg-black text-white overflow-hidden">
+      <ServiceWorkerRegistrar />
+      {children}
+    </body>
+  </html>
+)
+
+export default RootLayout

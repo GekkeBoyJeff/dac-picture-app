@@ -1,37 +1,71 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useCamera } from "@/hooks/useCamera";
-import { useGallery } from "@/hooks/useGallery";
-import { useInstallPrompt } from "@/hooks/useInstallPrompt";
-import { useToast } from "@/hooks/useToast";
-import { useHandGesture } from "@/hooks/useHandGesture";
-import { useOverlaySettings } from "@/hooks/useOverlaySettings";
-import { compositePhoto } from "@/lib/compositePhoto";
-import { sendToDiscord } from "@/lib/sendToDiscord";
-import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config";
-import { CameraView } from "./camera";
-import { BoothProvider } from "./BoothContext";
-import { WarningIcon } from "./icons";
-import { Countdown } from "./Countdown";
-import { FlashEffect } from "./FlashEffect";
-import { Gallery } from "./Gallery";
-import { InstallBanner } from "./InstallBanner";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useCamera } from "@/hooks/useCamera"
+import { useGallery } from "@/hooks/useGallery"
+import { useInstallPrompt } from "@/hooks/useInstallPrompt"
+import { useToast } from "@/hooks/useToast"
+import { useHandGesture } from "@/hooks/useHandGesture"
+import { useOverlaySettings } from "@/hooks/useOverlaySettings"
+import { useModalState } from "@/hooks/useModalState"
+import { useSendQueue } from "@/hooks/useSendQueue"
+import { compositePhoto } from "@/lib/compositePhoto"
+import { STORAGE_KEYS, readStorage, writeStorage } from "@/lib/storage/localStorage"
+import { BUTTON_STYLES } from "@/lib/styles/buttons"
+import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config"
+import { validateConfigShapes } from "@/lib/config/validate"
+import { CameraProvider, OverlayProvider, ModalProvider, UIProvider } from "@/context"
+import { CameraView } from "./camera"
+import { WarningIcon } from "./icons"
+import { Countdown } from "./Countdown"
+import { FlashEffect } from "./FlashEffect"
+import { Gallery } from "./Gallery"
+import { InstallBanner } from "./InstallBanner"
+
+const clampInterval = (value) => Math.min(1200, Math.max(0, Number(value) || 0))
+const clampTrigger = (value) => Math.min(1, Math.max(0, Number(value) || 0))
+const DEFAULT_DEBUG_ENABLED = false
+const DEFAULT_GESTURES_ENABLED = true
+const DEFAULT_DETECTION_INTERVAL = 120
+const DEFAULT_TRIGGER_MIN_SCORE = 0.35
 
 export function PhotoBooth() {
-  const [appState, setAppState] = useState("camera");
-  const [showFlash, setShowFlash] = useState(false);
-  const [showGallery, setShowGallery] = useState(false);
-  const [showMascotPicker, setShowMascotPicker] = useState(false);
-  const [showLayoutPicker, setShowLayoutPicker] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
-  const containerRef = useRef(null);
-  const [splashDone, setSplashDone] = useState(false);
+  const [appState, setAppState] = useState("camera")
+  const [showFlash, setShowFlash] = useState(false)
+  const [debugEnabled, setDebugEnabled] = useState(DEFAULT_DEBUG_ENABLED)
+  const [gesturesEnabled, setGesturesEnabled] = useState(DEFAULT_GESTURES_ENABLED)
+  const [detectionIntervalMs, setDetectionIntervalMs] = useState(DEFAULT_DETECTION_INTERVAL)
+  const [triggerMinScore, setTriggerMinScore] = useState(DEFAULT_TRIGGER_MIN_SCORE)
+  const { modals, openModal, closeModal } = useModalState({
+    gallery: false,
+    mascotPicker: false,
+    layoutPicker: false,
+    about: false,
+    settings: false,
+  })
+  const containerRef = useRef(null)
+  const [splashDone, setSplashDone] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setSplashDone(true), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = setTimeout(() => setSplashDone(true), 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    const storedDebug = readStorage(STORAGE_KEYS.UI_DEBUG, String(DEFAULT_DEBUG_ENABLED)) === "true"
+    const storedGestures = readStorage(STORAGE_KEYS.UI_GESTURES, String(DEFAULT_GESTURES_ENABLED)) !== "false"
+    const storedInterval = clampInterval(readStorage(STORAGE_KEYS.UI_DETECTION_INTERVAL, String(DEFAULT_DETECTION_INTERVAL)))
+    const storedTrigger = clampTrigger(readStorage(STORAGE_KEYS.UI_TRIGGER_MIN_SCORE, String(DEFAULT_TRIGGER_MIN_SCORE)))
+
+    setDebugEnabled(storedDebug)
+    setGesturesEnabled(storedGestures)
+    setDetectionIntervalMs(storedInterval)
+    setTriggerMinScore(storedTrigger)
+  }, [])
+
+  useEffect(() => {
+    validateConfigShapes()
+  }, [])
 
   const {
     videoRef,
@@ -44,89 +78,143 @@ export function PhotoBooth() {
     isMirrored,
     startCamera,
     switchCamera,
-  } = useCamera();
-  const { photos, addPhoto, removePhoto } = useGallery();
-  const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt();
-  const toast = useToast();
-  const { layout, mascot, activeConvention, setLayoutId, setMascotId } = useOverlaySettings();
+  } = useCamera()
+  const { photos, addPhoto, removePhoto } = useGallery()
+  const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt()
+  const toast = useToast()
+  const { layout, mascot, activeConvention, setLayoutId, setMascotId } = useOverlaySettings()
+  const { sendWithQueue, isImmediateSending, failedCount, pendingCount } = useSendQueue()
+  const failedToastRef = useRef(failedCount)
 
-  const openGallery = useCallback(() => setShowGallery(true), []);
-  const closeGallery = useCallback(() => setShowGallery(false), []);
-  const openMascotPicker = useCallback(() => setShowMascotPicker(true), []);
-  const closeMascotPicker = useCallback(() => setShowMascotPicker(false), []);
-  const openLayoutPicker = useCallback(() => setShowLayoutPicker(true), []);
-  const closeLayoutPicker = useCallback(() => setShowLayoutPicker(false), []);
-  const openAbout = useCallback(() => setShowAbout(true), []);
-  const closeAbout = useCallback(() => setShowAbout(false), []);
-  const clearFlash = useCallback(() => setShowFlash(false), []);
+  const toggleDebug = useCallback(() => {
+    setDebugEnabled((prev) => {
+      const next = !prev
+      writeStorage(STORAGE_KEYS.UI_DEBUG, String(next))
+      return next
+    })
+  }, [])
+
+  const toggleGestures = useCallback(() => {
+    setGesturesEnabled((prev) => {
+      const next = !prev
+      writeStorage(STORAGE_KEYS.UI_GESTURES, String(next))
+      return next
+    })
+  }, [])
+
+  const setDetectionInterval = useCallback((value) => {
+    const clamped = clampInterval(value)
+    setDetectionIntervalMs(clamped)
+    writeStorage(STORAGE_KEYS.UI_DETECTION_INTERVAL, String(clamped))
+  }, [])
+
+  const setTriggerScore = useCallback((value) => {
+    const clamped = clampTrigger(value)
+    setTriggerMinScore(clamped)
+    writeStorage(STORAGE_KEYS.UI_TRIGGER_MIN_SCORE, String(clamped))
+  }, [])
+
+  const openGallery = useCallback(() => openModal("gallery"), [openModal])
+  const closeGallery = useCallback(() => closeModal("gallery"), [closeModal])
+  const openMascotPicker = useCallback(() => openModal("mascotPicker"), [openModal])
+  const closeMascotPicker = useCallback(() => closeModal("mascotPicker"), [closeModal])
+  const openLayoutPicker = useCallback(() => openModal("layoutPicker"), [openModal])
+  const closeLayoutPicker = useCallback(() => closeModal("layoutPicker"), [closeModal])
+  const openAbout = useCallback(() => openModal("about"), [openModal])
+  const closeAbout = useCallback(() => closeModal("about"), [closeModal])
+  const openSettings = useCallback(() => openModal("settings"), [openModal])
+  const closeSettings = useCallback(() => closeModal("settings"), [closeModal])
+  const clearFlash = useCallback(() => setShowFlash(false), [])
 
   const handlePeaceSign = useCallback(() => {
     if (appState === "camera" && isReady) {
-      setAppState("countdown");
+      setAppState("countdown")
     }
-  }, [appState, isReady]);
+  }, [appState, isReady])
 
   const gestureCallbacks = useMemo(() => ({
     onVictory: handlePeaceSign,
-  }), [handlePeaceSign]);
+  }), [handlePeaceSign])
 
-  const { activeGesture } = useHandGesture(
+  const gesturesEnabledForTracking = appState === "camera" && isReady && (gesturesEnabled || debugEnabled)
+  const gestureActionsEnabled = appState === "camera" && isReady && gesturesEnabled
+
+  const { activeGesture, handBoxes, gestureBoxes } = useHandGesture(
     videoRef,
-    appState === "camera" && isReady,
-    gestureCallbacks
-  );
+    gesturesEnabledForTracking,
+    gestureCallbacks,
+    isMirrored,
+    detectionIntervalMs,
+    triggerMinScore,
+    gestureActionsEnabled
+  )
 
   useEffect(() => {
-    startCamera();
-  }, [startCamera]);
+    startCamera()
+  }, [startCamera])
+
+  useEffect(() => {
+    if (failedCount > failedToastRef.current) {
+      toast.show("Verzenden naar Discord mislukt, probeer opnieuw vanaf de wachtrij")
+    }
+    failedToastRef.current = failedCount
+  }, [failedCount, toast])
 
   const handleCapture = useCallback(() => {
-    if (!isReady) return;
-    if (appState === "countdown") {
-      setAppState("camera");
-      return;
+    if (!isReady) return
+    if (appState === "camera") {
+      setAppState("countdown")
+      return
     }
-    if (appState !== "camera") return;
-    setAppState("countdown");
-  }, [appState, isReady]);
 
-  const resetTimerRef = useRef(null);
+    if (appState === "countdown") {
+      setAppState("camera")
+    }
+  }, [appState, isReady])
+
+  const resetTimerRef = useRef(null)
 
   useEffect(() => {
-    return () => clearTimeout(resetTimerRef.current);
-  }, []);
+    return () => clearTimeout(resetTimerRef.current)
+  }, [])
 
   const handleCountdownComplete = useCallback(async () => {
-    setAppState("capturing");
-    setShowFlash(true);
+    setAppState("capturing")
+    setShowFlash(true)
 
     try {
-      const video = videoRef.current;
-      if (!video) throw new Error("Video element not available");
+      const video = videoRef.current
+      if (!video) throw new Error("Video element not available")
 
-      const container = containerRef.current;
-      if (!container) throw new Error("Container element not available");
+      const container = containerRef.current
+      if (!container) throw new Error("Container element not available")
 
       const { exportBlob, galleryDataUrl } = await compositePhoto(
         video,
         container,
         isMirrored
-      );
+      )
 
-      addPhoto(galleryDataUrl);
-      setAppState("sending");
+      addPhoto(galleryDataUrl)
+      setAppState("sending")
 
-      const success = await sendToDiscord(exportBlob);
-      toast.show(success ? "Verzonden!" : "Verzenden naar Discord mislukt");
+      const result = await sendWithQueue(exportBlob, galleryDataUrl)
+      if (result.success) {
+        toast.show("Verzonden!")
+      } else if (result.queued) {
+        toast.show("Verzenden mislukt, probeer opnieuw...")
+      } else {
+        toast.show("Verzenden naar Discord mislukt")
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Er ging iets mis";
-      toast.show(message);
+      const message = err instanceof Error ? err.message : "Er ging iets mis"
+      toast.show(message)
     } finally {
-      resetTimerRef.current = setTimeout(() => setAppState("camera"), 1500);
+      resetTimerRef.current = setTimeout(() => setAppState("camera"), 1500)
     }
-  }, [videoRef, addPhoto, toast, isMirrored]);
+  }, [videoRef, addPhoto, toast, isMirrored, sendWithQueue])
 
-  const boothContext = useMemo(() => ({
+  const cameraContextValue = useMemo(() => ({
     videoRef,
     containerRef,
     isReady,
@@ -139,34 +227,58 @@ export function PhotoBooth() {
     switchCamera,
     onCapture: handleCapture,
     disabled: appState !== "camera" && appState !== "countdown",
-    galleryCount: photos.length,
-    openGallery,
-    canInstall,
-    onInstall: promptInstall,
     activeGesture,
+    handBoxes,
+    gestureBoxes,
+  }), [
+    videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored,
+    devices, selectedDeviceId, switchCamera, handleCapture, appState, activeGesture, handBoxes,
+    gestureBoxes,
+  ])
+
+  const overlayContextValue = useMemo(() => ({
     layout,
     mascot,
     activeConvention,
     setLayoutId,
     setMascotId,
-    showMascotPicker,
-    showLayoutPicker,
+  }), [layout, mascot, activeConvention, setLayoutId, setMascotId])
+
+  const modalContextValue = useMemo(() => ({
+    showMascotPicker: modals.mascotPicker,
+    showLayoutPicker: modals.layoutPicker,
     openMascotPicker,
     closeMascotPicker,
     openLayoutPicker,
     closeLayoutPicker,
-    showAbout,
+    showAbout: modals.about,
     openAbout,
     closeAbout,
+    showSettings: modals.settings,
+    openSettings,
+    closeSettings,
   }), [
-    isReady, splashDone, isRecalibrating, isSwitching, isMirrored,
-    devices, selectedDeviceId, switchCamera, handleCapture, appState,
-    photos.length, openGallery, canInstall, promptInstall, activeGesture,
-    layout, mascot, activeConvention, setLayoutId, setMascotId,
-    showMascotPicker, showLayoutPicker, openMascotPicker, closeMascotPicker,
+    modals.mascotPicker, modals.layoutPicker,
+    openMascotPicker, closeMascotPicker,
     openLayoutPicker, closeLayoutPicker,
-    showAbout, openAbout, closeAbout,
-  ]);
+    modals.about, openAbout, closeAbout,
+    modals.settings, openSettings, closeSettings,
+  ])
+
+  const uiContextValue = useMemo(() => ({
+    galleryCount: photos.length,
+    openGallery,
+    canInstall,
+    onInstall: promptInstall,
+    debugEnabled,
+    toggleDebug,
+    gesturesEnabled,
+    toggleGestures,
+    detectionIntervalMs,
+    setDetectionInterval,
+    triggerMinScore,
+    setTriggerMinScore: setTriggerScore,
+  }), [photos.length, openGallery, canInstall, promptInstall, debugEnabled, detectionIntervalMs, triggerMinScore, gesturesEnabled, toggleDebug, toggleGestures, setDetectionInterval, setTriggerScore])
 
   if (error) {
     return (
@@ -178,7 +290,7 @@ export function PhotoBooth() {
           <p className="text-white/80 text-lg mb-4">{error}</p>
           <button
             onClick={() => startCamera()}
-            className="px-6 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
+            className={BUTTON_STYLES.primary}
           >
             Opnieuw proberen
           </button>
@@ -205,43 +317,65 @@ export function PhotoBooth() {
           )}
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <BoothProvider value={boothContext}>
-      <CameraView />
+    <CameraProvider value={cameraContextValue}>
+      <OverlayProvider value={overlayContextValue}>
+        <ModalProvider value={modalContextValue}>
+          <UIProvider value={uiContextValue}>
+            <CameraView />
 
-      {appState === "countdown" && (
-        <Countdown
-          seconds={COUNTDOWN_SECONDS}
-          onComplete={handleCountdownComplete}
-          showLookUp={LOOK_UP_PROMPT_ENABLED}
-        />
-      )}
+            {appState === "countdown" && (
+              <Countdown
+                seconds={COUNTDOWN_SECONDS}
+                onComplete={handleCountdownComplete}
+                showLookUp={LOOK_UP_PROMPT_ENABLED}
+              />
+            )}
 
-      {showFlash && <FlashEffect onComplete={clearFlash} />}
+            {showFlash && <FlashEffect onComplete={clearFlash} />}
 
-      {toast.message && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">
-          {toast.message}
-        </div>
-      )}
+            {(appState === "sending" || isImmediateSending) && (
+              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300">
+                <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-black/80 border border-white/10">
+                  <span className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
+                  <p className="text-white/80 text-sm font-medium">Foto versturen...</p>
+                </div>
+              </div>
+            )}
 
-      <Gallery
-        photos={photos}
-        isOpen={showGallery}
-        onClose={closeGallery}
-        onRemove={removePhoto}
-      />
+            {toast.message && (
+              <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">
+                {toast.message}
+              </div>
+            )}
 
-      {showBanner && (
-        <InstallBanner
-          isIOS={isIOS}
-          onInstall={promptInstall}
-          onDismiss={dismissBanner}
-        />
-      )}
-    </BoothProvider>
-  );
+            {pendingCount > 5 && (
+              <div className="fixed bottom-6 left-6 z-50 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-400/30 backdrop-blur text-amber-100 text-sm shadow-lg animate-fade-in">
+                <p className="font-semibold">Wachtrij actief ({pendingCount})</p>
+                <p className="text-amber-100/80 text-xs">Foto&apos;s worden verstuurd zodra er verbinding is.</p>
+              </div>
+            )}
+
+            <Gallery
+              photos={photos}
+              isOpen={modals.gallery}
+              onClose={closeGallery}
+              onRemove={removePhoto}
+            />
+
+            {showBanner && (
+              <InstallBanner
+                isIOS={isIOS}
+                onInstall={promptInstall}
+                onDismiss={dismissBanner}
+              />
+            )}
+          </UIProvider>
+        </ModalProvider>
+      </OverlayProvider>
+    </CameraProvider>
+  )
 }

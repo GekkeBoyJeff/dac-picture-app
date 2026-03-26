@@ -1,31 +1,31 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback } from "react";
-import { GALLERY } from "@/lib/config";
+import { useState, useCallback } from "react"
+import { GALLERY } from "@/lib/config"
+import { readJsonStorage, writeJsonStorage, removeStorage } from "@/lib/storage/localStorage"
 
 export function useGallery() {
-  const [photos, setPhotos] = useState([]);
-
-  // Hydrate from localStorage on mount, migrating old string-only format
-  useEffect(() => {
+  // Lazy init: read and migrate photos from storage
+  const [photos, setPhotos] = useState(() => {
     try {
-      const stored = localStorage.getItem(GALLERY.STORAGE_KEY);
-      if (!stored) return;
+      const stored = readJsonStorage(GALLERY.STORAGE_KEY)
+      if (!Array.isArray(stored)) {
+        removeStorage(GALLERY.STORAGE_KEY)
+        return []
+      }
 
-      const parsed = JSON.parse(stored);
-      const migrated = parsed.map((item, i) => {
+      return stored.map((item, i) => {
+        // Migrate old string-only format to new object format
         if (typeof item === "string") {
-          return { id: `migrated-${i}-${Date.now()}`, dataUrl: item, createdAt: 0 };
+          return { id: `migrated-${i}-${Date.now()}`, dataUrl: item, createdAt: 0 }
         }
-        return item;
-      });
-
-      setPhotos(migrated);
-      localStorage.setItem(GALLERY.STORAGE_KEY, JSON.stringify(migrated));
+        return item
+      })
     } catch {
-      localStorage.removeItem(GALLERY.STORAGE_KEY);
+      removeStorage(GALLERY.STORAGE_KEY)
+      return []
     }
-  }, []);
+  })
 
   const addPhoto = useCallback((dataUrl) => {
     setPhotos((prev) => {
@@ -33,24 +33,20 @@ export function useGallery() {
         id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         dataUrl,
         createdAt: Date.now(),
-      };
-      const updated = [entry, ...prev].slice(0, GALLERY.MAX_PHOTOS);
-      try {
-        localStorage.setItem(GALLERY.STORAGE_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  }, []);
+      }
+      const updated = [entry, ...prev].slice(0, GALLERY.MAX_PHOTOS)
+      writeJsonStorage(GALLERY.STORAGE_KEY, updated)
+      return updated
+    })
+  }, [])
 
   const removePhoto = useCallback((id) => {
     setPhotos((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
-      try {
-        localStorage.setItem(GALLERY.STORAGE_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  }, []);
+      const updated = prev.filter((p) => p.id !== id)
+      writeJsonStorage(GALLERY.STORAGE_KEY, updated)
+      return updated
+    })
+  }, [])
 
-  return { photos, addPhoto, removePhoto };
+  return { photos, addPhoto, removePhoto }
 }

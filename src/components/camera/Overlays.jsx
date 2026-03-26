@@ -1,32 +1,33 @@
-"use client";
+"use client"
 
-import { memo, useState, useEffect, useSyncExternalStore } from "react";
-import { CORNERS, LOGO, QR_CODE } from "@/lib/config";
-import { useBooth } from "../BoothContext";
+/* eslint-disable @next/next/no-img-element -- Native img is required for precise overlay DOM measurement used by compositePhoto. */
+import { memo, useSyncExternalStore } from "react"
+import { CORNERS, LOGO, QR_CODE } from "@/lib/config"
+import { useOverlayContext } from "@/context"
 
 // Uses shortest screen dimension so a phone in landscape still gets "sm" sizing.
 function getBreakpoint() {
-  if (typeof document === "undefined") return "lg";
+  if (typeof document === "undefined") return "lg"
   const minDim = Math.min(
     document.documentElement.clientWidth,
     document.documentElement.clientHeight,
-  );
-  if (minDim >= 1024) return "lg";
-  if (minDim >= 600) return "md";
-  return "sm";
+  )
+  if (minDim >= 1024) return "lg"
+  if (minDim >= 600) return "md"
+  return "sm"
 }
 
 function subscribe(cb) {
-  window.addEventListener("resize", cb);
-  return () => window.removeEventListener("resize", cb);
+  window.addEventListener("resize", cb)
+  return () => window.removeEventListener("resize", cb)
 }
 
 function useBreakpoint() {
-  return useSyncExternalStore(subscribe, getBreakpoint, () => "lg");
+  return useSyncExternalStore(subscribe, getBreakpoint, () => "lg")
 }
 
 function rem(v) {
-  return `${v}rem`;
+  return `${v}rem`
 }
 
 /**
@@ -35,70 +36,66 @@ function rem(v) {
  */
 function positionStyle(position, inset, size, opts) {
   if (position === "full") {
-    return { position: "absolute", inset: 0, width: "100%", height: "100%" };
+    return { position: "absolute", inset: 0, width: "100%", height: "100%" }
   }
 
-  const { maxWidth, maxHeight } = size;
+  const { maxWidth, maxHeight } = size
   const style = {
     position: "absolute",
     pointerEvents: "none",
-  };
+  }
 
-  if (opts?.opacity !== undefined) style.opacity = opts.opacity;
+  if (opts?.opacity !== undefined) style.opacity = opts.opacity
 
   // Sizing
   if (opts?.fixedSize) {
-    style.width = rem(maxWidth);
-    style.height = rem(maxHeight);
+    style.width = rem(maxWidth)
+    style.height = rem(maxHeight)
   } else if (maxHeight > maxWidth * 1.5) {
     // Tall images: constrain height first
-    style.maxHeight = rem(maxHeight);
-    style.width = "auto";
-    style.maxWidth = rem(maxWidth);
+    style.maxHeight = rem(maxHeight)
+    style.width = "auto"
+    style.maxWidth = rem(maxWidth)
   } else {
     // Wide/square images: constrain width, auto height
-    style.width = rem(maxWidth);
-    style.height = "auto";
-    style.maxHeight = rem(maxHeight);
-    style.objectFit = "contain";
+    style.width = rem(maxWidth)
+    style.height = "auto"
+    style.maxHeight = rem(maxHeight)
+    style.objectFit = "contain"
   }
 
   // Per-element padding overrides the layout's universal inset when specified
-  const edge = rem(opts?.padding ?? inset);
-  if (position.includes("top")) style.top = edge;
-  if (position.includes("bottom")) style.bottom = edge;
-  if (position.includes("left")) style.left = edge;
-  if (position.includes("right")) style.right = edge;
+  const edge = rem(opts?.padding ?? inset)
+  if (position.includes("top")) style.top = edge
+  if (position.includes("bottom")) style.bottom = edge
+  if (position.includes("left")) style.left = edge
+  if (position.includes("right")) style.right = edge
 
   if (position === "middle-right") {
-    style.right = edge;
-    style.top = "50%";
-    style.transform = "translateY(-50%)";
+    style.right = edge
+    style.top = "50%"
+    style.transform = "translateY(-50%)"
   }
 
-  return style;
+  return style
 }
 
 export const Overlays = memo(function Overlays() {
-  const { layout, mascot, activeConvention } = useBooth();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const bp = useBreakpoint();
+  const { layout, mascot, activeConvention } = useOverlayContext()
+  const bp = useBreakpoint()
 
-  if (!mounted) return null;
-
-  const inset = layout.inset[bp];
-  const logoSize = layout.logo.size[bp];
-  const titleFontSize = layout.title.fontSize[bp];
-  const cornerSize = layout.corners.size[bp];
-  const qrSize = layout.qr.size[bp];
+  const inset = layout.inset[bp]
+  const logoSize = layout.logo.size[bp]
+  const titleFontSize = layout.title.fontSize[bp]
+  const cornerSize = layout.corners.size[bp]
+  const qrSize = layout.qr.size[bp]
 
   // Title aligns next to the logo, vertically centered with it.
   // When the logo is on the right, the title sits to its left instead.
-  const logoInset = layout.logo.padding?.[bp] ?? inset;
-  const titleHeight = titleFontSize * 2.2;
-  const titleTop = logoInset + (logoSize - titleHeight) / 2;
-  const logoOnRight = layout.logo.position.includes("right");
+  const logoInset = layout.logo.padding?.[bp] ?? inset
+  const titleHeight = titleFontSize * 2.2
+  const titleTop = logoInset + (logoSize - titleHeight) / 2
+  const logoOnRight = layout.logo.position.includes("right")
 
   return (
     <>
@@ -110,16 +107,16 @@ export const Overlays = memo(function Overlays() {
 
       {/* Corners — same inset as everything else */}
       {CORNERS.map((c) => {
-        const cornerEdge = layout.corners.padding?.[bp] ?? inset;
-        const style = { width: rem(cornerSize), height: rem(cornerSize) };
-        if (c.position.includes("top")) style.top = rem(cornerEdge);
-        if (c.position.includes("bottom")) style.bottom = rem(cornerEdge);
-        if (c.position.includes("left")) style.left = rem(cornerEdge);
-        if (c.position.includes("right")) style.right = rem(cornerEdge);
+        const cornerEdge = layout.corners.padding?.[bp] ?? inset
+        const style = { width: rem(cornerSize), height: rem(cornerSize) }
+        if (c.position.includes("top")) style.top = rem(cornerEdge)
+        if (c.position.includes("bottom")) style.bottom = rem(cornerEdge)
+        if (c.position.includes("left")) style.left = rem(cornerEdge)
+        if (c.position.includes("right")) style.right = rem(cornerEdge)
         return (
           <img key={c.src} src={c.src} alt="" data-overlay="corner" draggable={false}
             className="absolute pointer-events-none" style={style} />
-        );
+        )
       })}
 
       {/* Logo */}
@@ -180,5 +177,5 @@ export const Overlays = memo(function Overlays() {
         {new Date().toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" })}
       </span>
     </>
-  );
-});
+  )
+})

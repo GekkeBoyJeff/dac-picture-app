@@ -1,6 +1,6 @@
-import { LAYOUTS } from "@/lib/config";
-import { BottomDrawer } from "../BottomDrawer";
-import { useBooth } from "../BoothContext";
+import { LAYOUTS } from "@/lib/config"
+import { useOverlayContext, useModalContext } from "@/context"
+import { PickerDrawer } from "./PickerDrawer"
 
 function LayoutPreview({ layout }) {
   return (
@@ -11,46 +11,45 @@ function LayoutPreview({ layout }) {
       <Block position={layout.convention.position} className="w-7 h-3 rounded-sm bg-red-400/40" />
       <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-white/20" />
     </div>
-  );
+  )
 }
 
 function Block({ position, className }) {
-  const pos = { position: "absolute" };
-  if (position.includes("top")) pos.top = 4;
-  if (position.includes("bottom")) pos.bottom = 4;
-  if (position.includes("left")) pos.left = 4;
-  if (position.includes("right")) pos.right = 4;
+  const pos = { position: "absolute" }
+  if (position.includes("top")) pos.top = 4
+  if (position.includes("bottom")) pos.bottom = 4
+  if (position.includes("left")) pos.left = 4
+  if (position.includes("right")) pos.right = 4
   if (position === "middle-right") {
-    pos.right = 4;
-    pos.top = "50%";
-    pos.transform = "translateY(-50%)";
+    pos.right = 4
+    pos.top = "50%"
+    pos.transform = "translateY(-50%)"
   }
-  return <div className={className} style={pos} />;
+  return <div className={className} style={pos} />
 }
 
 export function LayoutPicker() {
-  const { layout, setLayoutId, closeLayoutPicker } = useBooth();
+  const { layout, setLayoutId } = useOverlayContext()
+  const { closeLayoutPicker } = useModalContext()
 
   return (
-    <BottomDrawer title="Layout" onClose={closeLayoutPicker} closeOnSelect>
-      <div className="flex gap-4 overflow-x-auto pb-2 px-3 scrollbar-none">
-        {LAYOUTS.map((l) => (
-          <button
-            key={l.id}
-            onClick={() => { setLayoutId(l.id); }}
-            className={`shrink-0 flex flex-col items-center gap-2 cursor-pointer transition-all ${
-              l.id === layout.id ? "opacity-100" : "opacity-50 hover:opacity-75"
-            }`}
-          >
-            <div className={`rounded-xl ${
-              l.id === layout.id ? "border-2 border-white" : "border-2 border-transparent"
-            }`}>
-              <LayoutPreview layout={l} />
-            </div>
-            <span className="text-white text-[11px] font-medium">{l.name}</span>
-          </button>
-        ))}
-      </div>
-    </BottomDrawer>
-  );
+    <PickerDrawer
+      title="Layout"
+      onClose={closeLayoutPicker}
+      options={LAYOUTS}
+      selectedId={layout.id}
+      onSelect={setLayoutId}
+      getOptionKey={(item) => item.id}
+      getOptionLabel={(item) => item.name}
+      renderOption={(item, isSelected) => (
+        <div
+          className={`rounded-xl ${
+            isSelected ? "border-2 border-white" : "border-2 border-transparent"
+          }`}
+        >
+          <LayoutPreview layout={item} />
+        </div>
+      )}
+    />
+  )
 }

@@ -1,35 +1,37 @@
-import { MASCOTS } from "@/lib/config";
-import { BottomDrawer } from "../BottomDrawer";
-import { useBooth } from "../BoothContext";
+import Image from "next/image"
+import { MASCOTS } from "@/lib/config"
+import { useOverlayContext, useModalContext } from "@/context"
+import { PickerDrawer } from "./PickerDrawer"
 
 export function MascotPicker() {
-  const { mascot, setMascotId, closeMascotPicker } = useBooth();
+  const { mascot, setMascotId } = useOverlayContext()
+  const { closeMascotPicker } = useModalContext()
 
   return (
-    <BottomDrawer title="Mascot" onClose={closeMascotPicker} closeOnSelect>
-      <div className="flex gap-4 overflow-x-auto pb-2 px-3 scrollbar-none">
-        {MASCOTS.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => { setMascotId(m.id); }}
-            className={`shrink-0 flex flex-col items-center gap-2 cursor-pointer transition-all ${
-              m.id === mascot.id ? "opacity-100" : "opacity-50 hover:opacity-75"
-            }`}
-          >
-            <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${
-              m.id === mascot.id ? "border-white" : "border-transparent"
-            }`}>
-              <img
-                src={m.thumbnail}
-                alt={m.name}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
-            <span className="text-white text-[11px] font-medium">{m.name}</span>
-          </button>
-        ))}
-      </div>
-    </BottomDrawer>
-  );
+    <PickerDrawer
+      title="Mascot"
+      onClose={closeMascotPicker}
+      options={MASCOTS}
+      selectedId={mascot.id}
+      onSelect={setMascotId}
+      getOptionKey={(item) => item.id}
+      getOptionLabel={(item) => item.name}
+      renderOption={(item, isSelected) => (
+        <div
+          className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${
+            isSelected ? "border-white" : "border-transparent"
+          }`}
+        >
+          <Image
+            src={item.thumbnail}
+            alt={item.name}
+            width={80}
+            height={80}
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
+        </div>
+      )}
+    />
+  )
 }

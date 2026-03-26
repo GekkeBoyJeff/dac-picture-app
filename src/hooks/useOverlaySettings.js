@@ -1,38 +1,45 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"
 import {
   LAYOUTS,
   DEFAULT_LAYOUT_ID,
   MASCOTS,
   DEFAULT_MASCOT_ID,
   getActiveConvention,
-} from "@/lib/config";
-
-const LAYOUT_KEY = "overlay-layout";
-const MASCOT_KEY = "overlay-mascot";
+} from "@/lib/config"
+import { STORAGE_KEYS, readStorage, writeStorage } from "@/lib/storage/localStorage"
 
 export function useOverlaySettings() {
-  // SSR-safe: start with defaults, hydrate from localStorage on mount
-  const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
-  const [mascotId, setMascotId] = useState(DEFAULT_MASCOT_ID);
+  const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID)
+
+  const [mascotId, setMascotId] = useState(DEFAULT_MASCOT_ID)
 
   useEffect(() => {
-    setLayoutId(localStorage.getItem(LAYOUT_KEY) || DEFAULT_LAYOUT_ID);
-    setMascotId(localStorage.getItem(MASCOT_KEY) || DEFAULT_MASCOT_ID);
-  }, []);
+    const storedLayout = readStorage(STORAGE_KEYS.OVERLAY_LAYOUT)
+    const storedMascot = readStorage(STORAGE_KEYS.OVERLAY_MASCOT)
 
+    if (!storedLayout && !storedMascot) return
+
+    requestAnimationFrame(() => {
+      if (storedLayout) setLayoutId(storedLayout)
+      if (storedMascot) setMascotId(storedMascot)
+    })
+  }, [])
+
+  // Persist layout changes to storage
   useEffect(() => {
-    localStorage.setItem(LAYOUT_KEY, layoutId);
-  }, [layoutId]);
+    writeStorage(STORAGE_KEYS.OVERLAY_LAYOUT, layoutId)
+  }, [layoutId])
 
+  // Persist mascot changes to storage
   useEffect(() => {
-    localStorage.setItem(MASCOT_KEY, mascotId);
-  }, [mascotId]);
+    writeStorage(STORAGE_KEYS.OVERLAY_MASCOT, mascotId)
+  }, [mascotId])
 
-  const layout = LAYOUTS.find((l) => l.id === layoutId) || LAYOUTS[0];
-  const mascot = MASCOTS.find((m) => m.id === mascotId) || MASCOTS[0];
-  const activeConvention = getActiveConvention();
+  const layout = LAYOUTS.find((l) => l.id === layoutId) || LAYOUTS[0]
+  const mascot = MASCOTS.find((m) => m.id === mascotId) || MASCOTS[0]
+  const activeConvention = getActiveConvention()
 
-  return { layout, mascot, activeConvention, setLayoutId, setMascotId };
+  return { layout, mascot, activeConvention, setLayoutId, setMascotId }
 }

@@ -1,1 +1,10 @@
-export { CameraView } from "./CameraView";
+export { CameraView } from "./CameraView"
+export { CaptureButton } from "./CaptureButton"
+export { ControlBar } from "./ControlBar"
+export { GestureIndicator } from "./GestureIndicator"
+export { Overlays } from "./Overlays"
+export { MascotPicker } from "./MascotPicker"
+export { LayoutPicker } from "./LayoutPicker"
+export { SplashOverlay } from "./SplashOverlay"
+export { StatusOverlay } from "./StatusOverlay"
+export { AboutDrawer } from "./AboutDrawer"

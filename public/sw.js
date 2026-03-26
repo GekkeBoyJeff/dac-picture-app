@@ -1,8 +1,8 @@
-const CACHE_NAME = "dac-photo-booth-v1";
+const CACHE_NAME = "dac-photo-booth-v1"
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
-});
+  self.skipWaiting()
+})
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -13,22 +13,22 @@ self.addEventListener("activate", (event) => {
           .map((name) => caches.delete(name))
       )
     )
-  );
-  self.clients.claim();
-});
+  )
+  self.clients.claim()
+})
 
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
+  const url = new URL(event.request.url)
 
   if (event.request.method !== "GET" || url.pathname.includes("/api/")) {
-    return;
+    return
   }
 
   const isNavigationOrScript =
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".js") ||
     url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".html");
+    url.pathname.endsWith(".html")
 
   if (isNavigationOrScript) {
     // Stale-while-revalidate: serve cached immediately, update in background
@@ -37,15 +37,15 @@ self.addEventListener("fetch", (event) => {
         cache.match(event.request).then((cached) => {
           const fetchPromise = fetch(event.request)
             .then((response) => {
-              if (response.ok) cache.put(event.request, response.clone());
-              return response;
+              if (response.ok) cache.put(event.request, response.clone())
+              return response
             })
-            .catch(() => cached);
-          return cached || fetchPromise;
+            .catch(() => cached)
+          return cached || fetchPromise
         })
       )
-    );
-    return;
+    )
+    return
   }
 
   // Cache-first for static assets (images, fonts, etc.)
@@ -55,14 +55,14 @@ self.addEventListener("fetch", (event) => {
         cached ||
         fetch(event.request).then((response) => {
           if (response.ok) {
-            const clone = response.clone();
+            const clone = response.clone()
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, clone);
-            });
+              cache.put(event.request, clone)
+            })
           }
-          return response;
+          return response
         })
-      );
+      )
     })
-  );
-});
+  )
+})

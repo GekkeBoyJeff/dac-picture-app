@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { DownloadIcon, ShareIcon, CloseIcon } from "./icons";
+import { DownloadIcon, ShareIcon, CloseIcon } from "./icons"
 
 export function InstallBanner({ isIOS, onInstall, onDismiss }) {
   return (
@@ -44,5 +44,5 @@ export function InstallBanner({ isIOS, onInstall, onDismiss }) {
         )}
       </div>
     </div>
-  );
+  )
 }

@@ -1,15 +1,19 @@
-import { BottomDrawer } from "../BottomDrawer";
-import { useBooth } from "../BoothContext";
+import Image from "next/image"
+import { BottomDrawer } from "../BottomDrawer"
+import { useModalContext } from "@/context"
+import { assetPath } from "@/lib/config/basePath"
 
 export function AboutDrawer() {
-  const { closeAbout } = useBooth();
+  const { closeAbout } = useModalContext()
 
   return (
     <BottomDrawer title="Over deze app" onClose={closeAbout}>
       <div className="flex flex-col items-center gap-4 py-4">
-        <img
-          src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/overlays/logo.svg`}
+        <Image
+          src={assetPath("/overlays/logo.svg")}
           alt=""
+          width={64}
+          height={64}
           className="w-16 h-16"
           draggable={false}
         />
@@ -30,5 +34,5 @@ export function AboutDrawer() {
         </p>
       </div>
     </BottomDrawer>
-  );
+  )
 }

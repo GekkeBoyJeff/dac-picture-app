@@ -1,69 +1,84 @@
-import { useState, useCallback } from "react";
-import { FullscreenIcon, DownloadIcon, GridIcon, MascotIcon, LayoutIcon, CameraSwitchIcon, InfoIcon } from "../icons";
-import { useBooth } from "../BoothContext";
+"use client"
 
-const BTN_CLASS =
-  "w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer";
+import { useState, useCallback } from "react"
+import { FullscreenIcon, DownloadIcon, GridIcon, MascotIcon, LayoutIcon, CameraSwitchIcon, SettingsIcon } from "../icons"
+import { BUTTON_STYLES } from "@/lib/styles/buttons"
+import { useCameraContext, useUIContext, useModalContext } from "@/context"
 
 function toggleFullscreen() {
   if (document.fullscreenElement) {
-    document.exitFullscreen();
+    document.exitFullscreen()
   } else {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen().catch(() => {})
   }
 }
 
 export function ControlBar() {
+  const { devices, selectedDeviceId, switchCamera } = useCameraContext()
+  const { openGallery, galleryCount, canInstall, onInstall } = useUIContext()
   const {
-    openGallery,
-    galleryCount,
-    canInstall,
-    onInstall,
     openMascotPicker,
     openLayoutPicker,
-    devices,
-    selectedDeviceId,
-    switchCamera,
-    openAbout,
-  } = useBooth();
+    openSettings,
+  } = useModalContext()
 
-  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false)
 
-  const toggleCameraMenu = useCallback(() => setCameraMenuOpen((v) => !v), []);
+  const toggleCameraMenu = useCallback(() => setCameraMenuOpen((v) => !v), [])
 
   const selectCamera = useCallback((deviceId) => {
-    switchCamera(deviceId);
-    setCameraMenuOpen(false);
-  }, [switchCamera]);
+    switchCamera(deviceId)
+    setCameraMenuOpen(false)
+  }, [switchCamera])
 
   return (
     <div className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 max-lg:landscape:right-auto max-lg:landscape:top-auto max-lg:landscape:translate-y-0 max-lg:landscape:bottom-3 max-lg:landscape:left-1/2 max-lg:landscape:-translate-x-1/2 max-lg:landscape:flex-row z-10">
-      <button onClick={openGallery} className={`relative ${BTN_CLASS}`} aria-label="Gallery">
-        <GridIcon className="w-5 h-5 text-white/70" />
-        {galleryCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/30 backdrop-blur-sm text-white text-[10px] flex items-center justify-center font-medium">
-            {galleryCount}
-          </span>
-        )}
-      </button>
+      <div className="relative group">
+        <button onClick={openGallery} className={`relative ${BUTTON_STYLES.icon}`} aria-label="Gallery">
+          <GridIcon className="w-5 h-5 text-white/70" />
+          {galleryCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/30 backdrop-blur-sm text-white text-[10px] flex items-center justify-center font-medium">
+              {galleryCount}
+            </span>
+          )}
+        </button>
+        <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+          Gallerij openen
+        </span>
+      </div>
 
-      <button onClick={openMascotPicker} className={BTN_CLASS} aria-label="Choose mascot">
-        <MascotIcon className="w-5 h-5 text-white/70" />
-      </button>
+      <div className="relative group">
+        <button onClick={openMascotPicker} className={BUTTON_STYLES.icon} aria-label="Choose mascot">
+          <MascotIcon className="w-5 h-5 text-white/70" />
+        </button>
+        <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+          Mascotte kiezen
+        </span>
+      </div>
 
-      <button onClick={openLayoutPicker} className={BTN_CLASS} aria-label="Choose layout">
-        <LayoutIcon className="w-5 h-5 text-white/70" />
-      </button>
+      <div className="relative group">
+        <button onClick={openLayoutPicker} className={BUTTON_STYLES.icon} aria-label="Choose layout">
+          <LayoutIcon className="w-5 h-5 text-white/70" />
+        </button>
+        <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+          Layout kiezen
+        </span>
+      </div>
 
       {devices.length > 0 && (
         <div className="relative">
-          <button
-            onClick={toggleCameraMenu}
-            className={BTN_CLASS}
-            aria-label="Switch camera"
-          >
-            <CameraSwitchIcon className="w-5 h-5 text-white/70" />
-          </button>
+          <div className="relative group">
+            <button
+              onClick={toggleCameraMenu}
+              className={BUTTON_STYLES.icon}
+              aria-label="Camera wisselen"
+            >
+              <CameraSwitchIcon className="w-6 h-6 text-white/70" />
+            </button>
+            <span className="pointer-events-none absolute -left-[10.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+              Camera wisselen
+            </span>
+          </div>
 
           <div
             className={`absolute right-12 top-0 max-lg:landscape:right-auto max-lg:landscape:left-0 max-lg:landscape:top-auto max-lg:landscape:bottom-12 min-w-48 rounded-xl bg-black/90 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden transition-all duration-200 origin-right max-lg:landscape:origin-bottom ${
@@ -90,22 +105,37 @@ export function ControlBar() {
       )}
 
       {canInstall && (
-        <button onClick={onInstall} className={BTN_CLASS} aria-label="Install app">
-          <DownloadIcon className="w-5 h-5 text-white/70" />
-        </button>
+        <div className="relative group">
+          <button onClick={onInstall} className={BUTTON_STYLES.icon} aria-label="Install app">
+            <DownloadIcon className="w-5 h-5 text-white/70" />
+          </button>
+          <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+            App installeren
+          </span>
+        </div>
       )}
 
-      <button
-        onClick={toggleFullscreen}
-        className={`${BTN_CLASS} hidden md:flex`}
-        aria-label="Fullscreen"
-      >
-        <FullscreenIcon className="w-5 h-5 text-white/70" />
-      </button>
+      <div className="relative group hidden md:block">
+        <button
+          onClick={toggleFullscreen}
+          className={`${BUTTON_STYLES.icon} hidden md:flex`}
+          aria-label="Fullscreen"
+        >
+          <FullscreenIcon className="w-5 h-5 text-white/70" />
+        </button>
+        <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0">
+          Fullscreen
+        </span>
+      </div>
 
-      <button onClick={openAbout} className={BTN_CLASS} aria-label="About">
-        <InfoIcon className="w-5 h-5 text-white/70" />
-      </button>
+      <div className="relative group">
+        <button onClick={openSettings} className={BUTTON_STYLES.icon} aria-label="Instellingen">
+          <SettingsIcon className="w-5 h-5 text-white/70" />
+        </button>
+        <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">
+          Instellingen
+        </span>
+      </div>
     </div>
-  );
+  )
 }

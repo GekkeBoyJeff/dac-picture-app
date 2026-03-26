@@ -1,48 +1,48 @@
-"use client";
+"use client"
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react"
 
 export function useCamera() {
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState(null);
-  const [devices, setDevices] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
-  const [isMirrored, setIsMirrored] = useState(true);
-  const [isRecalibrating, setIsRecalibrating] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+  const [isReady, setIsReady] = useState(false)
+  const [error, setError] = useState(null)
+  const [devices, setDevices] = useState([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null)
+  const [isMirrored, setIsMirrored] = useState(true)
+  const [isRecalibrating, setIsRecalibrating] = useState(false)
+  const [isSwitching, setIsSwitching] = useState(false)
 
   const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setIsReady(false);
-  }, []);
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+    setIsReady(false)
+  }, [])
 
   const enumerateDevices = useCallback(async () => {
     try {
-      const allDevices = await navigator.mediaDevices.enumerateDevices();
+      const allDevices = await navigator.mediaDevices.enumerateDevices()
       const videoDevices = allDevices
         .filter((d) => d.kind === "videoinput")
         .map((d) => ({
           deviceId: d.deviceId,
           label: d.label || `Camera ${d.deviceId.slice(0, 6)}`,
-        }));
-      setDevices(videoDevices);
-      return videoDevices;
+        }))
+      setDevices(videoDevices)
+      return videoDevices
     } catch {
-      return [];
+      return []
     }
-  }, []);
+  }, [])
 
   const startCamera = useCallback(
     async (deviceId) => {
       try {
-        setError(null);
-        stopCamera();
+        setError(null)
+        stopCamera()
 
-        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-        const isPortrait = window.innerHeight > window.innerWidth;
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+        const isPortrait = window.innerHeight > window.innerWidth
         const constraints = {
           video: {
             ...(deviceId
@@ -62,113 +62,113 @@ export function useCamera() {
                   aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
                 }),
           },
-        };
+        }
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamRef.current = stream;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        streamRef.current = stream
 
-        const track = stream.getVideoTracks()[0];
-        const settings = track?.getSettings();
-        const activeDeviceId = settings?.deviceId ?? deviceId ?? null;
-        setSelectedDeviceId(activeDeviceId);
+        const track = stream.getVideoTracks()[0]
+        const settings = track?.getSettings()
+        const activeDeviceId = settings?.deviceId ?? deviceId ?? null
+        setSelectedDeviceId(activeDeviceId)
 
-        const facingMode = settings?.facingMode;
-        const label = track?.label?.toLowerCase() ?? "";
+        const facingMode = settings?.facingMode
+        const label = track?.label?.toLowerCase() ?? ""
         const isExternal =
           label.includes("elgato") ||
           label.includes("logitech") ||
           label.includes("external") ||
           label.includes("usb") ||
-          label.includes("capture");
+          label.includes("capture")
         // External devices and back cameras should not be mirrored
         setIsMirrored(
           facingMode ? facingMode === "user" : !isExternal
-        );
+        )
 
         // Widest zoom angle for group photos; stabilization reduces shake.
         // These properties exist at runtime but are not in all browser specs.
         try {
-          const caps = track?.getCapabilities?.();
-          const advanced = [];
+          const caps = track?.getCapabilities?.()
+          const advanced = []
 
           if (caps?.zoom) {
-            advanced.push({ zoom: caps.zoom.min });
+            advanced.push({ zoom: caps.zoom.min })
           }
 
           if (caps?.imageStabilization?.includes("on")) {
-            advanced.push({ imageStabilization: "on" });
+            advanced.push({ imageStabilization: "on" })
           }
 
           if (advanced.length > 0) {
-            await track.applyConstraints({ advanced });
+            await track.applyConstraints({ advanced })
           }
         } catch {
           // Not all browsers/devices support these capabilities
         }
 
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setIsReady(true);
-          setIsRecalibrating(false);
-          setIsSwitching(false);
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+          setIsReady(true)
+          setIsRecalibrating(false)
+          setIsSwitching(false)
         }
 
-        await enumerateDevices();
+        await enumerateDevices()
       } catch (err) {
         if (err instanceof DOMException) {
           const messages = {
             NotAllowedError:
               "Camera toegang geweigerd. Sta camera toe in je browser.",
             NotFoundError: "Geen camera gevonden op dit apparaat.",
-          };
-          setError(messages[err.name] ?? `Camera fout: ${err.message}`);
+          }
+          setError(messages[err.name] ?? `Camera fout: ${err.message}`)
         } else {
-          setError("Onbekende camera fout.");
+          setError("Onbekende camera fout.")
         }
 
         // Still enumerate devices so the user can pick a different camera
-        await enumerateDevices();
+        await enumerateDevices()
       }
     },
     [stopCamera, enumerateDevices]
-  );
+  )
 
   const switchCamera = useCallback(
     (deviceId) => {
-      setIsSwitching(true);
-      startCamera(deviceId);
+      setIsSwitching(true)
+      startCamera(deviceId)
     },
     [startCamera]
-  );
+  )
 
   // Orientation change requires new constraints and zoom reset
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady) return
 
-    let timeout;
+    let timeout
     const handler = () => {
-      clearTimeout(timeout);
-      setIsRecalibrating(true);
+      clearTimeout(timeout)
+      setIsRecalibrating(true)
       timeout = setTimeout(() => {
-        startCamera(selectedDeviceId);
-      }, 500);
-    };
+        startCamera(selectedDeviceId)
+      }, 500)
+    }
 
-    window.addEventListener("resize", handler);
-    window.addEventListener("orientationchange", handler);
+    window.addEventListener("resize", handler)
+    window.addEventListener("orientationchange", handler)
     return () => {
-      clearTimeout(timeout);
-      window.removeEventListener("resize", handler);
-      window.removeEventListener("orientationchange", handler);
-    };
-  }, [isReady, selectedDeviceId, startCamera]);
+      clearTimeout(timeout)
+      window.removeEventListener("resize", handler)
+      window.removeEventListener("orientationchange", handler)
+    }
+  }, [isReady, selectedDeviceId, startCamera])
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-    };
-  }, []);
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+    }
+  }, [])
 
   return {
     videoRef,
@@ -181,5 +181,5 @@ export function useCamera() {
     isMirrored,
     startCamera,
     switchCamera,
-  };
+  }
 }

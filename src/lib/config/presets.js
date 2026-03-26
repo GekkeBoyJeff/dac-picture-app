@@ -3,7 +3,7 @@
  * @typedef {'top-left'|'top-right'|'bottom-left'|'bottom-right'|'middle-right'|'full'} OverlayPosition
  */
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ""
 
 // --- Conventions ---
 // Each convention has a date range — the app automatically shows
@@ -54,11 +54,11 @@ export const CONVENTIONS = [
       lg: { maxWidth: 24, maxHeight: 17 },
     },
   },
-];
+]
 
 export function getActiveConvention() {
-  const today = new Date().toISOString().slice(0, 10);
-  return CONVENTIONS.find((c) => today >= c.startDate && today <= c.endDate) ?? null;
+  const today = new Date().toISOString().slice(0, 10)
+  return CONVENTIONS.find((c) => today >= c.startDate && today <= c.endDate) ?? null
 }
 
 // --- Mascots ---
@@ -69,9 +69,9 @@ export const MASCOTS = [
   { id: "amelia-beer", name: "Amelia (Beer)", path: `${BASE_PATH}/overlays/mascots/amelia-beer.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer.png` },
   { id: "amelia-hug", name: "Amelia (Hug)", path: `${BASE_PATH}/overlays/mascots/amelia-hug.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-hug.png` },
   { id: "amelia-beer-alt", name: "Amelia (Beer Alt)", path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png` },
-];
+]
 
-export const DEFAULT_MASCOT_ID = "amelia";
+export const DEFAULT_MASCOT_ID = "amelia"
 
 // --- Layout presets ---
 // Single source of truth for all overlay positioning and sizing.
@@ -95,7 +95,7 @@ export const LAYOUTS = [
       sizes: {
         sm: { maxWidth: 5, maxHeight: 15 },
         md: { maxWidth: 10, maxHeight: 22 },
-        lg: { maxWidth: 15, maxHeight: 26 },
+        lg: { maxWidth: 15, maxHeight: 34 },
       },
     },
     convention: { position: "bottom-left", padding: { sm: 0.25, md: 0.5, lg: 0.5 } },
@@ -143,11 +143,11 @@ export const LAYOUTS = [
     mascot: {
       position: "bottom-right",
       opacity: 0.9,
-      padding: { sm: 0, md: 0, lg: 0 },
+      padding: { sm: -10, md: 0, lg: 0 },
       sizes: {
-        sm: { maxWidth: 12, maxHeight: 20 },
-        md: { maxWidth: 18, maxHeight: 28 },
-        lg: { maxWidth: 24, maxHeight: 34 },
+        sm: { maxWidth: 28, maxHeight: 85 },
+        md: { maxWidth: 28, maxHeight: 64 },
+        lg: { maxWidth: 24, maxHeight: 54 },
       },
     },
     convention: { position: "bottom-left", padding: { sm: 0.25, md: 0.5, lg: 0.5 } },
@@ -159,6 +159,6 @@ export const LAYOUTS = [
     },
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
   },
-];
+]
 
-export const DEFAULT_LAYOUT_ID = "classic";
+export const DEFAULT_LAYOUT_ID = "classic"

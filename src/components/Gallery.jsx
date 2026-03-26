@@ -1,24 +1,25 @@
-"use client";
+"use client"
 
-import { useCallback, useState } from "react";
-import { TrashIcon, CloseIcon, CameraEmptyIcon } from "./icons";
-import { BottomDrawer } from "./BottomDrawer";
+/* eslint-disable @next/next/no-img-element -- Data URL previews and lightbox rendering work reliably with native img. */
+import { useCallback, useState } from "react"
+import { TrashIcon, CloseIcon, CameraEmptyIcon } from "./icons"
+import { BottomDrawer } from "./BottomDrawer"
 
 export function Gallery({ photos, isOpen, onClose, onRemove }) {
-  const [lightboxPhoto, setLightboxPhoto] = useState(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null)
 
-  const closeLightbox = useCallback(() => setLightboxPhoto(null), []);
+  const closeLightbox = useCallback(() => setLightboxPhoto(null), [])
 
   const handleDelete = useCallback((e) => {
-    e.stopPropagation();
-    const id = lightboxPhoto?.id;
-    closeLightbox();
-    if (id) onRemove(id);
-  }, [lightboxPhoto, closeLightbox, onRemove]);
+    e.stopPropagation()
+    const id = lightboxPhoto?.id
+    closeLightbox()
+    if (id) onRemove(id)
+  }, [lightboxPhoto, closeLightbox, onRemove])
 
-  const stopPropagation = useCallback((e) => e.stopPropagation(), []);
+  const stopPropagation = useCallback((e) => e.stopPropagation(), [])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <>
@@ -80,5 +81,5 @@ export function Gallery({ photos, isOpen, onClose, onRemove }) {
         </div>
       )}
     </>
-  );
+  )
 }

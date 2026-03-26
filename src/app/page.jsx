@@ -1,5 +1,5 @@
-import { PhotoBooth } from "@/components/PhotoBooth";
+import { PhotoBooth } from "@/components/PhotoBooth"
 
-export default function Home() {
-  return <PhotoBooth />;
-}
+const Home = () => <PhotoBooth />
+
+export default Home
