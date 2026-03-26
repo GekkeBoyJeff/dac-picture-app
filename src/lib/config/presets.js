@@ -93,7 +93,7 @@ export const LAYOUTS = [
       opacity: 0.85,
       padding: { sm: 1, md: 1, lg: 1 },
       sizes: {
-        sm: { maxWidth: 5, maxHeight: 15 },
+        sm: { maxWidth: 15, maxHeight: 25 },
         md: { maxWidth: 10, maxHeight: 22 },
         lg: { maxWidth: 15, maxHeight: 34 },
       },
@@ -145,7 +145,7 @@ export const LAYOUTS = [
       opacity: 0.9,
       padding: { sm: -10, md: 0, lg: 0 },
       sizes: {
-        sm: { maxWidth: 28, maxHeight: 85 },
+        sm: { maxWidth: 24, maxHeight: 75 },
         md: { maxWidth: 28, maxHeight: 64 },
         lg: { maxWidth: 24, maxHeight: 54 },
       },

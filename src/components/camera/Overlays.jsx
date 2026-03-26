@@ -34,6 +34,16 @@ function rem(v) {
  * Positions an element in its corner/edge using the layout's universal inset.
  * Every element gets the same distance from the screen edge — no per-element padding.
  */
+function axisPadding(pad, inset, axis) {
+  if (pad == null) return inset
+  if (typeof pad === "number") return pad
+  if (typeof pad === "object") {
+    if (axis === "x") return pad.x ?? inset
+    if (axis === "y") return pad.y ?? inset
+  }
+  return inset
+}
+
 function positionStyle(position, inset, size, opts) {
   if (position === "full") {
     return { position: "absolute", inset: 0, width: "100%", height: "100%" }
@@ -64,15 +74,20 @@ function positionStyle(position, inset, size, opts) {
     style.objectFit = "contain"
   }
 
-  // Per-element padding overrides the layout's universal inset when specified
-  const edge = rem(opts?.padding ?? inset)
-  if (position.includes("top")) style.top = edge
-  if (position.includes("bottom")) style.bottom = edge
-  if (position.includes("left")) style.left = edge
-  if (position.includes("right")) style.right = edge
+  // Per-element padding overrides the layout's universal inset when specified (supports {x, y})
+  const paddingX = axisPadding(opts?.padding, inset, "x")
+  const paddingY = axisPadding(opts?.padding, inset, "y")
+
+  const edgeX = rem(paddingX)
+  const edgeY = rem(paddingY)
+
+  if (position.includes("top")) style.top = edgeY
+  if (position.includes("bottom")) style.bottom = edgeY
+  if (position.includes("left")) style.left = edgeX
+  if (position.includes("right")) style.right = edgeX
 
   if (position === "middle-right") {
-    style.right = edge
+    style.right = edgeX
     style.top = "50%"
     style.transform = "translateY(-50%)"
   }
@@ -89,6 +104,11 @@ export const Overlays = memo(function Overlays() {
   const titleFontSize = layout.title.fontSize[bp]
   const cornerSize = layout.corners.size[bp]
   const qrSize = layout.qr.size[bp]
+  const layoutMascotOverride = layout.mascotOverrides?.[mascot.id]
+  const mascotSize = layoutMascotOverride?.sizes?.[bp] ?? mascot.sizes?.[bp] ?? layout.mascot.sizes[bp]
+  const mascotOpacity = layoutMascotOverride?.opacity ?? mascot.opacity ?? layout.mascot.opacity
+  const mascotPadding = layoutMascotOverride?.padding?.[bp] ?? mascot.padding?.[bp] ?? layout.mascot.padding?.[bp]
+  const mascotPosition = layoutMascotOverride?.position ?? mascot.position ?? layout.mascot.position
 
   // Title aligns next to the logo, vertically centered with it.
   // When the logo is on the right, the title sits to its left instead.
@@ -130,7 +150,7 @@ export const Overlays = memo(function Overlays() {
       <img
         src={mascot.path} alt="" data-overlay="image" draggable={false}
         className="pointer-events-none"
-        style={positionStyle(layout.mascot.position, inset, layout.mascot.sizes[bp], { opacity: layout.mascot.opacity, padding: layout.mascot.padding?.[bp] })}
+        style={positionStyle(mascotPosition, inset, mascotSize, { opacity: mascotOpacity, padding: mascotPadding })}
       />
 
       {/* Convention banner — only when a convention is active today */}

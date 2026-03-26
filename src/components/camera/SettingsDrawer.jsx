@@ -12,6 +12,9 @@ const gesturePresets = [
 
 const formatInterval = (ms) => (ms <= 0 ? "Realtime (0ms)" : `${ms}ms`)
 
+const DRAWER_MAX_HEIGHT = "min(90dvh, 720px)"
+const DRAWER_HEADER_HEIGHT = 72
+
 const SettingsDrawer = ({
   isOpen,
   onClose,
@@ -51,11 +54,12 @@ const SettingsDrawer = ({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        className={`absolute bottom-0 left-0 right-0 mx-auto w-full max-w-480 rounded-t-2xl bg-black/90 border border-white/10 shadow-2xl transition-transform duration-250 ${
+        className={`absolute bottom-0 left-0 right-0 mx-auto w-full max-w-480 rounded-t-2xl bg-black/90 border border-white/10 shadow-2xl transition-transform duration-250 overflow-hidden flex flex-col ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
+        style={{ maxHeight: DRAWER_MAX_HEIGHT }}
       >
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between sticky top-0 bg-black/90 z-10" style={{ minHeight: DRAWER_HEADER_HEIGHT }}>
           <div>
             <p className="text-white font-semibold text-lg">Instellingen</p>
             <p className="text-white/50 text-sm">Fijnmazige controle voor gestures & debug</p>
@@ -65,11 +69,11 @@ const SettingsDrawer = ({
           </button>
         </div>
 
-        <div className="p-5 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto pb-8" style={{ maxHeight: `calc(${DRAWER_MAX_HEIGHT} - ${DRAWER_HEADER_HEIGHT}px)` }}>
+          <div className="grid grid-cols-2 py-4 max-sm:grid-cols-2 gap-3 [grid-auto-rows:1fr]">
             <button
               onClick={onToggleDebug}
-              className={`rounded-xl border transition-all text-left px-4 py-3 ${
+              className={`rounded-xl border transition-all text-left px-4 py-3 h-full ${
                 debugEnabled
                   ? "border-emerald-400/50 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(16,185,129,0.25)] text-white"
                   : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
@@ -80,7 +84,7 @@ const SettingsDrawer = ({
             </button>
             <button
               onClick={onToggleGestures}
-              className={`rounded-xl border transition-all text-left px-4 py-3 ${
+              className={`rounded-xl border transition-all text-left px-4 py-3 h-full ${
                 gesturesEnabled
                   ? "border-sky-400/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(56,189,248,0.25)] text-white"
                   : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
@@ -91,7 +95,7 @@ const SettingsDrawer = ({
             </button>
           </div>
 
-          <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 ${controlsDisabled ? "opacity-60" : ""}`}>
+          <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4 ${controlsDisabled ? "opacity-60" : ""}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-white text-sm font-semibold">Gebaren-tempo</p>
@@ -99,7 +103,7 @@ const SettingsDrawer = ({
               </div>
               <span className="text-white/70 text-xs font-mono">{formatInterval(detectionIntervalMs)}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 max-sm:grid-cols-2 gap-3 [grid-auto-rows:1fr]">
               {gesturePresets.map((preset) => {
                 const active = activePreset?.label === preset.label
                 return (
@@ -111,15 +115,15 @@ const SettingsDrawer = ({
                       onChangeTriggerMinScore(preset.triggerMinScore)
                     }}
                     disabled={controlsDisabled}
-                    className={`rounded-xl border px-3 py-2 text-left text-xs transition-all ${
+                    className={`rounded-xl border px-3 py-2 text-left text-xs transition-all h-full flex flex-col gap-1 justify-between ${
                       active
                         ? "border-sky-400/60 bg-sky-400/15 text-white shadow-[0_0_0_1px_rgba(56,189,248,0.2)]"
                         : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
                     } ${controlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                   >
-                    <p className="font-semibold text-sm">{preset.label}</p>
-                    <p className="text-white/50 text-[11px]">{preset.note}</p>
-                    <p className="text-white/60 text-[11px] mt-1 font-mono">{formatInterval(preset.detectionInterval)} · {preset.triggerMinScore.toFixed(2)}</p>
+                    <p className="font-semibold text-sm leading-tight">{preset.label}</p>
+                    <p className="text-white/50 text-[11px] leading-snug">{preset.note}</p>
+                    <p className="text-white/60 text-[11px] font-mono leading-snug">{formatInterval(preset.detectionInterval)} · {preset.triggerMinScore.toFixed(2)}</p>
                   </button>
                 )
               })}
@@ -178,7 +182,7 @@ const SettingsDrawer = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px] text-white/50">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-white/50">
             <span className="inline-flex items-center gap-1">
               <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-400/80" />
               <span>Groen: tracking elke frame</span>
