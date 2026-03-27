@@ -20,7 +20,6 @@ const holdPresets = [
 
 const formatInterval = (ms) => (ms <= 0 ? "Realtime (0ms)" : `${ms}ms`)
 
-const DRAWER_MAX_HEIGHT = "min(90dvh, 720px)"
 const DRAWER_HEADER_HEIGHT = 72
 
 const SettingsDrawer = ({
@@ -79,7 +78,7 @@ const SettingsDrawer = ({
           </button>
         </div>
 
-        <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto pb-8" style={{ maxHeight: `calc(${DRAWER_MAX_HEIGHT} - ${DRAWER_HEADER_HEIGHT}px)` }}>
+        <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto pb-8">
 
           {/* Handgebaren toggle */}
           <button
