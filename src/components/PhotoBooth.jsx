@@ -27,7 +27,7 @@ import { InstallBanner } from "./InstallBanner"
 const clampInterval = (value) => Math.min(1200, Math.max(0, Number(value) || 0))
 const clampTrigger = (value) => Math.min(1, Math.max(0, Number(value) || 0))
 const DEFAULT_DEBUG_ENABLED = false
-const DEFAULT_GESTURES_ENABLED = true
+const DEFAULT_GESTURES_ENABLED = false
 const DEFAULT_DETECTION_INTERVAL = 120
 const DEFAULT_TRIGGER_MIN_SCORE = 0.35
 const clampHoldMs = (value) => Math.min(5000, Math.max(0, Number(value) || 0))

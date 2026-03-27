@@ -117,7 +117,7 @@ export function useHandGesture(
     if (recognizerRef.current) return
 
     const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/wasm"
     )
 
     const modelOptions = {
@@ -146,11 +146,16 @@ export function useHandGesture(
     try {
       recognizerRef.current = await GestureRecognizer.createFromOptions(vision, modelOptions)
     } catch {
-      // GPU delegate failed (e.g. external webcam codec issue) — fall back to CPU
-      recognizerRef.current = await GestureRecognizer.createFromOptions(vision, {
-        ...modelOptions,
-        baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" },
-      })
+      // GPU delegate failed — fall back to CPU
+      try {
+        recognizerRef.current = await GestureRecognizer.createFromOptions(vision, {
+          ...modelOptions,
+          baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" },
+        })
+      } catch (cpuErr) {
+        console.warn("[HandGesture] Failed to initialize (GPU + CPU):", cpuErr?.message)
+        recognizerRef.current = null
+      }
     } finally {
       console.error = origError
       console.warn = origWarn

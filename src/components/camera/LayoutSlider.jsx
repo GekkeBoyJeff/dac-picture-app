@@ -171,12 +171,18 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
     return () => { running = false; cancelAnimationFrame(rafRef.current) }
   }, [isOpen, currentIndex, snapTo, gestureSwipe])
 
+  // Force a re-render once the strip ref is measured so centering is correct
+  const [measured, setMeasured] = useState(false)
+  useEffect(() => {
+    if (isOpen && stripRef.current && !measured) setMeasured(true)
+    if (!isOpen) setMeasured(false)
+  }, [isOpen, measured])
+
   if (!isOpen) return null
 
-  const stripW = stripRef.current?.offsetWidth || 300
-  const centerOffset = (stripW - CARD_W) / 2
+  const stripW = stripRef.current?.offsetWidth || 0
+  const centerOffset = stripW ? (stripW - CARD_W) / 2 : 0
   const baseOffset = centerOffset - currentIndex * CARD_W
-  // Inverted visual drag: negate touchDelta
   const activeDelta = isTouchActiveRef.current ? -touchDelta : 0
   const translateX = baseOffset + activeDelta
 

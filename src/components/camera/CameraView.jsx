@@ -49,9 +49,10 @@ export function CameraView() {
       <div
         ref={containerRef}
         className={`relative overflow-hidden w-dvw h-dvh transition-all duration-500 ease-[cubic-bezier(.4,0,.2,1)] ${
-          showLayoutSlider ? "rounded-2xl" : ""
+          showLayoutSlider ? "rounded-2xl cursor-pointer" : ""
         }`}
         style={showLayoutSlider ? { transform: "scale(0.75)", transformOrigin: "top center", marginTop: "1rem" } : undefined}
+        onClick={showLayoutSlider ? closeLayoutSlider : undefined}
       >
         <video
           ref={videoRef}
