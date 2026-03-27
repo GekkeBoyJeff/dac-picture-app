@@ -24,6 +24,9 @@ export const GALLERY = {
 
 export const COUNTDOWN_SECONDS = 5
 
+/** How long (ms) the user must hold the gesture before triggering the countdown */
+export const DEFAULT_GESTURE_HOLD_MS = 1500
+
 /** Shows an arrow prompting the user to look up at the camera during countdown */
 export const LOOK_UP_PROMPT_ENABLED = true
 

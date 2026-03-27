@@ -12,7 +12,7 @@ import { useSendQueue } from "@/hooks/useSendQueue"
 import { compositePhoto } from "@/lib/compositePhoto"
 import { STORAGE_KEYS, readStorage, writeStorage } from "@/lib/storage/localStorage"
 import { BUTTON_STYLES } from "@/lib/styles/buttons"
-import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED } from "@/lib/config"
+import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED, DEFAULT_GESTURE_HOLD_MS } from "@/lib/config"
 import { validateConfigShapes } from "@/lib/config/validate"
 import { CameraProvider, OverlayProvider, ModalProvider, UIProvider } from "@/context"
 import { CameraView } from "./camera"
@@ -28,6 +28,7 @@ const DEFAULT_DEBUG_ENABLED = false
 const DEFAULT_GESTURES_ENABLED = true
 const DEFAULT_DETECTION_INTERVAL = 120
 const DEFAULT_TRIGGER_MIN_SCORE = 0.35
+const clampHoldMs = (value) => Math.min(5000, Math.max(0, Number(value) || 0))
 
 export function PhotoBooth() {
   const [appState, setAppState] = useState("camera")
@@ -36,6 +37,7 @@ export function PhotoBooth() {
   const [gesturesEnabled, setGesturesEnabled] = useState(DEFAULT_GESTURES_ENABLED)
   const [detectionIntervalMs, setDetectionIntervalMs] = useState(DEFAULT_DETECTION_INTERVAL)
   const [triggerMinScore, setTriggerMinScore] = useState(DEFAULT_TRIGGER_MIN_SCORE)
+  const [gestureHoldMs, setGestureHoldMs] = useState(DEFAULT_GESTURE_HOLD_MS)
   const { modals, openModal, closeModal } = useModalState({
     gallery: false,
     mascotPicker: false,
@@ -56,11 +58,13 @@ export function PhotoBooth() {
     const storedGestures = readStorage(STORAGE_KEYS.UI_GESTURES, String(DEFAULT_GESTURES_ENABLED)) !== "false"
     const storedInterval = clampInterval(readStorage(STORAGE_KEYS.UI_DETECTION_INTERVAL, String(DEFAULT_DETECTION_INTERVAL)))
     const storedTrigger = clampTrigger(readStorage(STORAGE_KEYS.UI_TRIGGER_MIN_SCORE, String(DEFAULT_TRIGGER_MIN_SCORE)))
+    const storedHoldMs = clampHoldMs(readStorage(STORAGE_KEYS.UI_GESTURE_HOLD_MS, String(DEFAULT_GESTURE_HOLD_MS)))
 
     setDebugEnabled(storedDebug)
     setGesturesEnabled(storedGestures)
     setDetectionIntervalMs(storedInterval)
     setTriggerMinScore(storedTrigger)
+    setGestureHoldMs(storedHoldMs)
   }, [])
 
   useEffect(() => {
@@ -83,7 +87,7 @@ export function PhotoBooth() {
   const { canInstall, promptInstall, showBanner, isIOS, dismissBanner } = useInstallPrompt()
   const toast = useToast()
   const { layout, mascot, activeConvention, setLayoutId, setMascotId } = useOverlaySettings()
-  const { sendWithQueue, isImmediateSending, failedCount, pendingCount } = useSendQueue()
+  const { sendWithQueue, failedCount, pendingCount } = useSendQueue()
   const failedToastRef = useRef(failedCount)
 
   const toggleDebug = useCallback(() => {
@@ -114,6 +118,12 @@ export function PhotoBooth() {
     writeStorage(STORAGE_KEYS.UI_TRIGGER_MIN_SCORE, String(clamped))
   }, [])
 
+  const setGestureHold = useCallback((value) => {
+    const clamped = clampHoldMs(value)
+    setGestureHoldMs(clamped)
+    writeStorage(STORAGE_KEYS.UI_GESTURE_HOLD_MS, String(clamped))
+  }, [])
+
   const openGallery = useCallback(() => openModal("gallery"), [openModal])
   const closeGallery = useCallback(() => closeModal("gallery"), [closeModal])
   const openMascotPicker = useCallback(() => openModal("mascotPicker"), [openModal])
@@ -139,14 +149,15 @@ export function PhotoBooth() {
   const gesturesEnabledForTracking = appState === "camera" && isReady && (gesturesEnabled || debugEnabled)
   const gestureActionsEnabled = appState === "camera" && isReady && gesturesEnabled
 
-  const { activeGesture, handBoxes, gestureBoxes } = useHandGesture(
+  const { activeGesture, handBoxes, gestureBoxes, holdProgress } = useHandGesture(
     videoRef,
     gesturesEnabledForTracking,
     gestureCallbacks,
     isMirrored,
     detectionIntervalMs,
     triggerMinScore,
-    gestureActionsEnabled
+    gestureActionsEnabled,
+    gestureHoldMs
   )
 
   useEffect(() => {
@@ -196,21 +207,22 @@ export function PhotoBooth() {
       )
 
       addPhoto(galleryDataUrl)
-      setAppState("sending")
 
-      const result = await sendWithQueue(exportBlob, galleryDataUrl)
-      if (result.success) {
-        toast.show("Verzonden!")
-      } else if (result.queued) {
-        toast.show("Verzenden mislukt, probeer opnieuw...")
-      } else {
-        toast.show("Verzenden naar Discord mislukt")
-      }
+      // Fire-and-forget: send in background, show toast for result
+      sendWithQueue(exportBlob, galleryDataUrl).then((result) => {
+        if (result.success) {
+          toast.show("Verzonden!")
+        } else if (result.queued) {
+          toast.show("In wachtrij geplaatst")
+        } else {
+          toast.show("Verzenden naar Discord mislukt")
+        }
+      })
     } catch (err) {
       const message = err instanceof Error ? err.message : "Er ging iets mis"
       toast.show(message)
     } finally {
-      resetTimerRef.current = setTimeout(() => setAppState("camera"), 1500)
+      resetTimerRef.current = setTimeout(() => setAppState("camera"), 800)
     }
   }, [videoRef, addPhoto, toast, isMirrored, sendWithQueue])
 
@@ -230,10 +242,11 @@ export function PhotoBooth() {
     activeGesture,
     handBoxes,
     gestureBoxes,
+    holdProgress,
   }), [
     videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored,
     devices, selectedDeviceId, switchCamera, handleCapture, appState, activeGesture, handBoxes,
-    gestureBoxes,
+    gestureBoxes, holdProgress,
   ])
 
   const overlayContextValue = useMemo(() => ({
@@ -278,7 +291,9 @@ export function PhotoBooth() {
     setDetectionInterval,
     triggerMinScore,
     setTriggerMinScore: setTriggerScore,
-  }), [photos.length, openGallery, canInstall, promptInstall, debugEnabled, detectionIntervalMs, triggerMinScore, gesturesEnabled, toggleDebug, toggleGestures, setDetectionInterval, setTriggerScore])
+    gestureHoldMs,
+    setGestureHoldMs: setGestureHold,
+  }), [photos.length, openGallery, canInstall, promptInstall, debugEnabled, detectionIntervalMs, triggerMinScore, gesturesEnabled, toggleDebug, toggleGestures, setDetectionInterval, setTriggerScore, gestureHoldMs, setGestureHold])
 
   if (error) {
     return (
@@ -336,15 +351,6 @@ export function PhotoBooth() {
             )}
 
             {showFlash && <FlashEffect onComplete={clearFlash} />}
-
-            {(appState === "sending" || isImmediateSending) && (
-              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300">
-                <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-black/80 border border-white/10">
-                  <span className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                  <p className="text-white/80 text-sm font-medium">Foto versturen...</p>
-                </div>
-              </div>
-            )}
 
             {toast.message && (
               <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">

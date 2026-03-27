@@ -5,16 +5,18 @@ import { memo, useSyncExternalStore } from "react"
 import { CORNERS, LOGO, QR_CODE } from "@/lib/config"
 import { useOverlayContext } from "@/context"
 
-// Uses shortest screen dimension so a phone in landscape still gets "sm" sizing.
-function getBreakpoint() {
-  if (typeof document === "undefined") return "lg"
-  const minDim = Math.min(
-    document.documentElement.clientWidth,
-    document.documentElement.clientHeight,
-  )
-  if (minDim >= 1024) return "lg"
-  if (minDim >= 600) return "md"
-  return "sm"
+// ---------------------------------------------------------------------------
+// Breakpoint system — orientation-aware
+// ---------------------------------------------------------------------------
+
+function getBreakpointInfo() {
+  if (typeof document === "undefined") return "lg|landscape"
+  const w = document.documentElement.clientWidth
+  const h = document.documentElement.clientHeight
+  const minDim = Math.min(w, h)
+  const tier = minDim >= 1024 ? "lg" : minDim >= 600 ? "md" : "sm"
+  const orientation = h > w ? "portrait" : "landscape"
+  return `${tier}|${orientation}`
 }
 
 function subscribe(cb) {
@@ -22,72 +24,123 @@ function subscribe(cb) {
   return () => window.removeEventListener("resize", cb)
 }
 
-function useBreakpoint() {
-  return useSyncExternalStore(subscribe, getBreakpoint, () => "lg")
+function useBreakpointInfo() {
+  const raw = useSyncExternalStore(subscribe, getBreakpointInfo, () => "lg|landscape")
+  const [tier, orientation] = raw.split("|")
+  return { tier, orientation }
+}
+
+/** Resolve a breakpoint-keyed object, with optional orientation override. */
+function bp(obj, tier, orientation) {
+  return obj?.[`${tier}-${orientation}`] ?? obj?.[tier]
 }
 
 function rem(v) {
   return `${v}rem`
 }
 
+// ---------------------------------------------------------------------------
+// Offset resolution
+// ---------------------------------------------------------------------------
+
 /**
- * Positions an element in its corner/edge using the layout's universal inset.
- * Every element gets the same distance from the screen edge — no per-element padding.
+ * Resolves an offset value to { x, y }.
+ * Supports plain { x, y }, breakpoint-keyed { sm: {x,y}, md: ... }, or null.
  */
-function axisPadding(pad, inset, axis) {
-  if (pad == null) return inset
-  if (typeof pad === "number") return pad
-  if (typeof pad === "object") {
-    if (axis === "x") return pad.x ?? inset
-    if (axis === "y") return pad.y ?? inset
-  }
-  return inset
+function resolveOffset(offset, tier, orientation) {
+  if (!offset) return { x: 0, y: 0 }
+  if ("x" in offset || "y" in offset) return { x: offset.x ?? 0, y: offset.y ?? 0 }
+  // Breakpoint-keyed
+  const resolved = bp(offset, tier, orientation)
+  if (resolved && ("x" in resolved || "y" in resolved)) return { x: resolved.x ?? 0, y: resolved.y ?? 0 }
+  return { x: 0, y: 0 }
 }
 
-function positionStyle(position, inset, size, opts) {
+// ---------------------------------------------------------------------------
+// Mascot property resolution cascade
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolves a mascot property through the cascade:
+ * 1. layout.mascotOverrides[mascotId] (highest)
+ * 2. mascot.defaults
+ * 3. layout.mascot (lowest)
+ */
+function resolveMascotProp(layout, mascot, prop, tier, orientation) {
+  const sources = [
+    layout.mascotOverrides?.[mascot.id],
+    mascot.defaults,
+    layout.mascot,
+  ]
+
+  for (const source of sources) {
+    if (!source || source[prop] === undefined) continue
+
+    if (prop === "sizes") {
+      const val = bp(source[prop], tier, orientation)
+      if (val) return val
+    } else if (prop === "offset") {
+      const val = resolveOffset(source[prop], tier, orientation)
+      if (val) return val
+    } else {
+      return source[prop]
+    }
+  }
+
+  // Defaults
+  if (prop === "offset") return { x: 0, y: 0 }
+  if (prop === "sizingAxis") return "height"
+  if (prop === "opacity") return 1
+  return undefined
+}
+
+// ---------------------------------------------------------------------------
+// Position + sizing → inline style
+// ---------------------------------------------------------------------------
+
+function positionStyle({ position, inset, size, offset, opacity, sizingAxis, fixedSize }) {
   if (position === "full") {
     return { position: "absolute", inset: 0, width: "100%", height: "100%" }
   }
 
-  const { maxWidth, maxHeight } = size
-  const style = {
-    position: "absolute",
-    pointerEvents: "none",
-  }
+  const style = { position: "absolute", pointerEvents: "none" }
 
-  if (opts?.opacity !== undefined) style.opacity = opts.opacity
+  if (opacity !== undefined) style.opacity = opacity
 
   // Sizing
-  if (opts?.fixedSize) {
+  const { maxWidth, maxHeight } = size
+  if (fixedSize) {
     style.width = rem(maxWidth)
     style.height = rem(maxHeight)
-  } else if (maxHeight > maxWidth * 1.5) {
-    // Tall images: constrain height first
-    style.maxHeight = rem(maxHeight)
-    style.width = "auto"
-    style.maxWidth = rem(maxWidth)
-  } else {
-    // Wide/square images: constrain width, auto height
+  } else if (sizingAxis === "width") {
     style.width = rem(maxWidth)
     style.height = "auto"
     style.maxHeight = rem(maxHeight)
     style.objectFit = "contain"
+  } else if (sizingAxis === "contain") {
+    style.maxWidth = rem(maxWidth)
+    style.maxHeight = rem(maxHeight)
+    style.width = "auto"
+    style.height = "auto"
+    style.objectFit = "contain"
+  } else {
+    // "height" (default) — constrain height first
+    style.maxHeight = rem(maxHeight)
+    style.width = "auto"
+    style.maxWidth = rem(maxWidth)
   }
 
-  // Per-element padding overrides the layout's universal inset when specified (supports {x, y})
-  const paddingX = axisPadding(opts?.padding, inset, "x")
-  const paddingY = axisPadding(opts?.padding, inset, "y")
+  // Edge distances: inset + offset
+  const ox = offset?.x ?? 0
+  const oy = offset?.y ?? 0
 
-  const edgeX = rem(paddingX)
-  const edgeY = rem(paddingY)
-
-  if (position.includes("top")) style.top = edgeY
-  if (position.includes("bottom")) style.bottom = edgeY
-  if (position.includes("left")) style.left = edgeX
-  if (position.includes("right")) style.right = edgeX
+  if (position.includes("top")) style.top = rem(inset + oy)
+  if (position.includes("bottom")) style.bottom = rem(inset + oy)
+  if (position.includes("left")) style.left = rem(inset + ox)
+  if (position.includes("right")) style.right = rem(inset + ox)
 
   if (position === "middle-right") {
-    style.right = edgeX
+    style.right = rem(inset + ox)
     style.top = "50%"
     style.transform = "translateY(-50%)"
   }
@@ -95,24 +148,30 @@ function positionStyle(position, inset, size, opts) {
   return style
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export const Overlays = memo(function Overlays() {
   const { layout, mascot, activeConvention } = useOverlayContext()
-  const bp = useBreakpoint()
+  const { tier, orientation } = useBreakpointInfo()
 
-  const inset = layout.inset[bp]
-  const logoSize = layout.logo.size[bp]
-  const titleFontSize = layout.title.fontSize[bp]
-  const cornerSize = layout.corners.size[bp]
-  const qrSize = layout.qr.size[bp]
-  const layoutMascotOverride = layout.mascotOverrides?.[mascot.id]
-  const mascotSize = layoutMascotOverride?.sizes?.[bp] ?? mascot.sizes?.[bp] ?? layout.mascot.sizes[bp]
-  const mascotOpacity = layoutMascotOverride?.opacity ?? mascot.opacity ?? layout.mascot.opacity
-  const mascotPadding = layoutMascotOverride?.padding?.[bp] ?? mascot.padding?.[bp] ?? layout.mascot.padding?.[bp]
-  const mascotPosition = layoutMascotOverride?.position ?? mascot.position ?? layout.mascot.position
+  const inset = bp(layout.inset, tier, orientation)
+  const logoSize = bp(layout.logo.size, tier, orientation)
+  const titleFontSize = bp(layout.title.fontSize, tier, orientation)
+  const cornerSize = bp(layout.corners.size, tier, orientation)
+  const qrSize = bp(layout.qr.size, tier, orientation)
+
+  // Mascot — resolved through the cascade
+  const mascotSize = resolveMascotProp(layout, mascot, "sizes", tier, orientation)
+  const mascotOpacity = resolveMascotProp(layout, mascot, "opacity", tier, orientation)
+  const mascotOffset = resolveMascotProp(layout, mascot, "offset", tier, orientation)
+  const mascotPosition = resolveMascotProp(layout, mascot, "position", tier, orientation)
+  const mascotSizingAxis = resolveMascotProp(layout, mascot, "sizingAxis", tier, orientation)
 
   // Title aligns next to the logo, vertically centered with it.
-  // When the logo is on the right, the title sits to its left instead.
-  const logoInset = layout.logo.padding?.[bp] ?? inset
+  const logoOffset = resolveOffset(layout.logo.offset, tier, orientation)
+  const logoInset = inset + logoOffset.y
   const titleHeight = titleFontSize * 2.2
   const titleTop = logoInset + (logoSize - titleHeight) / 2
   const logoOnRight = layout.logo.position.includes("right")
@@ -127,12 +186,12 @@ export const Overlays = memo(function Overlays() {
 
       {/* Corners — same inset as everything else */}
       {CORNERS.map((c) => {
-        const cornerEdge = layout.corners.padding?.[bp] ?? inset
+        const cornerOffset = resolveOffset(layout.corners.offset, tier, orientation)
         const style = { width: rem(cornerSize), height: rem(cornerSize) }
-        if (c.position.includes("top")) style.top = rem(cornerEdge)
-        if (c.position.includes("bottom")) style.bottom = rem(cornerEdge)
-        if (c.position.includes("left")) style.left = rem(cornerEdge)
-        if (c.position.includes("right")) style.right = rem(cornerEdge)
+        if (c.position.includes("top")) style.top = rem(inset + cornerOffset.y)
+        if (c.position.includes("bottom")) style.bottom = rem(inset + cornerOffset.y)
+        if (c.position.includes("left")) style.left = rem(inset + cornerOffset.x)
+        if (c.position.includes("right")) style.right = rem(inset + cornerOffset.x)
         return (
           <img key={c.src} src={c.src} alt="" data-overlay="corner" draggable={false}
             className="absolute pointer-events-none" style={style} />
@@ -143,14 +202,27 @@ export const Overlays = memo(function Overlays() {
       <img
         src={LOGO.src} alt="" data-overlay="image" draggable={false}
         className="pointer-events-none"
-        style={positionStyle(layout.logo.position, inset, { maxWidth: logoSize, maxHeight: logoSize }, { fixedSize: true, padding: layout.logo.padding?.[bp] })}
+        style={positionStyle({
+          position: layout.logo.position,
+          inset,
+          size: { maxWidth: logoSize, maxHeight: logoSize },
+          offset: resolveOffset(layout.logo.offset, tier, orientation),
+          fixedSize: true,
+        })}
       />
 
       {/* Mascot */}
       <img
         src={mascot.path} alt="" data-overlay="image" draggable={false}
         className="pointer-events-none"
-        style={positionStyle(mascotPosition, inset, mascotSize, { opacity: mascotOpacity, padding: mascotPadding })}
+        style={positionStyle({
+          position: mascotPosition,
+          inset,
+          size: mascotSize,
+          offset: mascotOffset,
+          opacity: mascotOpacity,
+          sizingAxis: mascotSizingAxis,
+        })}
       />
 
       {/* Convention banner — only when a convention is active today */}
@@ -158,7 +230,13 @@ export const Overlays = memo(function Overlays() {
         <img
           src={activeConvention.bannerPath} alt="" data-overlay="image" draggable={false}
           className="pointer-events-none"
-          style={positionStyle(layout.convention.position, inset, activeConvention.sizes[bp], { opacity: activeConvention.opacity, padding: activeConvention.padding?.[bp] ?? layout.convention.padding?.[bp] })}
+          style={positionStyle({
+            position: layout.convention.position,
+            inset,
+            size: bp(activeConvention.sizes, tier, orientation),
+            offset: resolveOffset(activeConvention.offset, tier, orientation) ?? resolveOffset(layout.convention.offset, tier, orientation),
+            opacity: activeConvention.opacity,
+          })}
         />
       )}
 
@@ -169,8 +247,8 @@ export const Overlays = memo(function Overlays() {
         style={{
           top: rem(titleTop),
           ...(logoOnRight
-            ? { right: rem(logoInset + logoSize + titleFontSize) }
-            : { left: rem(logoInset + logoSize + titleFontSize) }),
+            ? { right: rem(inset + logoOffset.x + logoSize + titleFontSize) }
+            : { left: rem(inset + logoOffset.x + logoSize + titleFontSize) }),
         }}
       >
         <span
@@ -185,14 +263,21 @@ export const Overlays = memo(function Overlays() {
       <img
         src={QR_CODE.src} alt="" data-overlay="qr" draggable={false}
         className="pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
-        style={positionStyle(layout.qr.position, inset, { maxWidth: qrSize, maxHeight: qrSize }, { opacity: layout.qr.opacity, fixedSize: true, padding: layout.qr.padding?.[bp] })}
+        style={positionStyle({
+          position: layout.qr.position,
+          inset,
+          size: { maxWidth: qrSize, maxHeight: qrSize },
+          offset: resolveOffset(layout.qr.offset, tier, orientation),
+          opacity: layout.qr.opacity,
+          fixedSize: true,
+        })}
       />
 
       {/* Date stamp */}
       <span
         data-overlay="date"
         className="absolute text-white/70 font-mono pointer-events-none z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] left-1/2 -translate-x-1/2"
-        style={{ bottom: `${layout.date.bottomPercent[bp]}%`, fontSize: rem(layout.date.fontSize[bp]) }}
+        style={{ bottom: `${bp(layout.date.bottomPercent, tier, orientation)}%`, fontSize: rem(bp(layout.date.fontSize, tier, orientation)) }}
       >
         {new Date().toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" })}
       </span>

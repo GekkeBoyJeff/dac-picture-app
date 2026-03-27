@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   UI_GESTURES: "ui-gestures-enabled",
   UI_DETECTION_INTERVAL: "ui-detection-interval",
   UI_TRIGGER_MIN_SCORE: "ui-trigger-min-score",
+  UI_GESTURE_HOLD_MS: "ui-gesture-hold-ms",
 }
 
 function canUseStorage() {

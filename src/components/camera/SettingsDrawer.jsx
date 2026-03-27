@@ -15,6 +15,14 @@ const formatInterval = (ms) => (ms <= 0 ? "Realtime (0ms)" : `${ms}ms`)
 const DRAWER_MAX_HEIGHT = "min(90dvh, 720px)"
 const DRAWER_HEADER_HEIGHT = 72
 
+const holdPresets = [
+  { label: "0.5s", value: 500 },
+  { label: "1s", value: 1000 },
+  { label: "1.5s", value: 1500, note: "Standaard" },
+  { label: "2s", value: 2000 },
+  { label: "3s", value: 3000 },
+]
+
 const SettingsDrawer = ({
   isOpen,
   onClose,
@@ -26,6 +34,8 @@ const SettingsDrawer = ({
   onChangeDetectionInterval,
   triggerMinScore,
   onChangeTriggerMinScore,
+  gestureHoldMs,
+  onChangeGestureHoldMs,
   openAbout,
 }) => {
   useEffect(() => {
@@ -163,6 +173,34 @@ const SettingsDrawer = ({
                 className="w-full accent-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <p className="text-[11px] text-white/50">Lager = sneller vuren, hoger = voorzichtiger.</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-white/60">
+                <span>Vasthouden voor trigger</span>
+                <span className="font-mono text-white/70">{(gestureHoldMs / 1000).toFixed(1)}s</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {holdPresets.map((preset) => {
+                  const active = gestureHoldMs === preset.value
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => onChangeGestureHoldMs(preset.value)}
+                      disabled={controlsDisabled}
+                      className={`rounded-lg border px-3 py-1.5 text-xs transition-all ${
+                        active
+                          ? "border-sky-400/60 bg-sky-400/15 text-white shadow-[0_0_0_1px_rgba(56,189,248,0.2)]"
+                          : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+                      } ${controlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                      {preset.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] text-white/50">Hoe lang je het gebaar moet vasthouden voordat de countdown start.</p>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { CONVENTIONS, LAYOUTS, MASCOTS } from "./presets"
 
 const BREAKPOINTS = ["sm", "md", "lg"]
+const VALID_SIZING_AXES = ["width", "height", "contain"]
 
 function hasKeys(value, keys) {
   return value && typeof value === "object" && keys.every((key) => key in value)
@@ -30,6 +31,15 @@ function validateMascot(item, index) {
   assert(typeof item.name === "string", `Mascot[${index}] missing name`)
   assert(typeof item.path === "string", `Mascot[${index}] missing path`)
   assert(typeof item.thumbnail === "string", `Mascot[${index}] missing thumbnail`)
+  if (item.defaults) {
+    if (item.defaults.sizingAxis) {
+      assert(VALID_SIZING_AXES.includes(item.defaults.sizingAxis),
+        `Mascot[${index}] defaults.sizingAxis must be ${VALID_SIZING_AXES.join("|")}`)
+    }
+    if (item.defaults.sizes) {
+      assert(hasBreakpointObject(item.defaults.sizes), `Mascot[${index}] defaults.sizes needs {sm,md,lg}`)
+    }
+  }
 }
 
 function validateLayout(item, index) {
@@ -40,10 +50,24 @@ function validateLayout(item, index) {
   assert(hasBreakpointObject(item.logo?.size), `Layout[${index}] missing logo.size.{sm,md,lg}`)
   assert(item.mascot?.position, `Layout[${index}] missing mascot.position`)
   assert(hasBreakpointObject(item.mascot?.sizes), `Layout[${index}] missing mascot.sizes.{sm,md,lg}`)
+  if (item.mascot?.sizingAxis) {
+    assert(VALID_SIZING_AXES.includes(item.mascot.sizingAxis),
+      `Layout[${index}] mascot.sizingAxis must be ${VALID_SIZING_AXES.join("|")}`)
+  }
   assert(item.convention?.position, `Layout[${index}] missing convention.position`)
   assert(hasBreakpointObject(item.title?.fontSize), `Layout[${index}] missing title.fontSize.{sm,md,lg}`)
   assert(item.qr?.position, `Layout[${index}] missing qr.position`)
   assert(hasBreakpointObject(item.qr?.size), `Layout[${index}] missing qr.size.{sm,md,lg}`)
+
+  // Validate mascotOverrides entries
+  if (item.mascotOverrides) {
+    for (const [mascotId, overrides] of Object.entries(item.mascotOverrides)) {
+      if (overrides.sizingAxis) {
+        assert(VALID_SIZING_AXES.includes(overrides.sizingAxis),
+          `Layout[${index}] mascotOverrides.${mascotId}.sizingAxis must be ${VALID_SIZING_AXES.join("|")}`)
+      }
+    }
+  }
 }
 
 export function validateConfigShapes() {

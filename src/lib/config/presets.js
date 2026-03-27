@@ -1,6 +1,8 @@
 /**
  * @typedef {{maxWidth: number, maxHeight: number}} OverlaySize
  * @typedef {'top-left'|'top-right'|'bottom-left'|'bottom-right'|'middle-right'|'full'} OverlayPosition
+ * @typedef {'width'|'height'|'contain'} SizingAxis
+ * @typedef {{x: number, y: number}} Offset
  */
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ""
@@ -32,7 +34,7 @@ export const CONVENTIONS = [
     bannerPath: `${BASE_PATH}/overlays/conventions/dcc-2026/banner.svg`,
     position: "bottom-left",
     opacity: 1,
-    padding: { sm: 2, md: 2, lg: 2 },
+    offset: { sm: { x: 2, y: 2 }, md: { x: 2, y: 2 }, lg: { x: 2, y: 2 } },
     sizes: {
       sm: { maxWidth: 12, maxHeight: 8.5 },
       md: { maxWidth: 18, maxHeight: 13 },
@@ -47,7 +49,7 @@ export const CONVENTIONS = [
     bannerPath: `${BASE_PATH}/overlays/conventions/animecon-2026/banner.png`,
     position: "bottom-left",
     opacity: 1,
-    padding: { sm: 1, md: 1, lg: 1 },
+    offset: { sm: { x: 1, y: 1 }, md: { x: 1, y: 1 }, lg: { x: 1, y: 1 } },
     sizes: {
       sm: { maxWidth: 12, maxHeight: 8.5 },
       md: { maxWidth: 18, maxHeight: 13 },
@@ -62,13 +64,55 @@ export function getActiveConvention() {
 }
 
 // --- Mascots ---
+// Each mascot can define `defaults` with intrinsic sizing preferences.
+// These are used unless overridden by a layout's `mascotOverrides`.
 
 export const MASCOTS = [
-  { id: "amelia", name: "Amelia", path: `${BASE_PATH}/overlays/mascots/amelia.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia.png` },
-  { id: "amelia-v2", name: "Amelia v2", path: `${BASE_PATH}/overlays/mascots/amelia-v2.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-v2.png` },
-  { id: "amelia-beer", name: "Amelia (Beer)", path: `${BASE_PATH}/overlays/mascots/amelia-beer.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer.png` },
-  { id: "amelia-hug", name: "Amelia (Hug)", path: `${BASE_PATH}/overlays/mascots/amelia-hug.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-hug.png` },
-  { id: "amelia-beer-alt", name: "Amelia (Beer Alt)", path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`, thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png` },
+  {
+    id: "amelia",
+    name: "Amelia",
+    path: `${BASE_PATH}/overlays/mascots/amelia.png`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia.png`,
+    defaults: {
+      sizingAxis: "height",
+    },
+  },
+  {
+    id: "amelia-v2",
+    name: "Amelia v2",
+    path: `${BASE_PATH}/overlays/mascots/amelia-v2.png`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-v2.png`,
+    defaults: {
+      sizingAxis: "height",
+    },
+  },
+  {
+    id: "amelia-beer",
+    name: "Amelia (Beer)",
+    path: `${BASE_PATH}/overlays/mascots/amelia-beer.png`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer.png`,
+    defaults: {
+      sizingAxis: "height",
+    },
+  },
+  {
+    id: "amelia-hug",
+    name: "Amelia (Hug)",
+    path: `${BASE_PATH}/overlays/mascots/amelia-hug.png`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-hug.png`,
+    defaults: {
+      sizingAxis: "width",
+    },
+  },
+  {
+    id: "amelia-beer-alt",
+    name: "Amelia (Beer Alt)",
+    path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`,
+    defaults: {
+      sizingAxis: "height",
+    },
+  },
 ]
 
 export const DEFAULT_MASCOT_ID = "amelia"
@@ -78,8 +122,19 @@ export const DEFAULT_MASCOT_ID = "amelia"
 // `inset` is the universal distance from the screen edge (in rem) — every
 // element in the layout uses it, so everything lines up automatically.
 //
-// Each size property uses breakpoints {sm, md, lg} matching
-// Tailwind's responsive system for consistent scaling.
+// `offset` is relative to `inset`: final CSS edge distance = inset + offset.
+// Negative offsets push elements towards/beyond the frame edge.
+//
+// Offset can be a plain {x, y} or breakpoint-keyed: { sm: {x,y}, md: {x,y}, lg: {x,y} }
+// Breakpoint keys support orientation suffixes: "sm-portrait", "sm-landscape"
+//
+// `sizingAxis` controls how images are constrained:
+//   "height" — constrain height first (tall mascots)
+//   "width"  — constrain width first (wide mascots)
+//   "contain" — fit within both maxWidth and maxHeight
+//
+// Resolution cascade for mascot properties (highest priority first):
+//   layout.mascotOverrides[mascotId] → mascot.defaults → layout.mascot
 
 export const LAYOUTS = [
   {
@@ -87,18 +142,20 @@ export const LAYOUTS = [
     name: "Classic",
     description: "Standard DAC layout",
     inset: { sm: 0.5, md: 0.5, lg: 0.5 },
-    logo: { position: "top-left", padding: { sm: 1, md: 1, lg: 1 }, size: { sm: 4, md: 4, lg: 4.5 } },
+    logo: { position: "top-left", offset: { x: 1, y: 1 }, size: { sm: 4, md: 4, lg: 4.5 } },
     mascot: {
       position: "bottom-right",
       opacity: 0.85,
-      padding: { sm: 1, md: 1, lg: 1 },
+      sizingAxis: "height",
+      offset: { x: 0, y: 0 },
       sizes: {
         sm: { maxWidth: 15, maxHeight: 25 },
         md: { maxWidth: 10, maxHeight: 22 },
         lg: { maxWidth: 15, maxHeight: 34 },
       },
     },
-    convention: { position: "bottom-left", padding: { sm: 0.25, md: 0.5, lg: 0.5 } },
+    mascotOverrides: {},
+    convention: { position: "bottom-left", offset: { x: 0.25, y: 0.25 } },
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
     qr: { opacity: 0.8, position: "top-right", size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
@@ -113,20 +170,22 @@ export const LAYOUTS = [
     name: "Flipped",
     description: "Classic layout mirrored",
     inset: { sm: 0.5, md: 0.5, lg: 0.5 },
-    logo: { position: "top-right", padding: { sm: 1, md: 1, lg: 1 }, size: { sm: 5, md: 4, lg: 4.5 } },
+    logo: { position: "top-right", offset: { x: 1, y: 1 }, size: { sm: 5, md: 4, lg: 4.5 } },
     mascot: {
       position: "bottom-left",
       opacity: 0.85,
-      padding: { sm: 1, md: 1, lg: 1 },
+      sizingAxis: "height",
+      offset: { x: 0, y: 0 },
       sizes: {
         sm: { maxWidth: 5, maxHeight: 15 },
         md: { maxWidth: 10, maxHeight: 22 },
         lg: { maxWidth: 15, maxHeight: 26 },
       },
     },
-    convention: { position: "bottom-right", padding: { sm: 0.25, md: 0.5, lg: 0.5 } },
+    mascotOverrides: {},
+    convention: { position: "bottom-right", offset: { x: 0.25, y: 0.25 } },
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
-    qr: { opacity: 0.8, position: "top-left", padding: { sm: 1, md: 1, lg: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
+    qr: { opacity: 0.8, position: "top-left", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
       fontSize: { sm: 0.5, md: 0.6875, lg: 0.875 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
@@ -139,20 +198,26 @@ export const LAYOUTS = [
     name: "Hero",
     description: "Mascot takes the stage",
     inset: { sm: 0.5, md: 0.5, lg: 0.5 },
-    logo: { position: "top-left", padding: { sm: 1, md: 1, lg: 1 }, size: { sm: 5, md: 4, lg: 4.5 } },
+    logo: { position: "top-left", offset: { x: 1, y: 1 }, size: { sm: 5, md: 4, lg: 4.5 } },
     mascot: {
       position: "bottom-right",
       opacity: 0.9,
-      padding: { sm: -10, md: 0, lg: 0 },
+      sizingAxis: "height",
+      offset: {
+        sm: { x: -10, y: 0 },
+        md: { x: 0, y: 0 },
+        lg: { x: 0, y: 0 },
+      },
       sizes: {
         sm: { maxWidth: 24, maxHeight: 75 },
         md: { maxWidth: 28, maxHeight: 64 },
         lg: { maxWidth: 24, maxHeight: 54 },
       },
     },
-    convention: { position: "bottom-left", padding: { sm: 0.25, md: 0.5, lg: 0.5 } },
+    mascotOverrides: {},
+    convention: { position: "bottom-left", offset: { x: 0.25, y: 0.25 } },
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
-    qr: { opacity: 0.8, position: "top-right", padding: { sm: 1, md: 1, lg: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
+    qr: { opacity: 0.8, position: "top-right", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
       fontSize: { sm: 0.5, md: 0.6875, lg: 0.875 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },

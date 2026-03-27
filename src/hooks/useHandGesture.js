@@ -11,9 +11,6 @@ const MAX_INTERVAL_MS = 1200
 const CONFIDENCE_THRESHOLD = 0.001
 // Require a stronger score to actually trigger an action.
 const TRIGGER_MIN_SCORE = 0.35
-// Two consecutive detections required to prevent accidental triggers
-// from noise or brief hand movements
-const REQUIRED_CONSECUTIVE_VICTORY = 2
 const TRIGGER_GESTURES = new Set(["Victory", "ILoveYou", "Deuces"])
 // Hold last seen boxes briefly when detection drops to reduce flicker
 const BOX_HOLD_MS = 700
@@ -81,7 +78,8 @@ export function useHandGesture(
   isMirrored = false,
   detectionIntervalMs = DEFAULT_DETECTION_INTERVAL_MS,
   triggerMinScore = TRIGGER_MIN_SCORE,
-  gestureActionsEnabled = true
+  gestureActionsEnabled = true,
+  holdDurationMs = 1500
 ) {
   const recognizerRef = useRef(null)
   const animFrameRef = useRef(0)
@@ -94,15 +92,17 @@ export function useHandGesture(
   const lastDrawRef = useRef(0)
   const lastGestureEvalRef = useRef(0)
 
-  const victoryConsecutiveRef = useRef(0)
+  const gestureStartRef = useRef(null)
   const victoryFiredRef = useRef(false)
+  const [holdProgress, setHoldProgress] = useState(null)
 
   // Reset so a new countdown can be triggered after the previous one completes
   useEffect(() => {
     victoryFiredRef.current = false
-    victoryConsecutiveRef.current = 0
+    gestureStartRef.current = null
     lastSeenRef.current = new Map()
     setActiveGesture(null)
+    setHoldProgress(null)
     setHandBoxes([])
     setGestureBoxes([])
   }, [enabled])
@@ -267,21 +267,25 @@ export function useHandGesture(
                 lastGestureEvalRef.current = now
                 setGestureBoxes(boxes)
                 if (triggerHandIndex >= 0) {
-                  victoryConsecutiveRef.current++
+                  if (gestureStartRef.current === null) {
+                    gestureStartRef.current = now
+                  }
+                  const elapsed = now - gestureStartRef.current
+                  const progress = Math.min(1, elapsed / Math.max(1, holdDurationMs))
                   setActiveGesture("Victory")
+                  setHoldProgress(progress)
 
-                  if (
-                    victoryConsecutiveRef.current >= REQUIRED_CONSECUTIVE_VICTORY &&
-                    !victoryFiredRef.current
-                  ) {
+                  if (progress >= 1 && !victoryFiredRef.current) {
                     victoryFiredRef.current = true
                     setActiveGesture(null)
+                    setHoldProgress(null)
                     callbacks.onVictory()
                     return
                   }
                 } else {
-                  victoryConsecutiveRef.current = 0
+                  gestureStartRef.current = null
                   setActiveGesture(null)
+                  setHoldProgress(null)
                 }
               }
             } catch {
@@ -302,7 +306,7 @@ export function useHandGesture(
       stopped = true
       cancelAnimationFrame(animFrameRef.current)
     }
-  }, [enabled, videoRef, callbacks, initRecognizer, isMirrored, detectionIntervalMs, triggerMinScore, gestureActionsEnabled])
+  }, [enabled, videoRef, callbacks, initRecognizer, isMirrored, detectionIntervalMs, triggerMinScore, gestureActionsEnabled, holdDurationMs])
 
   useEffect(() => {
     return () => {
@@ -310,5 +314,5 @@ export function useHandGesture(
       recognizerRef.current = null
     }
   }, [])
-  return { activeGesture, handBoxes, gestureBoxes }
+  return { activeGesture, handBoxes, gestureBoxes, holdProgress }
 }

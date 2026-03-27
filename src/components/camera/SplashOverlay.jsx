@@ -37,7 +37,7 @@ export function SplashOverlay({ visible }) {
         <p className="text-white/40 text-sm mt-2 tracking-wide">
           Dutch Anime Community
         </p>
-        <p className="text-white/20 text-[10px] mt-1">v1.0.1</p>
+        <p className="text-white/20 text-[10px] mt-1">v{process.env.APP_VERSION}</p>
       </div>
 
       <p

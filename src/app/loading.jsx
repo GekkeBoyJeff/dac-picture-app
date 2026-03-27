@@ -23,7 +23,7 @@ const Loading = () => (
     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
       <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/50 animate-spin" />
       <p className="text-white/20 text-xs tracking-widest uppercase">Laden...</p>
-      <p className="text-white/10 text-[10px] tracking-wider mt-1">v1.0.1</p>
+      <p className="text-white/10 text-[10px] tracking-wider mt-1">v{process.env.APP_VERSION}</p>
     </div>
   </div>
 )

@@ -19,7 +19,7 @@ export function AboutDrawer() {
         />
         <div className="text-center">
           <h2 className="text-white text-lg font-semibold tracking-wide">DAC Photo Booth</h2>
-          <p className="text-white/40 text-xs mt-1">v1.0.1</p>
+          <p className="text-white/40 text-xs mt-1">v{process.env.APP_VERSION}</p>
         </div>
         <p className="text-white/50 text-sm text-center max-w-xs">
           Gemaakt door{" "}

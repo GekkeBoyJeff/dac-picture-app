@@ -27,7 +27,7 @@ const RECALIBRATE_MESSAGES = [
 ]
 
 export function CameraView() {
-  const { videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored, activeGesture, handBoxes, gestureBoxes } = useCameraContext()
+  const { videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored, activeGesture, handBoxes, gestureBoxes, holdProgress } = useCameraContext()
   const { showMascotPicker, showLayoutPicker, showAbout, showSettings, closeSettings, openAbout } = useModalContext()
   const {
     debugEnabled,
@@ -38,6 +38,8 @@ export function CameraView() {
     setDetectionInterval,
     triggerMinScore,
     setTriggerMinScore,
+    gestureHoldMs,
+    setGestureHoldMs,
   } = useUIContext()
 
   return (
@@ -70,7 +72,7 @@ export function CameraView() {
                 outlineColor="rgba(56,189,248,0.35)"
               />
             ))}
-            <GestureIndicator gesture={activeGesture} />
+            <GestureIndicator gesture={activeGesture} holdProgress={holdProgress} />
             <div className="absolute inset-0 pointer-events-none animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.captureButton }}>
               <CaptureButton />
             </div>
@@ -95,6 +97,8 @@ export function CameraView() {
           onChangeDetectionInterval={setDetectionInterval}
           triggerMinScore={triggerMinScore}
           onChangeTriggerMinScore={setTriggerMinScore}
+          gestureHoldMs={gestureHoldMs}
+          onChangeGestureHoldMs={setGestureHoldMs}
           openAbout={openAbout}
         />
 
