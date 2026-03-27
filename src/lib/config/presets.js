@@ -159,7 +159,7 @@ export const LAYOUTS = [
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
     qr: { opacity: 0.8, position: "top-right", size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
-      fontSize: { sm: 0.5, md: 0.6875, lg: 0.875 },
+      fontSize: { sm: 0.85, md: 1, lg: 1.1 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
     },
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
@@ -187,7 +187,7 @@ export const LAYOUTS = [
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
     qr: { opacity: 0.8, position: "top-left", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
-      fontSize: { sm: 0.5, md: 0.6875, lg: 0.875 },
+      fontSize: { sm: 0.85, md: 1, lg: 1.1 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
     },
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
@@ -223,7 +223,7 @@ export const LAYOUTS = [
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
     qr: { opacity: 0.8, position: "top-right", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
     date: {
-      fontSize: { sm: 0.5, md: 0.6875, lg: 0.875 },
+      fontSize: { sm: 0.85, md: 1, lg: 1.1 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
     },
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
