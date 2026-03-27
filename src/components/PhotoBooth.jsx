@@ -6,13 +6,15 @@ import { useGallery } from "@/hooks/useGallery"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 import { useToast } from "@/hooks/useToast"
 import { useHandGesture } from "@/hooks/useHandGesture"
+import { useGestureSequence } from "@/hooks/useGestureSequence"
+import { useGestureSwipe } from "@/hooks/useGestureSwipe"
 import { useOverlaySettings } from "@/hooks/useOverlaySettings"
 import { useModalState } from "@/hooks/useModalState"
 import { useSendQueue } from "@/hooks/useSendQueue"
 import { compositePhoto } from "@/lib/compositePhoto"
 import { STORAGE_KEYS, readStorage, writeStorage } from "@/lib/storage/localStorage"
 import { BUTTON_STYLES } from "@/lib/styles/buttons"
-import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED, DEFAULT_GESTURE_HOLD_MS } from "@/lib/config"
+import { COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED, DEFAULT_GESTURE_HOLD_MS, GESTURE_SEQUENCE_CLOSE } from "@/lib/config"
 import { validateConfigShapes } from "@/lib/config/validate"
 import { CameraProvider, OverlayProvider, ModalProvider, UIProvider } from "@/context"
 import { CameraView } from "./camera"
@@ -42,6 +44,7 @@ export function PhotoBooth() {
     gallery: false,
     mascotPicker: false,
     layoutPicker: false,
+    layoutSlider: false,
     about: false,
     settings: false,
   })
@@ -130,6 +133,8 @@ export function PhotoBooth() {
   const closeMascotPicker = useCallback(() => closeModal("mascotPicker"), [closeModal])
   const openLayoutPicker = useCallback(() => openModal("layoutPicker"), [openModal])
   const closeLayoutPicker = useCallback(() => closeModal("layoutPicker"), [closeModal])
+  const openLayoutSlider = useCallback(() => openModal("layoutSlider"), [openModal])
+  const closeLayoutSlider = useCallback(() => closeModal("layoutSlider"), [closeModal])
   const openAbout = useCallback(() => openModal("about"), [openModal])
   const closeAbout = useCallback(() => closeModal("about"), [closeModal])
   const openSettings = useCallback(() => openModal("settings"), [openModal])
@@ -147,9 +152,9 @@ export function PhotoBooth() {
   }), [handlePeaceSign])
 
   const gesturesEnabledForTracking = appState === "camera" && isReady && (gesturesEnabled || debugEnabled)
-  const gestureActionsEnabled = appState === "camera" && isReady && gesturesEnabled
+  const gestureActionsEnabled = appState === "camera" && isReady && gesturesEnabled && !modals.layoutSlider
 
-  const { activeGesture, handBoxes, gestureBoxes, holdProgress } = useHandGesture(
+  const { activeGesture, handBoxes, gestureBoxes, holdProgress, rawGestureNameRef, primaryHandLandmarksRef } = useHandGesture(
     videoRef,
     gesturesEnabledForTracking,
     gestureCallbacks,
@@ -159,6 +164,32 @@ export function PhotoBooth() {
     gestureActionsEnabled,
     gestureHoldMs
   )
+
+  const gestureSequenceOpen = useGestureSequence(rawGestureNameRef, {
+    onComplete: openLayoutSlider,
+    enabled: gesturesEnabledForTracking && !modals.layoutSlider,
+  })
+
+  const gestureSequenceClose = useGestureSequence(rawGestureNameRef, {
+    onComplete: closeLayoutSlider,
+    enabled: gesturesEnabledForTracking && modals.layoutSlider,
+    sequence: GESTURE_SEQUENCE_CLOSE,
+  })
+
+  const gestureSwipe = useGestureSwipe(
+    rawGestureNameRef,
+    primaryHandLandmarksRef,
+    { enabled: modals.layoutSlider },
+  )
+
+  // Drive sequence + swipe hooks from the same render cycle as the detection loop
+  // (handBoxes/holdProgress state updates trigger renders at ~30fps)
+  useEffect(() => {
+    gestureSequenceOpen.tick()
+    gestureSequenceClose.tick()
+    gestureSwipe.tick()
+  })
+
 
   useEffect(() => {
     startCamera()
@@ -243,10 +274,13 @@ export function PhotoBooth() {
     handBoxes,
     gestureBoxes,
     holdProgress,
+    gestureSequenceOpen,
+    gestureSequenceClose,
+    gestureSwipe,
   }), [
     videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored,
     devices, selectedDeviceId, switchCamera, handleCapture, appState, activeGesture, handBoxes,
-    gestureBoxes, holdProgress,
+    gestureBoxes, holdProgress, gestureSequenceOpen, gestureSequenceClose, gestureSwipe,
   ])
 
   const overlayContextValue = useMemo(() => ({
@@ -264,6 +298,9 @@ export function PhotoBooth() {
     closeMascotPicker,
     openLayoutPicker,
     closeLayoutPicker,
+    showLayoutSlider: modals.layoutSlider,
+    openLayoutSlider,
+    closeLayoutSlider,
     showAbout: modals.about,
     openAbout,
     closeAbout,
@@ -274,6 +311,7 @@ export function PhotoBooth() {
     modals.mascotPicker, modals.layoutPicker,
     openMascotPicker, closeMascotPicker,
     openLayoutPicker, closeLayoutPicker,
+    modals.layoutSlider, openLayoutSlider, closeLayoutSlider,
     modals.about, openAbout, closeAbout,
     modals.settings, openSettings, closeSettings,
   ])

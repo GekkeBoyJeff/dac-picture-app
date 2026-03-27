@@ -4,6 +4,8 @@ import { Overlays } from "./Overlays"
 import { CaptureButton } from "./CaptureButton"
 import { ControlBar } from "./ControlBar"
 import { GestureIndicator } from "./GestureIndicator"
+import { GestureSequenceHint } from "./GestureSequenceHint"
+import { LayoutSlider } from "./LayoutSlider"
 import { HandBox } from "./HandBox"
 import { MascotPicker } from "./MascotPicker"
 import { LayoutPicker } from "./LayoutPicker"
@@ -27,8 +29,8 @@ const RECALIBRATE_MESSAGES = [
 ]
 
 export function CameraView() {
-  const { videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored, activeGesture, handBoxes, gestureBoxes, holdProgress } = useCameraContext()
-  const { showMascotPicker, showLayoutPicker, showAbout, showSettings, closeSettings, openAbout } = useModalContext()
+  const { videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored, activeGesture, handBoxes, gestureBoxes, holdProgress, gestureSequenceOpen, gestureSequenceClose, gestureSwipe } = useCameraContext()
+  const { showMascotPicker, showLayoutPicker, showAbout, showSettings, closeSettings, openAbout, showLayoutSlider, closeLayoutSlider } = useModalContext()
   const {
     debugEnabled,
     toggleDebug,
@@ -44,7 +46,13 @@ export function CameraView() {
 
   return (
     <main className="flex items-center justify-center w-dvw h-dvh bg-black max-w-480 mx-auto">
-      <div ref={containerRef} className="relative overflow-hidden w-dvw h-dvh">
+      <div
+        ref={containerRef}
+        className={`relative overflow-hidden w-dvw h-dvh transition-all duration-500 ease-[cubic-bezier(.4,0,.2,1)] ${
+          showLayoutSlider ? "rounded-2xl" : ""
+        }`}
+        style={showLayoutSlider ? { transform: "scale(0.75)", transformOrigin: "top center", marginTop: "1rem" } : undefined}
+      >
         <video
           ref={videoRef}
           autoPlay
@@ -61,7 +69,7 @@ export function CameraView() {
             {debugEnabled && handBoxes.map((box) => (
               <HandBox key={`track-${box.index}-${box.x}-${box.y}`} box={box} videoRef={videoRef} containerRef={containerRef} />
             ))}
-            {debugEnabled && gestureBoxes.map((box) => (
+            {debugEnabled && !showLayoutSlider && gestureBoxes.map((box) => (
               <HandBox
                 key={`gesture-${box.index}-${box.x}-${box.y}`}
                 box={box}
@@ -73,6 +81,11 @@ export function CameraView() {
               />
             ))}
             <GestureIndicator gesture={activeGesture} holdProgress={holdProgress} />
+            <GestureSequenceHint
+              isActiveRef={showLayoutSlider ? gestureSequenceClose.isActiveRef : gestureSequenceOpen.isActiveRef}
+              currentStepRef={showLayoutSlider ? gestureSequenceClose.currentStepRef : gestureSequenceOpen.currentStepRef}
+              sequence={showLayoutSlider ? gestureSequenceClose.sequence : gestureSequenceOpen.sequence}
+            />
             <div className="absolute inset-0 pointer-events-none animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.captureButton }}>
               <CaptureButton />
             </div>
@@ -106,6 +119,13 @@ export function CameraView() {
         {showLayoutPicker && <LayoutPicker />}
         {showAbout && <AboutDrawer />}
       </div>
+
+      <LayoutSlider
+        isOpen={showLayoutSlider}
+        onClose={closeLayoutSlider}
+        gestureSwipe={gestureSwipe}
+        closeSequence={gestureSequenceClose}
+      />
     </main>
   )
 }

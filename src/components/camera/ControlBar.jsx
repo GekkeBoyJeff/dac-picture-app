@@ -18,7 +18,7 @@ export function ControlBar() {
   const { openGallery, galleryCount, canInstall, onInstall } = useUIContext()
   const {
     openMascotPicker,
-    openLayoutPicker,
+    openLayoutSlider,
     openSettings,
   } = useModalContext()
 
@@ -57,7 +57,7 @@ export function ControlBar() {
       </div>
 
       <div className="relative group">
-        <button onClick={openLayoutPicker} className={BUTTON_STYLES.icon} aria-label="Choose layout">
+        <button onClick={openLayoutSlider} className={BUTTON_STYLES.icon} aria-label="Choose layout">
           <LayoutIcon className="w-5 h-5 text-white/70" />
         </button>
         <span className="pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden">

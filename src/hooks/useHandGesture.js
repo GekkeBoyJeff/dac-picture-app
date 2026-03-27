@@ -15,6 +15,8 @@ const TRIGGER_GESTURES = new Set(["Victory", "ILoveYou", "Deuces"])
 // Hold last seen boxes briefly when detection drops to reduce flicker
 const BOX_HOLD_MS = 700
 const MIN_DRAW_INTERVAL_MS = 33
+// Grace period before resetting gesture hold when detection flickers
+const GESTURE_GRACE_MS = 100
 
 const clampInterval = (value) => Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, value ?? DEFAULT_DETECTION_INTERVAL_MS))
 
@@ -93,13 +95,17 @@ export function useHandGesture(
   const lastGestureEvalRef = useRef(0)
 
   const gestureStartRef = useRef(null)
+  const lastGestureSeenRef = useRef(0)
   const victoryFiredRef = useRef(false)
   const [holdProgress, setHoldProgress] = useState(null)
+  const rawGestureNameRef = useRef("None")
+  const primaryHandLandmarksRef = useRef(null)
 
   // Reset so a new countdown can be triggered after the previous one completes
   useEffect(() => {
     victoryFiredRef.current = false
     gestureStartRef.current = null
+    lastGestureSeenRef.current = 0
     lastSeenRef.current = new Map()
     setActiveGesture(null)
     setHoldProgress(null)
@@ -215,6 +221,11 @@ export function useHandGesture(
                 })
               }
 
+              // Expose raw gesture name + primary hand landmarks for sequence/swipe hooks
+              const topGesture = gestures[0]?.[0]
+              rawGestureNameRef.current = topGesture?.categoryName ?? "None"
+              primaryHandLandmarksRef.current = allLandmarks[0] ?? null
+
               allLandmarks.forEach((landmarks, idx) => {
                 if (!landmarks || landmarks.length === 0) return
 
@@ -270,22 +281,31 @@ export function useHandGesture(
                   if (gestureStartRef.current === null) {
                     gestureStartRef.current = now
                   }
-                  const elapsed = now - gestureStartRef.current
-                  const progress = Math.min(1, elapsed / Math.max(1, holdDurationMs))
+                  lastGestureSeenRef.current = now
                   setActiveGesture("Victory")
-                  setHoldProgress(progress)
-
-                  if (progress >= 1 && !victoryFiredRef.current) {
-                    victoryFiredRef.current = true
-                    setActiveGesture(null)
-                    setHoldProgress(null)
-                    callbacks.onVictory()
-                    return
-                  }
-                } else {
+                } else if (
+                  gestureStartRef.current !== null &&
+                  now - lastGestureSeenRef.current > GESTURE_GRACE_MS
+                ) {
                   gestureStartRef.current = null
                   setActiveGesture(null)
                   setHoldProgress(null)
+                }
+              }
+
+              // Update progress every frame for smooth circle animation
+              if (gestureStartRef.current !== null && !victoryFiredRef.current) {
+                const elapsed = now - gestureStartRef.current
+                const progress = Math.min(1, elapsed / Math.max(1, holdDurationMs))
+                setHoldProgress(progress)
+
+                if (progress >= 1) {
+                  victoryFiredRef.current = true
+                  gestureStartRef.current = null
+                  setActiveGesture(null)
+                  setHoldProgress(null)
+                  callbacks.onVictory()
+                  return
                 }
               }
             } catch {
@@ -314,5 +334,5 @@ export function useHandGesture(
       recognizerRef.current = null
     }
   }, [])
-  return { activeGesture, handBoxes, gestureBoxes, holdProgress }
+  return { activeGesture, handBoxes, gestureBoxes, holdProgress, rawGestureNameRef, primaryHandLandmarksRef }
 }

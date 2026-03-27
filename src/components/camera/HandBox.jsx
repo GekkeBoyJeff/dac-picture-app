@@ -18,23 +18,27 @@ const HandBox = ({ box, videoRef, containerRef, borderColor = "rgba(16,185,129,0
     const container = containerRef?.current
 
     if (video && container && video.videoWidth && video.videoHeight) {
-      const bounds = container.getBoundingClientRect()
-      if (bounds.width && bounds.height) {
-        const scale = Math.max(bounds.width / video.videoWidth, bounds.height / video.videoHeight)
+      // Use offsetWidth/offsetHeight instead of getBoundingClientRect() because
+      // the container may have a CSS transform (scale) applied. offset* gives
+      // the original layout size which matches absolute positioning coordinates.
+      const layoutWidth = container.offsetWidth
+      const layoutHeight = container.offsetHeight
+      if (layoutWidth && layoutHeight) {
+        const scale = Math.max(layoutWidth / video.videoWidth, layoutHeight / video.videoHeight)
         const displayWidth = video.videoWidth * scale
         const displayHeight = video.videoHeight * scale
-        const offsetX = (bounds.width - displayWidth) / 2
-        const offsetY = (bounds.height - displayHeight) / 2
+        const offsetX = (layoutWidth - displayWidth) / 2
+        const offsetY = (layoutHeight - displayHeight) / 2
 
         const left = box.x * displayWidth + offsetX
         const top = box.y * displayHeight + offsetY
         const width = box.width * displayWidth
         const height = box.height * displayHeight
 
-        const clampedLeft = Math.max(0, Math.min(bounds.width, left))
-        const clampedTop = Math.max(0, Math.min(bounds.height, top))
-        const clampedRight = Math.max(0, Math.min(bounds.width, left + width))
-        const clampedBottom = Math.max(0, Math.min(bounds.height, top + height))
+        const clampedLeft = Math.max(0, Math.min(layoutWidth, left))
+        const clampedTop = Math.max(0, Math.min(layoutHeight, top))
+        const clampedRight = Math.max(0, Math.min(layoutWidth, left + width))
+        const clampedBottom = Math.max(0, Math.min(layoutHeight, top + height))
 
         const boxWidth = Math.max(0, clampedRight - clampedLeft)
         const boxHeight = Math.max(0, clampedBottom - clampedTop)
