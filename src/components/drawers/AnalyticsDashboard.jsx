@@ -13,12 +13,12 @@ function Stat({ label, value, sub }) {
   )
 }
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ refreshKey }) {
   const [summary, setSummary] = useState(null)
 
   useEffect(() => {
     getSummary().then(setSummary)
-  }, [])
+  }, [refreshKey])
 
   if (!summary) return null
 

@@ -220,11 +220,11 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                   </span>
                 </div>
               )}
+
+              {/* Analytics */}
+              <AnalyticsDashboard refreshKey={isOpen} />
             </>
           )}
-
-          {/* Analytics */}
-          <AnalyticsDashboard />
 
           <button
             onClick={() => { openAbout(); onClose() }}
