@@ -20,8 +20,6 @@ export function drawTitle(ctx, el, containerRect, scaleX, scaleY) {
   ctx.shadowBlur = 12 * Math.min(scaleX, scaleY)
   ctx.shadowOffsetY = 2 * scaleY
 
-  // The title has two lines: "Dutch Anime" and "Community"
-  // Measure actual line height from the span's computed style
   const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2
   const scaledLineHeight = lineHeight * scaleY
 

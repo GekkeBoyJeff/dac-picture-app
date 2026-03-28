@@ -11,7 +11,7 @@ function isStandalone() {
   )
 }
 
-function isIOS() {
+function isIOSDevice() {
   if (typeof navigator === "undefined") return false
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -23,7 +23,6 @@ function wasDismissed() {
   try {
     const dismissed = readStorage(STORAGE_KEYS.INSTALL_PROMPT_DISMISSED_AT)
     if (!dismissed) return false
-    // Re-show after 7 days so returning users get another chance
     return Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000
   } catch {
     return false
@@ -33,12 +32,10 @@ function wasDismissed() {
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [showIOSBanner, setShowIOSBanner] = useState(() => {
-    // Lazy init: determine if iOS banner should show
     if (isStandalone() || wasDismissed()) return false
-    return isIOS()
+    return isIOSDevice()
   })
   const [dismissed, setDismissed] = useState(() => {
-    // Lazy init: determine if dismissed
     return isStandalone() || wasDismissed()
   })
 

@@ -1,9 +1,7 @@
 "use client"
 
-import { WarningIcon } from "@/components/icons"
+import { WarningIcon } from "@/components/ui/icons"
 
-// Replaces the root layout when an uncaught error bubbles up,
-// so it must define its own <html> and <body>.
 const GlobalError = () => (
   <html lang="nl">
     <body className="h-full bg-black text-white">

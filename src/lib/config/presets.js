@@ -165,7 +165,6 @@ export const LAYOUTS = [
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
   },
   {
-    // Mirrored classic: logo+title top-right, QR top-left, mascot bottom-left
     id: "flipped",
     name: "Flipped",
     description: "Classic layout mirrored",
@@ -193,7 +192,6 @@ export const LAYOUTS = [
     corners: { size: { sm: 4.5, md: 4.5, lg: 4.5 } },
   },
   {
-    // Big mascot fills the corner, everything else stays the same size
     id: "hero",
     name: "Hero",
     description: "Mascot takes the stage",

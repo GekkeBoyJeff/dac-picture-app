@@ -1,23 +1,25 @@
 "use client"
 
-import { useRef, useState, useCallback, useEffect } from "react"
+import { useRef, useCallback, useEffect } from "react"
+import { useCameraStore } from "@/stores/cameraStore"
+import { logger } from "@/lib/logger"
 
 export function useCamera() {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
-  const [isReady, setIsReady] = useState(false)
-  const [error, setError] = useState(null)
-  const [devices, setDevices] = useState([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null)
-  const [isMirrored, setIsMirrored] = useState(true)
-  const [isRecalibrating, setIsRecalibrating] = useState(false)
-  const [isSwitching, setIsSwitching] = useState(false)
+
+  const {
+    isReady, isRecalibrating, isSwitching, isMirrored, error,
+    devices, selectedDeviceId,
+    setReady, setRecalibrating, setSwitching, setMirrored,
+    setError, setDevices, setSelectedDevice,
+  } = useCameraStore()
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
-    setIsReady(false)
-  }, [])
+    setReady(false)
+  }, [setReady])
 
   const enumerateDevices = useCallback(async () => {
     try {
@@ -33,7 +35,7 @@ export function useCamera() {
     } catch {
       return []
     }
-  }, [])
+  }, [setDevices])
 
   const startCamera = useCallback(
     async (deviceId) => {
@@ -50,7 +52,6 @@ export function useCamera() {
               : isMobile
                 ? { facingMode: "user" }
                 : {}),
-            // Mobile: skip aspect ratio constraint to avoid forced cropping/zoom
             ...(isMobile
               ? {
                   width: { ideal: 4096 },
@@ -70,7 +71,7 @@ export function useCamera() {
         const track = stream.getVideoTracks()[0]
         const settings = track?.getSettings()
         const activeDeviceId = settings?.deviceId ?? deviceId ?? null
-        setSelectedDeviceId(activeDeviceId)
+        setSelectedDevice(activeDeviceId)
 
         const facingMode = settings?.facingMode
         const label = track?.label?.toLowerCase() ?? ""
@@ -80,13 +81,9 @@ export function useCamera() {
           label.includes("external") ||
           label.includes("usb") ||
           label.includes("capture")
-        // External devices and back cameras should not be mirrored
-        setIsMirrored(
-          facingMode ? facingMode === "user" : !isExternal
-        )
+        setMirrored(facingMode ? facingMode === "user" : !isExternal)
 
         // Widest zoom angle for group photos; stabilization reduces shake.
-        // These properties exist at runtime but are not in all browser specs.
         try {
           const caps = track?.getCapabilities?.()
           const advanced = []
@@ -109,37 +106,35 @@ export function useCamera() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
-          setIsReady(true)
-          setIsRecalibrating(false)
-          setIsSwitching(false)
+          setReady(true)
+          setRecalibrating(false)
+          setSwitching(false)
         }
 
         await enumerateDevices()
+        logger.info("camera", "Camera started", { deviceId: activeDeviceId })
       } catch (err) {
         if (err instanceof DOMException) {
           const messages = {
-            NotAllowedError:
-              "Camera toegang geweigerd. Sta camera toe in je browser.",
+            NotAllowedError: "Camera toegang geweigerd. Sta camera toe in je browser.",
             NotFoundError: "Geen camera gevonden op dit apparaat.",
           }
           setError(messages[err.name] ?? `Camera fout: ${err.message}`)
         } else {
           setError("Onbekende camera fout.")
         }
-
-        // Still enumerate devices so the user can pick a different camera
         await enumerateDevices()
       }
     },
-    [stopCamera, enumerateDevices]
+    [stopCamera, enumerateDevices, setError, setSelectedDevice, setMirrored, setReady, setRecalibrating, setSwitching],
   )
 
   const switchCamera = useCallback(
     (deviceId) => {
-      setIsSwitching(true)
+      setSwitching(true)
       startCamera(deviceId)
     },
-    [startCamera]
+    [startCamera, setSwitching],
   )
 
   // Orientation change requires new constraints and zoom reset
@@ -149,7 +144,7 @@ export function useCamera() {
     let timeout
     const handler = () => {
       clearTimeout(timeout)
-      setIsRecalibrating(true)
+      setRecalibrating(true)
       timeout = setTimeout(() => {
         startCamera(selectedDeviceId)
       }, 500)
@@ -162,8 +157,9 @@ export function useCamera() {
       window.removeEventListener("resize", handler)
       window.removeEventListener("orientationchange", handler)
     }
-  }, [isReady, selectedDeviceId, startCamera])
+  }, [isReady, selectedDeviceId, startCamera, setRecalibrating])
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((track) => track.stop())

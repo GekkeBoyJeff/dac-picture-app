@@ -1,15 +1,11 @@
 "use client"
 
 import { memo, useMemo, useState, useEffect, useRef } from "react"
-import { Spinner } from "../Spinner"
+import { Spinner } from "@/components/ui/Spinner"
 import { pickRandom } from "@/lib/random"
 
 /**
  * Lightweight status overlay shown during camera recalibration or switching.
- *
- * @param {boolean} visible     — controls fade in/out
- * @param {string|string[]} messages — single string or array (cycles every 1.2s)
- * @param {string} [backdrop]   — Tailwind bg class, defaults to semi-transparent
  */
 export const StatusOverlay = memo(function StatusOverlay({ visible, messages, backdrop = "bg-black/60 backdrop-blur-sm" }) {
   const list = useMemo(() => (Array.isArray(messages) ? messages : [messages]), [messages])

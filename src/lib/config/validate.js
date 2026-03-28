@@ -59,7 +59,6 @@ function validateLayout(item, index) {
   assert(item.qr?.position, `Layout[${index}] missing qr.position`)
   assert(hasBreakpointObject(item.qr?.size), `Layout[${index}] missing qr.size.{sm,md,lg}`)
 
-  // Validate mascotOverrides entries
   if (item.mascotOverrides) {
     for (const [mascotId, overrides] of Object.entries(item.mascotOverrides)) {
       if (overrides.sizingAxis) {

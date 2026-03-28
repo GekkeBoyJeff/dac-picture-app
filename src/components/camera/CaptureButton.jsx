@@ -1,7 +1,12 @@
-import { useCameraContext } from "@/context"
+"use client"
 
-export function CaptureButton() {
-  const { onCapture, disabled } = useCameraContext()
+import { useUiStore } from "@/stores/uiStore"
+import { useCameraStore } from "@/stores/cameraStore"
+
+export function CaptureButton({ onCapture }) {
+  const appState = useUiStore((s) => s.appState)
+  const isReady = useCameraStore((s) => s.isReady)
+  const disabled = !isReady || appState === "capturing"
 
   return (
     <button

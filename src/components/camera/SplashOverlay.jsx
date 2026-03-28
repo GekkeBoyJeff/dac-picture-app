@@ -12,7 +12,6 @@ const TIPS = [
 ]
 
 export function SplashOverlay({ visible }) {
-  // Deterministic tip to avoid SSR/CSR hydration mismatches
   const tipIndex = useMemo(() => 0, [])
 
   return (
@@ -37,7 +36,7 @@ export function SplashOverlay({ visible }) {
         <p className="text-white/40 text-sm mt-2 tracking-wide">
           Dutch Anime Community
         </p>
-        <p className="text-white/20 text-[10px] mt-1">v{process.env.APP_VERSION}</p>
+        <p className="text-white/20 text-[0.625rem] mt-1">v{process.env.APP_VERSION}</p>
       </div>
 
       <p

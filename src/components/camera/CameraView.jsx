@@ -3,18 +3,14 @@
 import { Overlays } from "./Overlays"
 import { CaptureButton } from "./CaptureButton"
 import { ControlBar } from "./ControlBar"
-import { GestureIndicator } from "./GestureIndicator"
-import { GestureSequenceHint } from "./GestureSequenceHint"
-import { LayoutSlider } from "./LayoutSlider"
-import { HandBox } from "./HandBox"
-import { MascotPicker } from "./MascotPicker"
-import { LayoutPicker } from "./LayoutPicker"
 import { SplashOverlay } from "./SplashOverlay"
 import { StatusOverlay } from "./StatusOverlay"
-import { AboutDrawer } from "./AboutDrawer"
-import { SettingsDrawer } from "./SettingsDrawer"
+import { GestureIndicator } from "@/components/gestures/GestureIndicator"
+import { GestureSequenceHint } from "@/components/gestures/GestureSequenceHint"
+import { HandBox } from "@/components/gestures/HandBox"
 import { ANIMATION_DELAYS } from "@/lib/styles/animations"
-import { useCameraContext, useModalContext, useUIContext } from "@/context"
+import { useCameraStore } from "@/stores/cameraStore"
+import { useUiStore } from "@/stores/uiStore"
 
 const RECALIBRATE_MESSAGES = [
   "Schermgrootte detecteren...",
@@ -28,31 +24,29 @@ const RECALIBRATE_MESSAGES = [
   "Kader aanpassen...",
 ]
 
-export function CameraView() {
-  const { videoRef, containerRef, isReady, splashDone, isRecalibrating, isSwitching, isMirrored, activeGesture, handBoxes, gestureBoxes, holdProgress, gestureSequenceOpen, gestureSequenceClose, gestureSwipe } = useCameraContext()
-  const { showMascotPicker, showLayoutPicker, showAbout, showSettings, closeSettings, openAbout, showLayoutSlider, closeLayoutSlider } = useModalContext()
-  const {
-    debugEnabled,
-    toggleDebug,
-    gesturesEnabled,
-    toggleGestures,
-    detectionIntervalMs,
-    setDetectionInterval,
-    triggerMinScore,
-    setTriggerMinScore,
-    gestureHoldMs,
-    setGestureHoldMs,
-  } = useUIContext()
+export function CameraView({
+  videoRef, containerRef, splashDone, onCapture, switchCamera,
+  canInstall, onInstall,
+  activeGesture, handBoxes, gestureBoxes, holdProgress,
+  gestureSequenceOpen, gestureSequenceClose,
+}) {
+  const isReady = useCameraStore((s) => s.isReady)
+  const isRecalibrating = useCameraStore((s) => s.isRecalibrating)
+  const isSwitching = useCameraStore((s) => s.isSwitching)
+  const isMirrored = useCameraStore((s) => s.isMirrored)
+  const debugEnabled = useUiStore((s) => s.debugEnabled)
+  const showLayoutSlider = useUiStore((s) => s.modals.layoutSlider)
+  const closeLayoutSlider = useUiStore((s) => s.closeModal)
 
   return (
     <main className="flex items-center justify-center w-dvw h-dvh bg-black max-w-480 mx-auto">
       <div
         ref={containerRef}
-        className={`relative overflow-hidden w-dvw h-dvh transition-all duration-500 ease-[cubic-bezier(.4,0,.2,1)] ${
+        className={`relative overflow-hidden w-dvw h-dvh transition-all duration-500 ease-in-out ${
           showLayoutSlider ? "rounded-2xl cursor-pointer" : ""
         }`}
         style={showLayoutSlider ? { transform: "scale(0.75)", transformOrigin: "top center", marginTop: "1rem" } : undefined}
-        onClick={showLayoutSlider ? closeLayoutSlider : undefined}
+        onClick={showLayoutSlider ? () => closeLayoutSlider("layoutSlider") : undefined}
       >
         <video
           ref={videoRef}
@@ -67,10 +61,12 @@ export function CameraView() {
             <div className="absolute inset-0 animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.overlays }}>
               <Overlays />
             </div>
-            {debugEnabled && handBoxes.map((box) => (
+
+            {/* Debug hand tracking boxes */}
+            {debugEnabled && handBoxes?.map((box) => (
               <HandBox key={`track-${box.index}-${box.x}-${box.y}`} box={box} videoRef={videoRef} containerRef={containerRef} />
             ))}
-            {debugEnabled && !showLayoutSlider && gestureBoxes.map((box) => (
+            {debugEnabled && !showLayoutSlider && gestureBoxes?.map((box) => (
               <HandBox
                 key={`gesture-${box.index}-${box.x}-${box.y}`}
                 box={box}
@@ -81,17 +77,20 @@ export function CameraView() {
                 outlineColor="rgba(56,189,248,0.35)"
               />
             ))}
+
+            {/* Gesture feedback */}
             <GestureIndicator gesture={activeGesture} holdProgress={holdProgress} />
             <GestureSequenceHint
-              isActiveRef={showLayoutSlider ? gestureSequenceClose.isActiveRef : gestureSequenceOpen.isActiveRef}
-              currentStepRef={showLayoutSlider ? gestureSequenceClose.currentStepRef : gestureSequenceOpen.currentStepRef}
-              sequence={showLayoutSlider ? gestureSequenceClose.sequence : gestureSequenceOpen.sequence}
+              isActive={showLayoutSlider ? gestureSequenceClose?.isActiveRef?.current : gestureSequenceOpen?.isActiveRef?.current}
+              currentStep={showLayoutSlider ? gestureSequenceClose?.currentStepRef?.current : gestureSequenceOpen?.currentStepRef?.current}
+              sequence={showLayoutSlider ? gestureSequenceClose?.sequence : gestureSequenceOpen?.sequence}
             />
+
             <div className="absolute inset-0 pointer-events-none animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.captureButton }}>
-              <CaptureButton />
+              <CaptureButton onCapture={onCapture} />
             </div>
             <div className="absolute inset-0 pointer-events-none animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.controlBar }}>
-              <ControlBar />
+              <ControlBar switchCamera={switchCamera} canInstall={canInstall} onInstall={onInstall} />
             </div>
           </>
         )}
@@ -99,34 +98,7 @@ export function CameraView() {
         <SplashOverlay visible={!splashDone || (!isReady && !isSwitching && !isRecalibrating)} />
         <StatusOverlay visible={isRecalibrating && splashDone} messages={RECALIBRATE_MESSAGES} />
         <StatusOverlay visible={isSwitching && splashDone} messages="Camera wisselen..." />
-
-        <SettingsDrawer
-          isOpen={showSettings}
-          onClose={closeSettings}
-          debugEnabled={debugEnabled}
-          onToggleDebug={toggleDebug}
-          gesturesEnabled={gesturesEnabled}
-          onToggleGestures={toggleGestures}
-          detectionIntervalMs={detectionIntervalMs}
-          onChangeDetectionInterval={setDetectionInterval}
-          triggerMinScore={triggerMinScore}
-          onChangeTriggerMinScore={setTriggerMinScore}
-          gestureHoldMs={gestureHoldMs}
-          onChangeGestureHoldMs={setGestureHoldMs}
-          openAbout={openAbout}
-        />
-
-        {showMascotPicker && <MascotPicker />}
-        {showLayoutPicker && <LayoutPicker />}
-        {showAbout && <AboutDrawer />}
       </div>
-
-      <LayoutSlider
-        isOpen={showLayoutSlider}
-        onClose={closeLayoutSlider}
-        gestureSwipe={gestureSwipe}
-        closeSequence={gestureSequenceClose}
-      />
     </main>
   )
 }

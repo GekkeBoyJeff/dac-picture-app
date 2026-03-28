@@ -1,24 +1,40 @@
 "use client"
 
 import { useEffect, useRef, useCallback, useState } from "react"
-import { GestureRecognizer, FilesetResolver } from "@mediapipe/tasks-vision"
+import { logger } from "@/lib/logger"
 
 // Default 0ms = every animation frame for snappy box drawing.
 const DEFAULT_DETECTION_INTERVAL_MS = 0
 const MIN_INTERVAL_MS = 0
 const MAX_INTERVAL_MS = 1200
-// Slightly lower threshold to improve detection on low-light webcams.
 const CONFIDENCE_THRESHOLD = 0.001
-// Require a stronger score to actually trigger an action.
 const TRIGGER_MIN_SCORE = 0.35
 const TRIGGER_GESTURES = new Set(["Victory", "ILoveYou", "Deuces"])
-// Hold last seen boxes briefly when detection drops to reduce flicker
 const BOX_HOLD_MS = 700
 const MIN_DRAW_INTERVAL_MS = 33
-// Grace period before resetting gesture hold when detection flickers
 const GESTURE_GRACE_MS = 100
 
 const clampInterval = (value) => Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, value ?? DEFAULT_DETECTION_INTERVAL_MS))
+
+/**
+ * Install a persistent console filter for TensorFlow Lite WASM noise.
+ * MediaPipe's WASM module captures the console.error reference at init time,
+ * so we must install the filter BEFORE importing MediaPipe, and keep it active
+ * for the lifetime of the recognizer. Only filters specific TF Lite "INFO:" messages.
+ */
+let tfNoiseFilterInstalled = false
+function installTfLiteNoiseFilter() {
+  if (tfNoiseFilterInstalled) return
+  tfNoiseFilterInstalled = true
+
+  const origError = console.error
+  const origWarn = console.warn
+  const isTfNoise = (arg) =>
+    typeof arg === "string" && (arg.includes("TensorFlow Lite") || arg.includes("tflite") || arg.includes("INFO: Created"))
+
+  console.error = (...args) => { if (!isTfNoise(args[0])) origError(...args) }
+  console.warn = (...args) => { if (!isTfNoise(args[0])) origWarn(...args) }
+}
 
 const computeBox = (landmarks, isMirrored) => {
   if (!landmarks?.length) return null
@@ -37,40 +53,20 @@ const computeBox = (landmarks, isMirrored) => {
     xMax = mirroredMax
   }
 
-  const clampedMinX = Math.max(0, xMin)
-  const clampedMaxX = Math.min(1, xMax)
-  const clampedMinY = Math.max(0, yMin)
-  const clampedMaxY = Math.min(1, yMax)
-
   return {
-    x: clampedMinX,
-    y: clampedMinY,
-    width: Math.max(0, clampedMaxX - clampedMinX),
-    height: Math.max(0, clampedMaxY - clampedMinY),
+    x: Math.max(0, xMin),
+    y: Math.max(0, yMin),
+    width: Math.max(0, Math.min(1, xMax) - Math.max(0, xMin)),
+    height: Math.max(0, Math.min(1, yMax) - Math.max(0, yMin)),
   }
 }
 
 const isTwoFingerVictory = (landmarks) => {
   if (!landmarks?.length) return false
   const wrist = landmarks[0]
-  const distance = (a, b) => {
-    const dx = a.x - b.x
-    const dy = a.y - b.y
-    const dz = (a.z || 0) - (b.z || 0)
-    return Math.hypot(dx, dy, dz)
-  }
-  const isExtended = (pipIdx, tipIdx) => {
-    const pip = landmarks[pipIdx]
-    const tip = landmarks[tipIdx]
-    const tipLen = distance(tip, wrist)
-    const pipLen = distance(pip, wrist)
-    return tipLen - pipLen > 0.1
-  }
-  const indexUp = isExtended(5, 8)
-  const middleUp = isExtended(9, 12)
-  const ringUp = isExtended(13, 16)
-  const pinkyUp = isExtended(17, 20)
-  return indexUp && middleUp && !ringUp && !pinkyUp
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0))
+  const isExtended = (pipIdx, tipIdx) => distance(landmarks[tipIdx], wrist) - distance(landmarks[pipIdx], wrist) > 0.1
+  return isExtended(5, 8) && isExtended(9, 12) && !isExtended(13, 16) && !isExtended(17, 20)
 }
 
 export function useHandGesture(
@@ -81,7 +77,7 @@ export function useHandGesture(
   detectionIntervalMs = DEFAULT_DETECTION_INTERVAL_MS,
   triggerMinScore = TRIGGER_MIN_SCORE,
   gestureActionsEnabled = true,
-  holdDurationMs = 1500
+  holdDurationMs = 1500,
 ) {
   const recognizerRef = useRef(null)
   const animFrameRef = useRef(0)
@@ -101,7 +97,6 @@ export function useHandGesture(
   const rawGestureNameRef = useRef("None")
   const primaryHandLandmarksRef = useRef(null)
 
-  // Reset so a new countdown can be triggered after the previous one completes
   useEffect(() => {
     victoryFiredRef.current = false
     gestureStartRef.current = null
@@ -113,11 +108,16 @@ export function useHandGesture(
     setGestureBoxes([])
   }, [enabled])
 
+  // Dynamic import — MediaPipe only loads when gestures are first enabled
   const initRecognizer = useCallback(async () => {
     if (recognizerRef.current) return
 
+    logger.info("gesture", "Loading MediaPipe (dynamic import)...")
+    installTfLiteNoiseFilter()
+    const { GestureRecognizer, FilesetResolver } = await import("@mediapipe/tasks-vision")
+
     const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/wasm"
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/wasm",
     )
 
     const modelOptions = {
@@ -130,35 +130,20 @@ export function useHandGesture(
       numHands: 2,
     }
 
-    // MediaPipe WASM logs "INFO: Created TensorFlow Lite XNNPACK delegate"
-    // via stderr which Next.js dev overlay catches as an error. Suppress it.
-    const origError = console.error
-    const origWarn = console.warn
-    console.error = (...args) => {
-      if (typeof args[0] === "string" && args[0].includes("TensorFlow Lite")) return
-      origError(...args)
-    }
-    console.warn = (...args) => {
-      if (typeof args[0] === "string" && args[0].includes("TensorFlow Lite")) return
-      origWarn(...args)
-    }
-
     try {
       recognizerRef.current = await GestureRecognizer.createFromOptions(vision, modelOptions)
+      logger.info("gesture", "MediaPipe initialized (GPU)")
     } catch {
-      // GPU delegate failed — fall back to CPU
       try {
         recognizerRef.current = await GestureRecognizer.createFromOptions(vision, {
           ...modelOptions,
           baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" },
         })
+        logger.info("gesture", "MediaPipe initialized (CPU fallback)")
       } catch (cpuErr) {
-        console.warn("[HandGesture] Failed to initialize (GPU + CPU):", cpuErr?.message)
+        logger.warn("gesture", "Failed to initialize (GPU + CPU):", cpuErr?.message)
         recognizerRef.current = null
       }
-    } finally {
-      console.error = origError
-      console.warn = origWarn
     }
   }, [])
 
@@ -178,28 +163,12 @@ export function useHandGesture(
         const video = videoRef.current
         const recognizer = recognizerRef.current
 
-        if (
-          video &&
-          recognizer &&
-          video.readyState >= 2 &&
-          video.videoWidth > 0
-        ) {
+        if (video && recognizer && video.readyState >= 2 && video.videoWidth > 0) {
           const now = performance.now()
           if (now > lastTimestampRef.current) {
             lastTimestampRef.current = now
             try {
-              // MediaPipe spams console with non-actionable warnings per frame
-              const origError = console.error
-              const origWarn = console.warn
-              console.error = () => {}
-              console.warn = () => {}
-              let result
-              try {
-                result = recognizer.recognizeForVideo(video, now)
-              } finally {
-                console.error = origError
-                console.warn = origWarn
-              }
+              const result = recognizer.recognizeForVideo(video, now)
 
               const gestures = result?.gestures || []
               const allLandmarks = result?.landmarks || []
@@ -214,11 +183,7 @@ export function useHandGesture(
               if (shouldEvaluateGesture) {
                 gestures.forEach((gestureList, idx) => {
                   gestureList.forEach((g) => {
-                    if (
-                      TRIGGER_GESTURES.has(g.categoryName) &&
-                      g.score >= effectiveTriggerMin &&
-                      g.score > triggerScore
-                    ) {
+                    if (TRIGGER_GESTURES.has(g.categoryName) && g.score >= effectiveTriggerMin && g.score > triggerScore) {
                       triggerScore = g.score
                       triggerHandIndex = idx
                     }
@@ -226,24 +191,19 @@ export function useHandGesture(
                 })
               }
 
-              // Expose raw gesture name + primary hand landmarks for sequence/swipe hooks
               const topGesture = gestures[0]?.[0]
               rawGestureNameRef.current = topGesture?.categoryName ?? "None"
               primaryHandLandmarksRef.current = allLandmarks[0] ?? null
 
               allLandmarks.forEach((landmarks, idx) => {
                 if (!landmarks || landmarks.length === 0) return
-
                 const box = computeBox(landmarks, isMirrored)
                 if (box) {
                   boxes.push({ ...box, index: idx })
                   lastSeenRef.current.set(idx, now)
                 }
-
-                if (shouldEvaluateGesture && triggerHandIndex < 0) {
-                  if (isTwoFingerVictory(landmarks)) {
-                    triggerHandIndex = idx
-                  }
+                if (shouldEvaluateGesture && triggerHandIndex < 0 && isTwoFingerVictory(landmarks)) {
+                  triggerHandIndex = idx
                 }
               })
 
@@ -252,26 +212,15 @@ export function useHandGesture(
                   const seenAt = lastSeenRef.current.get(prev.index) || 0
                   return now - seenAt < BOX_HOLD_MS
                 })
-
-                if (held.length > 0) {
-                  boxes.push(...held)
-                }
+                if (held.length > 0) boxes.push(...held)
               }
 
               const sameLength = boxes.length === prevBoxesRef.current.length
-              const unchanged =
-                sameLength &&
-                boxes.every((b, idx) => {
-                  const p = prevBoxesRef.current[idx]
-                  if (!p) return false
-                  return (
-                    Math.abs(b.x - p.x) < 0.003 &&
-                    Math.abs(b.y - p.y) < 0.003 &&
-                    Math.abs(b.width - p.width) < 0.003 &&
-                    Math.abs(b.height - p.height) < 0.003 &&
-                    b.index === p.index
-                  )
-                })
+              const unchanged = sameLength && boxes.every((b, idx) => {
+                const p = prevBoxesRef.current[idx]
+                return p && Math.abs(b.x - p.x) < 0.003 && Math.abs(b.y - p.y) < 0.003 &&
+                  Math.abs(b.width - p.width) < 0.003 && Math.abs(b.height - p.height) < 0.003 && b.index === p.index
+              })
 
               if (!unchanged && now - lastDrawRef.current >= MIN_DRAW_INTERVAL_MS) {
                 prevBoxesRef.current = boxes
@@ -283,22 +232,16 @@ export function useHandGesture(
                 lastGestureEvalRef.current = now
                 setGestureBoxes(boxes)
                 if (triggerHandIndex >= 0) {
-                  if (gestureStartRef.current === null) {
-                    gestureStartRef.current = now
-                  }
+                  if (gestureStartRef.current === null) gestureStartRef.current = now
                   lastGestureSeenRef.current = now
                   setActiveGesture("Victory")
-                } else if (
-                  gestureStartRef.current !== null &&
-                  now - lastGestureSeenRef.current > GESTURE_GRACE_MS
-                ) {
+                } else if (gestureStartRef.current !== null && now - lastGestureSeenRef.current > GESTURE_GRACE_MS) {
                   gestureStartRef.current = null
                   setActiveGesture(null)
                   setHoldProgress(null)
                 }
               }
 
-              // Update progress every frame for smooth circle animation
               if (gestureStartRef.current !== null && !victoryFiredRef.current) {
                 const elapsed = now - gestureStartRef.current
                 const progress = Math.min(1, elapsed / Math.max(1, holdDurationMs))
@@ -314,7 +257,7 @@ export function useHandGesture(
                 }
               }
             } catch {
-              // Keep previous boxes when detection hiccups to avoid flicker
+              // Keep previous boxes when detection hiccups
             }
           }
         }
@@ -339,5 +282,6 @@ export function useHandGesture(
       recognizerRef.current = null
     }
   }, [])
+
   return { activeGesture, handBoxes, gestureBoxes, holdProgress, rawGestureNameRef, primaryHandLandmarksRef }
 }

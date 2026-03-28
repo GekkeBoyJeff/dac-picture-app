@@ -13,7 +13,7 @@ export function useToast(duration = TOAST_DURATION_MS) {
       setMessage(msg)
       timerRef.current = setTimeout(() => setMessage(null), duration)
     },
-    [duration]
+    [duration],
   )
 
   const dismiss = useCallback(() => {

@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Native img is required for precise overlay DOM measurement used by compositePhoto. */
 import { memo, useSyncExternalStore } from "react"
 import { CORNERS, LOGO, QR_CODE } from "@/lib/config"
-import { useOverlayContext } from "@/context"
+import { useOverlayStore, selectLayout, selectMascot, selectActiveConvention } from "@/stores/overlayStore"
 
 // ---------------------------------------------------------------------------
 // Breakpoint system — orientation-aware
@@ -43,14 +43,9 @@ function rem(v) {
 // Offset resolution
 // ---------------------------------------------------------------------------
 
-/**
- * Resolves an offset value to { x, y }.
- * Supports plain { x, y }, breakpoint-keyed { sm: {x,y}, md: ... }, or null.
- */
 function resolveOffset(offset, tier, orientation) {
   if (!offset) return { x: 0, y: 0 }
   if ("x" in offset || "y" in offset) return { x: offset.x ?? 0, y: offset.y ?? 0 }
-  // Breakpoint-keyed
   const resolved = bp(offset, tier, orientation)
   if (resolved && ("x" in resolved || "y" in resolved)) return { x: resolved.x ?? 0, y: resolved.y ?? 0 }
   return { x: 0, y: 0 }
@@ -60,12 +55,6 @@ function resolveOffset(offset, tier, orientation) {
 // Mascot property resolution cascade
 // ---------------------------------------------------------------------------
 
-/**
- * Resolves a mascot property through the cascade:
- * 1. layout.mascotOverrides[mascotId] (highest)
- * 2. mascot.defaults
- * 3. layout.mascot (lowest)
- */
 function resolveMascotProp(layout, mascot, prop, tier, orientation) {
   const sources = [
     layout.mascotOverrides?.[mascot.id],
@@ -87,7 +76,6 @@ function resolveMascotProp(layout, mascot, prop, tier, orientation) {
     }
   }
 
-  // Defaults
   if (prop === "offset") return { x: 0, y: 0 }
   if (prop === "sizingAxis") return "height"
   if (prop === "opacity") return 1
@@ -107,7 +95,6 @@ function positionStyle({ position, inset, size, offset, opacity, sizingAxis, fix
 
   if (opacity !== undefined) style.opacity = opacity
 
-  // Sizing
   const { maxWidth, maxHeight } = size
   if (fixedSize) {
     style.width = rem(maxWidth)
@@ -124,13 +111,11 @@ function positionStyle({ position, inset, size, offset, opacity, sizingAxis, fix
     style.height = "auto"
     style.objectFit = "contain"
   } else {
-    // "height" (default) — constrain height first
     style.maxHeight = rem(maxHeight)
     style.width = "auto"
     style.maxWidth = rem(maxWidth)
   }
 
-  // Edge distances: inset + offset
   const ox = offset?.x ?? 0
   const oy = offset?.y ?? 0
 
@@ -153,7 +138,9 @@ function positionStyle({ position, inset, size, offset, opacity, sizingAxis, fix
 // ---------------------------------------------------------------------------
 
 export const Overlays = memo(function Overlays() {
-  const { layout, mascot, activeConvention } = useOverlayContext()
+  const layout = useOverlayStore(selectLayout)
+  const mascot = useOverlayStore(selectMascot)
+  const activeConvention = selectActiveConvention()
   const { tier, orientation } = useBreakpointInfo()
 
   const inset = bp(layout.inset, tier, orientation)
@@ -162,14 +149,12 @@ export const Overlays = memo(function Overlays() {
   const cornerSize = bp(layout.corners.size, tier, orientation)
   const qrSize = bp(layout.qr.size, tier, orientation)
 
-  // Mascot — resolved through the cascade
   const mascotSize = resolveMascotProp(layout, mascot, "sizes", tier, orientation)
   const mascotOpacity = resolveMascotProp(layout, mascot, "opacity", tier, orientation)
   const mascotOffset = resolveMascotProp(layout, mascot, "offset", tier, orientation)
   const mascotPosition = resolveMascotProp(layout, mascot, "position", tier, orientation)
   const mascotSizingAxis = resolveMascotProp(layout, mascot, "sizingAxis", tier, orientation)
 
-  // Title aligns next to the logo, vertically centered with it.
   const logoOffset = resolveOffset(layout.logo.offset, tier, orientation)
   const logoInset = inset + logoOffset.y
   const titleHeight = titleFontSize * 2.2
@@ -178,13 +163,13 @@ export const Overlays = memo(function Overlays() {
 
   return (
     <>
-      {/* Vignettes — CSS on screen, drawn procedurally on canvas by compositePhoto */}
+      {/* Vignettes */}
       <div data-overlay="vignette-radial" className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)" }} />
       <div data-overlay="vignette-bottom" className="absolute bottom-0 left-0 right-0 h-[45%] pointer-events-none bg-linear-to-t from-black/50 via-black/20 to-transparent" />
       <div data-overlay="vignette-top" className="absolute top-0 left-0 right-0 h-[20%] pointer-events-none bg-linear-to-b from-black/40 to-transparent" />
 
-      {/* Corners — same inset as everything else */}
+      {/* Corners */}
       {CORNERS.map((c) => {
         const cornerOffset = resolveOffset(layout.corners.offset, tier, orientation)
         const style = { width: rem(cornerSize), height: rem(cornerSize) }
@@ -225,7 +210,7 @@ export const Overlays = memo(function Overlays() {
         })}
       />
 
-      {/* Convention banner — only when a convention is active today */}
+      {/* Convention banner */}
       {activeConvention && (
         <img
           src={activeConvention.bannerPath} alt="" data-overlay="image" draggable={false}
@@ -240,7 +225,7 @@ export const Overlays = memo(function Overlays() {
         />
       )}
 
-      {/* Title — positioned relative to the logo so they always align */}
+      {/* Title */}
       <div
         data-overlay="title"
         className="absolute pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"

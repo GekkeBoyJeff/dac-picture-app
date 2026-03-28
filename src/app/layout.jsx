@@ -1,5 +1,5 @@
 import { Geist } from "next/font/google"
-import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar"
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar"
 import { assetPath } from "@/lib/config/basePath"
 import "./globals.css"
 

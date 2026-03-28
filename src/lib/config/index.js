@@ -9,7 +9,6 @@ export {
 } from "./presets"
 
 // --- App settings ---
-// Small enough to live here instead of separate files.
 
 export const IMAGE = {
   EXPORT_QUALITY: 1.0,
@@ -22,7 +21,7 @@ export const GALLERY = {
   STORAGE_KEY: "photobooth-gallery",
 }
 
-export const COUNTDOWN_SECONDS = 5
+export const COUNTDOWN_SECONDS = 3
 
 /** How long (ms) the user must hold the gesture before triggering the countdown */
 export const DEFAULT_GESTURE_HOLD_MS = 1500

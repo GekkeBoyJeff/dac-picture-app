@@ -1,5 +1,6 @@
 import { loadImage } from "./imageLoader"
 import { measureBoxRect, measureContainRect } from "./overlayMeasurer"
+import { logger } from "@/lib/logger"
 
 export async function drawImageOverlays(ctx, container, containerRect, scaleX, scaleY) {
   const imageEls = container.querySelectorAll(
@@ -40,7 +41,7 @@ export async function drawImageOverlays(ctx, container, containerRect, scaleX, s
       ctx.drawImage(img, x, y, w, h)
       ctx.restore()
     } catch (err) {
-      console.warn("Overlay failed:", src, err)
+      logger.warn("canvas", "Overlay failed:", src, err)
     }
   })
 
