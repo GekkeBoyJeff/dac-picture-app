@@ -185,7 +185,7 @@ export const Overlays = memo(function Overlays() {
 
       {/* Logo */}
       <img
-        src={LOGO.src} alt="" data-overlay="image" draggable={false}
+        src={LOGO.src} alt="" data-overlay="image" data-image-type="logo" draggable={false}
         className="pointer-events-none"
         style={positionStyle({
           position: layout.logo.position,
@@ -198,7 +198,7 @@ export const Overlays = memo(function Overlays() {
 
       {/* Mascot */}
       <img
-        src={mascot.path} alt="" data-overlay="image" draggable={false}
+        src={mascot.path} alt="" data-overlay="image" data-image-type="mascot" draggable={false}
         className="pointer-events-none"
         style={positionStyle({
           position: mascotPosition,
@@ -213,7 +213,7 @@ export const Overlays = memo(function Overlays() {
       {/* Convention banner */}
       {activeConvention && (
         <img
-          src={activeConvention.bannerPath} alt="" data-overlay="image" draggable={false}
+          src={activeConvention.bannerPath} alt="" data-overlay="image" data-image-type="convention" draggable={false}
           className="pointer-events-none"
           style={positionStyle({
             position: layout.convention.position,

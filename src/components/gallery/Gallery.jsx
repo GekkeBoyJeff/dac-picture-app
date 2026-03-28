@@ -1,11 +1,13 @@
 "use client"
 
-import { useCallback, useState, useEffect } from "react"
+import { useCallback, useState, useEffect, useRef } from "react"
 import { TrashIcon, CloseIcon, CameraEmptyIcon } from "@/components/ui/icons"
 import { BottomDrawer } from "@/components/ui/BottomDrawer"
 import { useGalleryStore } from "@/stores/galleryStore"
 
-export function Gallery({ isOpen, onClose }) {
+const UNDO_DURATION_MS = 5000
+
+export function Gallery({ isOpen, onClose, toast }) {
   const photos = useGalleryStore((s) => s.photos)
   const removePhoto = useGalleryStore((s) => s.removePhoto)
   const getPhotoBlob = useGalleryStore((s) => s.getPhotoBlob)
@@ -13,6 +15,8 @@ export function Gallery({ isOpen, onClose }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [thumbnails, setThumbnails] = useState({})
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const undoTimerRef = useRef(null)
 
   // Generate object URLs for thumbnails
   useEffect(() => {
@@ -50,12 +54,36 @@ export function Gallery({ isOpen, onClose }) {
     setLightboxUrl(null)
   }, [lightboxUrl])
 
+  const handleUndo = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    setPendingDelete(null)
+  }, [])
+
   const handleDelete = useCallback((e) => {
     e.stopPropagation()
     const id = lightboxPhoto?.id
     closeLightbox()
-    if (id) removePhoto(id)
-  }, [lightboxPhoto, closeLightbox, removePhoto])
+    if (!id) return
+
+    // Commit any previous pending delete immediately
+    if (pendingDelete) removePhoto(pendingDelete)
+
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    setPendingDelete(id)
+    undoTimerRef.current = setTimeout(() => {
+      removePhoto(id)
+      setPendingDelete(null)
+    }, UNDO_DURATION_MS)
+
+    toast.show("Foto verwijderd", { label: "Ongedaan maken", onClick: handleUndo })
+  }, [lightboxPhoto, closeLightbox, removePhoto, pendingDelete, toast, handleUndo])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    }
+  }, [])
 
   const stopPropagation = useCallback((e) => e.stopPropagation(), [])
 
@@ -71,7 +99,7 @@ export function Gallery({ isOpen, onClose }) {
           </div>
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2 px-3 scrollbar-none">
-            {photos.map((photo) => (
+            {photos.filter((p) => p.id !== pendingDelete).map((photo) => (
               <button
                 key={photo.id}
                 onClick={() => openLightbox(photo)}

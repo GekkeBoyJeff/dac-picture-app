@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef } from "react"
+import { playShutter } from "@/lib/audio"
 
 export function FlashEffect({ onComplete }) {
   const firedRef = useRef(false)
@@ -14,6 +15,12 @@ export function FlashEffect({ onComplete }) {
     if (firedRef.current) return
     firedRef.current = true
     onCompleteRef.current()
+  }, [])
+
+  // Haptic feedback + shutter sound on capture
+  useEffect(() => {
+    if (navigator.vibrate) navigator.vibrate(100)
+    playShutter()
   }, [])
 
   useEffect(() => {

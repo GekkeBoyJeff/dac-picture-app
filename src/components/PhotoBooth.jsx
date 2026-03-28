@@ -15,6 +15,8 @@ import { ErrorBoundary } from "./ErrorBoundary"
 import { useCamera } from "@/hooks/useCamera"
 import { useToast } from "@/hooks/useToast"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
+import { useIdleTimer } from "@/hooks/useIdleTimer"
+import { useStripCapture } from "@/hooks/useStripCapture"
 import { useHandGesture } from "@/hooks/useHandGesture"
 import { useGestureSequence } from "@/hooks/useGestureSequence"
 import { useGestureSwipe } from "@/hooks/useGestureSwipe"
@@ -39,6 +41,7 @@ export function PhotoBooth() {
   const { videoRef, startCamera, switchCamera, isReady, isMirrored } = useCamera()
   const toast = useToast()
   const install = useInstallPrompt()
+  const isIdle = useIdleTimer(60_000)
   const addPhoto = useGalleryStore((s) => s.addPhoto)
   const loadPhotos = useGalleryStore((s) => s.loadPhotos)
   const pendingCount = useSendQueueStore((s) => s.queue.filter((q) => !q.failed).length)
@@ -53,10 +56,63 @@ export function PhotoBooth() {
   const detectionIntervalMs = useUiStore((s) => s.detectionIntervalMs)
   const triggerMinScore = useUiStore((s) => s.triggerMinScore)
   const gestureHoldMs = useUiStore((s) => s.gestureHoldMs)
+  const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
 
   const [splashDone, setSplashDone] = useState(false)
   const [showFlash, setShowFlash] = useState(false)
   const captureTriggeredByRef = useRef("touch")
+  const stripRef = useRef(null)
+
+  // --- Shared capture helpers ---
+  /** Strip photos: clean frames — vignettes + corners only. No mascot/logo/convention/text. */
+  const STRIP_EXCLUDE = { excludeImageTypes: ["logo", "mascot", "convention"], excludeText: true }
+
+  const captureOnePhoto = useCallback(async ({ forStrip = false } = {}) => {
+    const video = videoRef.current
+    const container = containerRef.current
+    if (!video || !container) throw new Error("Missing video or container ref")
+
+    const mirrored = useCameraStore.getState().isMirrored
+    const { exportBlob } = await compositePhoto(video, container, mirrored, forStrip ? STRIP_EXCLUDE : {})
+    return exportBlob
+  }, [videoRef])
+
+  const sendAndTrack = useCallback(async (blob) => {
+    await addPhoto(blob)
+
+    const result = await sendOrQueue(blob)
+    if (result.success) {
+      toast.show("Foto verzonden naar Discord!")
+    } else if (result.queued) {
+      toast.show("Foto in wachtrij — wordt verzonden zodra mogelijk")
+    } else {
+      toast.show("Verzenden mislukt")
+    }
+
+    const overlayState = useOverlayStore.getState()
+    trackEvent("photo_captured", {
+      trigger: captureTriggeredByRef.current,
+      mascotId: overlayState.mascotId,
+      layoutId: overlayState.layoutId,
+    })
+    if (result.success) {
+      trackEvent("discord_sent")
+    } else if (!result.queued) {
+      trackEvent("discord_failed")
+    }
+
+    logger.info("capture", "Photo captured", { sent: result.success, queued: result.queued })
+  }, [addPhoto, toast])
+
+  // --- Strip capture (hook manages its own state + refs) ---
+  const strip = useStripCapture({
+    enabled: stripModeEnabled,
+    captureOne: captureOnePhoto,
+    onStripComplete: sendAndTrack,
+    savePhoto: addPhoto,
+    setAppState,
+  })
+  stripRef.current = strip
 
   // --- Init ---
   useEffect(() => {
@@ -68,57 +124,37 @@ export function PhotoBooth() {
 
   // --- Capture flow ---
   const handleCapture = useCallback(() => {
+    const s = stripRef.current
     if (appState === "countdown") {
       setAppState("camera")
+      s.reset()
       return
     }
-    if (appState !== "camera" || !isReady) return
+    if (appState !== "camera" || !isReady || s.isActive) return
     captureTriggeredByRef.current = "touch"
+
+    if (stripModeEnabled) s.start()
     setAppState("countdown")
-  }, [appState, isReady, setAppState])
+  }, [appState, isReady, setAppState, stripModeEnabled])
 
   const handleCountdownComplete = useCallback(async () => {
     setAppState("capturing")
     setShowFlash(true)
 
     try {
-      const video = videoRef.current
-      const container = containerRef.current
-      if (!video || !container) throw new Error("Missing video or container ref")
+      const blob = await captureOnePhoto({ forStrip: stripModeEnabled })
 
-      const mirrored = useCameraStore.getState().isMirrored
-      const { exportBlob } = await compositePhoto(video, container, mirrored)
-
-      await addPhoto(exportBlob)
-
-      const result = await sendOrQueue(exportBlob)
-      if (result.success) {
-        toast.show("Foto verzonden naar Discord!")
-      } else if (result.queued) {
-        toast.show("Foto in wachtrij — wordt verzonden zodra mogelijk")
+      if (stripModeEnabled) {
+        await stripRef.current.addPhoto(blob)
       } else {
-        toast.show("Verzenden mislukt")
+        await sendAndTrack(blob)
       }
-
-      // Track analytics
-      const overlayState = useOverlayStore.getState()
-      trackEvent("photo_captured", {
-        trigger: captureTriggeredByRef.current,
-        mascotId: overlayState.mascotId,
-        layoutId: overlayState.layoutId,
-      })
-      if (result.success) {
-        trackEvent("discord_sent")
-      } else if (!result.queued) {
-        trackEvent("discord_failed")
-      }
-
-      logger.info("capture", "Photo captured", { sent: result.success, queued: result.queued })
     } catch (err) {
       logger.error("capture", "Capture failed", err)
       toast.show("Foto maken mislukt")
+      stripRef.current.reset()
     }
-  }, [videoRef, addPhoto, toast, setAppState])
+  }, [captureOnePhoto, setAppState, stripModeEnabled, sendAndTrack, toast])
 
   const handleFlashComplete = useCallback(() => {
     setShowFlash(false)
@@ -126,17 +162,19 @@ export function PhotoBooth() {
   }, [setAppState])
 
   // --- Gesture system ---
+  // Callbacks read stripRef to avoid unstable deps that destroy gesture hold state.
   const gestureCallbacks = useMemo(() => ({
     onVictory: () => {
       if (appState === "camera" && isReady) {
         captureTriggeredByRef.current = "gesture"
+        if (useUiStore.getState().stripModeEnabled) stripRef.current.start()
         setAppState("countdown")
       }
     },
   }), [appState, isReady, setAppState])
 
   const gestureEnabled = gesturesEnabled && isReady && splashDone
-  const gestureActionsEnabled = appState === "camera" && !modals.layoutSlider
+  const gestureActionsEnabled = appState === "camera" && !modals.layoutSlider && !strip.isActive
 
   const {
     activeGesture, handBoxes, gestureBoxes, holdProgress,
@@ -203,6 +241,9 @@ export function PhotoBooth() {
           holdProgress={holdProgress}
           gestureSequenceOpen={gestureSequenceOpen}
           gestureSequenceClose={gestureSequenceClose}
+          showAttract={isIdle && (!handBoxes || handBoxes.length === 0)}
+          stripPhotos={strip.stripPhotos}
+          stripIsActive={strip.isActive}
         />
 
         <LayoutSlider
@@ -225,6 +266,7 @@ export function PhotoBooth() {
         <Gallery
           isOpen={modals.gallery}
           onClose={() => closeModal("gallery")}
+          toast={toast}
         />
 
         {modals.mascotPicker && (
@@ -254,8 +296,16 @@ export function PhotoBooth() {
         )}
 
         {toast.message && (
-          <div role="status" aria-live="polite" className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">
-            {toast.message}
+          <div role="status" aria-live="polite" className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">
+            <span>{toast.message}</span>
+            {toast.action && (
+              <button
+                onClick={() => { toast.action.onClick(); toast.dismiss() }}
+                className="font-semibold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+              >
+                {toast.action.label}
+              </button>
+            )}
           </div>
         )}
 

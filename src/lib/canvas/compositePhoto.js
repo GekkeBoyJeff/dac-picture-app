@@ -7,21 +7,19 @@ import { drawTitle, drawDate } from "./textOverlays"
 /**
  * Creates a photo by reading overlay positions directly from the DOM.
  *
- * Why DOM measurement instead of recalculating positions in JS?
- * CSS is the single source of truth for overlay placement. By reading
- * getBoundingClientRect() at capture time, the photo is guaranteed to
- * match the on-screen preview exactly — regardless of screen size,
- * orientation, or aspect ratio. No duplication of layout logic needed.
- *
  * @param {HTMLVideoElement} video
  * @param {HTMLElement} container
  * @param {boolean} [mirror=true]
- * @returns {Promise<{exportBlob: Blob, galleryDataUrl: string}>}
+ * @param {object} [options]
+ * @param {string[]} [options.excludeImageTypes] - Image types to exclude (e.g. ["logo", "convention"])
+ * @param {boolean} [options.excludeText] - Skip title and date overlays
+ * @returns {Promise<{exportBlob: Blob}>}
  */
-export async function compositePhoto(video, container, mirror = true) {
+export async function compositePhoto(video, container, mirror = true, options = {}) {
+  const { excludeImageTypes, excludeText = false } = options
+
   const containerRect = container.getBoundingClientRect()
   const crop = getVideoCrop(video, containerRect)
-
   const { canvasW, canvasH } = getCanvasSize(crop.srcW, crop.srcH)
 
   const canvas = document.createElement("canvas")
@@ -37,16 +35,14 @@ export async function compositePhoto(video, container, mirror = true) {
 
   drawVignettes(ctx, canvasW, canvasH)
 
-  await drawImageOverlays(ctx, container, containerRect, scaleX, scaleY)
+  await drawImageOverlays(ctx, container, containerRect, scaleX, scaleY, { excludeImageTypes })
 
-  const titleEl = container.querySelector('[data-overlay="title"]')
-  if (titleEl) {
-    drawTitle(ctx, titleEl, containerRect, scaleX, scaleY)
-  }
+  if (!excludeText) {
+    const titleEl = container.querySelector('[data-overlay="title"]')
+    if (titleEl) drawTitle(ctx, titleEl, containerRect, scaleX, scaleY)
 
-  const dateEl = container.querySelector('[data-overlay="date"]')
-  if (dateEl) {
-    drawDate(ctx, dateEl, containerRect, scaleX, scaleY)
+    const dateEl = container.querySelector('[data-overlay="date"]')
+    if (dateEl) drawDate(ctx, dateEl, containerRect, scaleX, scaleY)
   }
 
   const exportBlob = await new Promise((resolve, reject) => {
@@ -57,7 +53,5 @@ export async function compositePhoto(video, container, mirror = true) {
     )
   })
 
-  const galleryDataUrl = canvas.toDataURL(IMAGE.FORMAT, IMAGE.GALLERY_QUALITY)
-
-  return { exportBlob, galleryDataUrl }
+  return { exportBlob }
 }

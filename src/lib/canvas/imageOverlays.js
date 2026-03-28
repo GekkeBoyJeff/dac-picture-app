@@ -2,12 +2,21 @@ import { loadImage } from "./imageLoader"
 import { measureBoxRect, measureContainRect } from "./overlayMeasurer"
 import { logger } from "@/lib/logger"
 
-export async function drawImageOverlays(ctx, container, containerRect, scaleX, scaleY) {
-  const imageEls = container.querySelectorAll(
+export async function drawImageOverlays(ctx, container, containerRect, scaleX, scaleY, options = {}) {
+  const { excludeImageTypes = [] } = options
+
+  const allEls = container.querySelectorAll(
     '[data-overlay="corner"], [data-overlay="image"], [data-overlay="qr"]',
   )
 
-  const imageDraws = Array.from(imageEls).map(async (el) => {
+  const imageEls = excludeImageTypes.length > 0
+    ? Array.from(allEls).filter((el) => {
+        const type = el.getAttribute("data-image-type")
+        return !type || !excludeImageTypes.includes(type)
+      })
+    : Array.from(allEls)
+
+  const imageDraws = imageEls.map(async (el) => {
     const src = el.src || el.getAttribute("src")
     if (!src) return
 

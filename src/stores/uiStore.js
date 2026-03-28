@@ -21,6 +21,7 @@ export const useUiStore = create(
       // --- Settings (persisted) ---
       debugEnabled: false,
       gesturesEnabled: false,
+      stripModeEnabled: false,
       detectionIntervalMs: 120,
       triggerMinScore: 0.35,
       gestureHoldMs: DEFAULT_GESTURE_HOLD_MS,
@@ -52,6 +53,7 @@ export const useUiStore = create(
 
       toggleDebug: () => set((state) => ({ debugEnabled: !state.debugEnabled })),
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),
+      toggleStripMode: () => set((state) => ({ stripModeEnabled: !state.stripModeEnabled })),
       setDetectionInterval: (detectionIntervalMs) => set({ detectionIntervalMs }),
       setTriggerScore: (triggerMinScore) => set({ triggerMinScore }),
       setGestureHold: (gestureHoldMs) => set({ gestureHoldMs }),
@@ -61,6 +63,7 @@ export const useUiStore = create(
       partialize: (state) => ({
         debugEnabled: state.debugEnabled,
         gesturesEnabled: state.gesturesEnabled,
+        stripModeEnabled: state.stripModeEnabled,
         detectionIntervalMs: state.detectionIntervalMs,
         triggerMinScore: state.triggerMinScore,
         gestureHoldMs: state.gestureHoldMs,

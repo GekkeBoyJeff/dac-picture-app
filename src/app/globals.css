@@ -19,6 +19,9 @@
   --animate-splash-logo: splash-logo 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-splash-text: splash-text 0.5s ease-out backwards;
   --animate-splash-dots: splash-dots 1.2s ease-in-out infinite;
+  --animate-attract-cta: attract-fade-up 0.8s ease-out backwards;
+  --animate-strip-photo-land: strip-photo-land 0.3s ease-out;
+
 }
 
 body {
@@ -26,6 +29,16 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   overflow: hidden;
+}
+
+/* Global focus-visible ring for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.7);
+  outline-offset: 2px;
+  border-radius: inherit;
 }
 
 @keyframes countdown {
@@ -137,5 +150,27 @@ body {
   }
   50% {
     box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes strip-photo-land {
+  0% {
+    transform: scale(1.08);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes attract-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

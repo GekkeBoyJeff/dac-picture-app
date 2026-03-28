@@ -1,16 +1,33 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { playCountdownTick, playCountdownFinal } from "@/lib/audio"
 
 export function Countdown({ seconds, onComplete, showLookUp = false }) {
   const [count, setCount] = useState(seconds)
   const firedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+
+  // Keep ref in sync — avoids putting onComplete in effect deps
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  // Play beep on each count change
+  useEffect(() => {
+    if (count <= 0) return
+    if (count === 1) {
+      playCountdownFinal()
+    } else {
+      playCountdownTick()
+    }
+  }, [count])
 
   useEffect(() => {
     if (count <= 0) {
       if (!firedRef.current) {
         firedRef.current = true
-        onComplete()
+        onCompleteRef.current()
       }
       return
     }
@@ -20,7 +37,7 @@ export function Countdown({ seconds, onComplete, showLookUp = false }) {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [count, onComplete])
+  }, [count])
 
   if (count <= 0) return null
 
