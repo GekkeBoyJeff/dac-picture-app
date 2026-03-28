@@ -24,7 +24,6 @@ export const useUiStore = create(
       detectionIntervalMs: 120,
       triggerMinScore: 0.35,
       gestureHoldMs: DEFAULT_GESTURE_HOLD_MS,
-      locale: "nl",
 
       // --- Actions ---
       setAppState: (appState) => set({ appState }),
@@ -56,7 +55,6 @@ export const useUiStore = create(
       setDetectionInterval: (detectionIntervalMs) => set({ detectionIntervalMs }),
       setTriggerScore: (triggerMinScore) => set({ triggerMinScore }),
       setGestureHold: (gestureHoldMs) => set({ gestureHoldMs }),
-      setLocale: (locale) => set({ locale }),
     }),
     {
       name: "ui-settings",
@@ -66,7 +64,6 @@ export const useUiStore = create(
         detectionIntervalMs: state.detectionIntervalMs,
         triggerMinScore: state.triggerMinScore,
         gestureHoldMs: state.gestureHoldMs,
-        locale: state.locale,
       }),
     },
   ),

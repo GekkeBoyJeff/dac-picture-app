@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { CloseIcon } from "@/components/ui/icons"
 import { useUiStore } from "@/stores/uiStore"
 import { AnalyticsDashboard } from "./AnalyticsDashboard"
-import { setLocale } from "@/lib/i18n/t"
 
 const gesturePresets = [
   { label: "Realtime", detectionInterval: 0, triggerMinScore: 0.25, note: "Max snelheid, meer CPU" },
@@ -32,18 +31,11 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
   const detectionIntervalMs = useUiStore((s) => s.detectionIntervalMs)
   const triggerMinScore = useUiStore((s) => s.triggerMinScore)
   const gestureHoldMs = useUiStore((s) => s.gestureHoldMs)
-  const locale = useUiStore((s) => s.locale)
-  const storeSetLocale = useUiStore((s) => s.setLocale)
   const toggleDebug = useUiStore((s) => s.toggleDebug)
   const toggleGestures = useUiStore((s) => s.toggleGestures)
   const setDetectionInterval = useUiStore((s) => s.setDetectionInterval)
   const setTriggerScore = useUiStore((s) => s.setTriggerScore)
   const setGestureHold = useUiStore((s) => s.setGestureHold)
-
-  const handleLocaleChange = (newLocale) => {
-    storeSetLocale(newLocale)
-    setLocale(newLocale)
-  }
 
   useEffect(() => {
     if (!isOpen) return
@@ -230,26 +222,6 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
               )}
             </>
           )}
-
-          {/* Language toggle */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
-            <p className="text-white text-sm font-semibold">Taal / Language</p>
-            <div className="flex gap-2">
-              {[{ code: "nl", label: "Nederlands" }, { code: "en", label: "English" }].map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => handleLocaleChange(lang.code)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-all ${
-                    locale === lang.code
-                      ? "border-sky-400/60 bg-sky-400/15 text-white"
-                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 cursor-pointer"
-                  }`}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Analytics */}
           <AnalyticsDashboard />
