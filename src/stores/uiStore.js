@@ -79,7 +79,17 @@ export const useUiStore = create(
               minTrackingConfidence: 0.6,
             }
           }
-          return { forceLowPower: false }
+          // Restore high-power defaults
+          return {
+            forceLowPower: false,
+            gesturesEnabled: true,
+            detectionIntervalMs: 0,
+            triggerMinScore: 0.25,
+            numHands: 8,
+            minDetectionConfidence: 0.4,
+            minPresenceConfidence: 0.4,
+            minTrackingConfidence: 0.4,
+          }
         }),
       toggleLowPowerOverride: () => set((state) => ({ lowPowerOverride: !state.lowPowerOverride })),
       setDetectionInterval: (detectionIntervalMs) => set({ detectionIntervalMs }),
