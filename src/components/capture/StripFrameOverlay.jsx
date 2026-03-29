@@ -8,7 +8,7 @@ import { GestureIndicator } from "@/components/gestures/GestureIndicator"
 const BG = "#0a0a0a"
 const FRAME_RATIO = `${STRIP_CANVAS.WIDTH - STRIP_CANVAS.MARGIN_X * 2} / ${STRIP_CANVAS.PHOTO_HEIGHT}`
 
-const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoURL, attachStream, isMirrored, activeGesture, holdProgress }) {
+const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoURL, attachStream, isMirrored, activeGesture, holdProgressRef }) {
   if (isCaptured && photoURL) {
     return <img src={photoURL} className="w-full h-full object-cover animate-strip-photo-land" alt="" />
   }
@@ -17,7 +17,7 @@ const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoUR
       <>
         <video ref={attachStream} autoPlay playsInline muted className={`w-full h-full object-cover ${isMirrored ? "-scale-x-100" : ""}`} />
         <div className="absolute inset-0 flex items-start justify-center pt-3 z-10">
-          <GestureIndicator gesture={activeGesture} holdProgress={holdProgress} />
+          <GestureIndicator gesture={activeGesture} holdProgressRef={holdProgressRef} />
         </div>
       </>
     )
@@ -30,7 +30,7 @@ const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoUR
  * Portrait: 9:16 stacked frames.
  * Landscape: full-screen carousel, one frame at a time.
  */
-export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visible, activeGesture, holdProgress }) {
+export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visible, activeGesture, holdProgressRef }) {
   const count = stripPhotos.length
   const isMirrored = useCameraStore((s) => s.isMirrored)
   const [isLandscape, setIsLandscape] = useState(false)
@@ -88,7 +88,7 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
       attachStream={attachStream}
       isMirrored={isMirrored}
       activeGesture={activeGesture}
-      holdProgress={holdProgress}
+      holdProgressRef={holdProgressRef}
     />
   )
 

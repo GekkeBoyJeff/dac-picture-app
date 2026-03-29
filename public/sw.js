@@ -20,12 +20,36 @@ async function getCacheName() {
   return cacheName
 }
 
+// Overlay assets to precache at install time
+const OVERLAY_ASSETS = [
+  "/overlays/corner-tl.svg",
+  "/overlays/corner-tr.svg",
+  "/overlays/corner-bl.svg",
+  "/overlays/corner-br.svg",
+  "/overlays/logo.svg",
+  "/overlays/logo.png",
+  "/overlays/qr-discord.svg",
+  "/overlays/qr-app.svg",
+  "/overlays/mascots/amelia.webp",
+  "/overlays/mascots/amelia-v2.webp",
+  "/overlays/mascots/amelia-beer.webp",
+  "/overlays/mascots/amelia-hug.webp",
+  "/overlays/mascots/amelia-beer-alt.webp",
+  "/overlays/conventions/hmia-2026/banner.png",
+  "/overlays/conventions/dcc-2026/banner.svg",
+  "/overlays/conventions/animecon-2026/banner.png",
+]
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     fetchVersionInfo().then(async ({ version, basePath }) => {
       cacheName = CACHE_PREFIX + version
+      const prefix = basePath || ""
       const cache = await caches.open(cacheName)
-      return cache.addAll([(basePath || "") + "/"])
+      return cache.addAll([
+        prefix + "/",
+        ...OVERLAY_ASSETS.map((p) => prefix + p),
+      ])
     }),
   )
   self.skipWaiting()
@@ -49,8 +73,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
 
-  // Skip non-GET and API requests
-  if (event.request.method !== "GET" || url.pathname.includes("/api/")) {
+  // Skip non-GET, API requests, and the gesture worker (always fetch fresh)
+  if (event.request.method !== "GET" || url.pathname.includes("/api/") || url.pathname.endsWith("/gesture-worker.js")) {
     return
   }
 

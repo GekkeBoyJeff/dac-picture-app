@@ -76,12 +76,13 @@ export function drawDoodles(ctx) {
     { type: "dot", x: 440, y: zoneTop + 80, size: 3, a: 0.2 },
   ]
 
+  ctx.save()
+  ctx.fillStyle = ACCENT_COLOR
+  ctx.strokeStyle = ACCENT_COLOR
+  ctx.lineWidth = 1.5
+
   doodles.forEach(({ type, x, y, size, a }) => {
-    ctx.save()
     ctx.globalAlpha = a
-    ctx.fillStyle = ACCENT_COLOR
-    ctx.strokeStyle = ACCENT_COLOR
-    ctx.lineWidth = 1.5
 
     if (type === "star") {
       drawStar(ctx, x, y, size, size * 0.4, 5)
@@ -98,9 +99,9 @@ export function drawDoodles(ctx) {
       ctx.arc(x, y, size, 0, Math.PI * 2)
       ctx.fill()
     }
-
-    ctx.restore()
   })
+
+  ctx.restore()
 }
 
 // ---------------------------------------------------------------------------
@@ -256,10 +257,6 @@ export function drawMascot(ctx, mascotImg) {
   const mY = HEIGHT - 12 - mH
 
   ctx.save()
-  ctx.shadowColor = "rgba(0, 0, 0, 0.4)"
-  ctx.shadowBlur = 20
-  ctx.shadowOffsetX = -3
-  ctx.shadowOffsetY = 2
   ctx.globalAlpha = 0.92
   ctx.drawImage(mascotImg, mX, mY, mW, mH)
   ctx.restore()

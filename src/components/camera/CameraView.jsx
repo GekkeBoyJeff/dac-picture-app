@@ -13,6 +13,7 @@ import { HandBox } from "@/components/gestures/HandBox"
 import { ANIMATION_DELAYS } from "@/lib/styles/animations"
 import { useCameraStore } from "@/stores/cameraStore"
 import { useUiStore } from "@/stores/uiStore"
+import { OfflineBadge } from "./OfflineBadge"
 
 const RECALIBRATE_MESSAGES = [
   "Schermgrootte detecteren...",
@@ -29,7 +30,7 @@ const RECALIBRATE_MESSAGES = [
 export function CameraView({
   videoRef, containerRef, splashDone, onCapture, switchCamera,
   canInstall, onInstall,
-  activeGesture, handBoxes, gestureBoxes, holdProgress,
+  activeGesture, handBoxes, gestureBoxes, holdProgressRef,
   gestureSequenceOpen, gestureSequenceClose,
   showAttract,
   stripPhotos, stripIsActive,
@@ -60,6 +61,7 @@ export function CameraView({
         style={containerStyle}
         onClick={showLayoutSlider ? () => closeLayoutSlider("layoutSlider") : undefined}
       >
+        <OfflineBadge />
         <video
           ref={videoRef}
           autoPlay
@@ -81,7 +83,7 @@ export function CameraView({
               isActive={stripIsActive}
               visible={showStripFrame}
               activeGesture={activeGesture}
-              holdProgress={holdProgress}
+              holdProgressRef={holdProgressRef}
             />
 
             {/* Debug hand tracking boxes — hide in strip mode (coords are full-screen) */}
@@ -102,7 +104,7 @@ export function CameraView({
 
             {/* Gesture feedback — in strip mode this moves into the strip frame */}
             {!showStripFrame && (
-              <GestureIndicator gesture={activeGesture} holdProgress={holdProgress} />
+              <GestureIndicator gesture={activeGesture} holdProgressRef={holdProgressRef} />
             )}
             <GestureSequenceHint
               isActive={showLayoutSlider ? gestureSequenceClose?.isActiveRef?.current : gestureSequenceOpen?.isActiveRef?.current}

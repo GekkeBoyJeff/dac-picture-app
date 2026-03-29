@@ -26,7 +26,7 @@ import { useUiStore } from "@/stores/uiStore"
 import { useGalleryStore } from "@/stores/galleryStore"
 import { useSendQueueStore } from "@/stores/sendQueueStore"
 import { compositePhoto } from "@/lib/canvas/compositePhoto"
-import { sendOrQueue } from "@/lib/discord/sendQueue"
+import { sendOrQueue, processNextInQueue } from "@/lib/discord/sendQueue"
 import {
   COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED,
   GESTURE_SEQUENCE_OPEN, GESTURE_SEQUENCE_CLOSE,
@@ -47,6 +47,7 @@ export function PhotoBooth() {
   const addPhoto = useGalleryStore((s) => s.addPhoto)
   const loadPhotos = useGalleryStore((s) => s.loadPhotos)
   const pendingCount = useSendQueueStore((s) => s.queue.filter((q) => !q.failed).length)
+  const loadQueue = useSendQueueStore((s) => s.loadQueue)
 
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
@@ -59,6 +60,7 @@ export function PhotoBooth() {
   const triggerMinScore = useUiStore((s) => s.triggerMinScore)
   const gestureHoldMs = useUiStore((s) => s.gestureHoldMs)
   const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
+  const forceLowPower = useUiStore((s) => s.forceLowPower)
 
   const [splashDone, setSplashDone] = useState(false)
   const [showFlash, setShowFlash] = useState(false)
@@ -162,8 +164,9 @@ export function PhotoBooth() {
       mascotId: overlayState.mascotId,
       layoutId: overlayState.layoutId,
     })
-    await sendAndTrack(blob, { isStrip: true })
-  }, [sendAndTrack])
+    sendAndTrack(blob, { isStrip: true })
+    setAppState("camera")
+  }, [sendAndTrack, setAppState])
 
   const strip = useStripCapture({
     enabled: stripModeEnabled,
@@ -178,13 +181,44 @@ export function PhotoBooth() {
   useEffect(() => {
     startCamera()
     loadPhotos()
+    loadQueue()
     trackEvent("session_start", {
       userAgent: navigator.userAgent,
       screen: `${screen.width}x${screen.height}`,
     })
     const timer = setTimeout(() => setSplashDone(true), SPLASH_DURATION_MS)
     return () => clearTimeout(timer)
-  }, [startCamera, loadPhotos])
+  }, [startCamera, loadPhotos, loadQueue])
+
+  // Restart camera when power mode changes (different resolution constraints)
+  const initialPowerRef = useRef(forceLowPower)
+  useEffect(() => {
+    if (initialPowerRef.current === forceLowPower) return
+    initialPowerRef.current = forceLowPower
+    if (isReady) startCamera()
+  }, [forceLowPower, isReady, startCamera])
+
+  // --- Drain send queue on mount and when coming back online ---
+  useEffect(() => {
+    let cancelled = false
+
+    async function drain() {
+      while (!cancelled) {
+        const { processed, remaining } = await processNextInQueue()
+        await loadQueue()
+        if (!processed || remaining === 0) break
+      }
+    }
+
+    drain()
+
+    const handleOnline = () => drain()
+    window.addEventListener("online", handleOnline)
+    return () => {
+      cancelled = true
+      window.removeEventListener("online", handleOnline)
+    }
+  }, [loadQueue])
 
   // --- Capture flow ---
   const handleCapture = useCallback(() => {
@@ -206,46 +240,42 @@ export function PhotoBooth() {
   // The actual capture — called by flash (at peak brightness) or directly if flash is off
   const doCapture = useCallback(async () => {
     try {
-      const blob = await captureOnePhoto({ forStrip: stripModeEnabled })
+      const isStrip = useUiStore.getState().stripModeEnabled
+      const blob = await captureOnePhoto({ forStrip: isStrip })
 
       const overlayState = useOverlayStore.getState()
       trackEvent("photo_captured", {
         trigger: captureTriggeredByRef.current,
-        mode: stripModeEnabled ? "strip" : "single",
+        mode: isStrip ? "strip" : "single",
         mascotId: overlayState.mascotId,
         layoutId: overlayState.layoutId,
       })
 
-      if (stripModeEnabled) {
+      if (isStrip) {
         await stripRef.current.addPhoto(blob)
       } else {
-        await sendAndTrack(blob)
+        setAppState("camera")
+        sendAndTrack(blob)
       }
     } catch (err) {
       logger.error("capture", "Capture failed", err)
       stripRef.current.reset()
       setAppState("camera")
     }
-  }, [captureOnePhoto, stripModeEnabled, sendAndTrack, setAppState])
+  }, [captureOnePhoto, sendAndTrack, setAppState])
 
   const handleCountdownComplete = useCallback(() => {
     setAppState("capturing")
     if (flashEnabled) {
       setShowFlash(true)
     } else {
-      doCapture().finally(() => {
-        // Only return to camera for single photos — strip mode sets its own state
-        if (!useUiStore.getState().stripModeEnabled) setAppState("camera")
-      })
+      doCapture()
     }
   }, [setAppState, flashEnabled, doCapture])
 
   const handleFlashComplete = useCallback(() => {
     setShowFlash(false)
-    if (!useUiStore.getState().stripModeEnabled) {
-      setAppState("camera")
-    }
-  }, [setAppState])
+  }, [])
 
   // --- Gesture system ---
   // Callbacks read stripRef to avoid unstable deps that destroy gesture hold state.
@@ -260,10 +290,14 @@ export function PhotoBooth() {
   }), [appState, isReady, setAppState])
 
   const gestureEnabled = gesturesEnabled && isReady && splashDone
-  const gestureActionsEnabled = appState === "camera" && !modals.layoutSlider && !strip.isActive
+  const gestureActionsEnabled = gestureEnabled && appState === "camera" && !modals.layoutSlider && !strip.isActive
+
+  // Stable ref for frame tick — avoids re-creating the detection loop on every render
+  const frameTickRef = useRef(null)
+  const onFrameTick = useCallback(() => { frameTickRef.current?.() }, [])
 
   const {
-    activeGesture, handBoxes, gestureBoxes, holdProgress, gestureLoading,
+    activeGesture, handBoxes, gestureBoxes, holdProgressRef, gestureLoading,
     rawGestureNameRef, primaryHandLandmarksRef,
   } = useHandGesture(
     videoRef,
@@ -274,6 +308,7 @@ export function PhotoBooth() {
     triggerMinScore,
     gestureActionsEnabled,
     gestureHoldMs,
+    onFrameTick,
   )
 
   // Track gesture model loading as a real upload entry so it fades out gracefully
@@ -311,19 +346,18 @@ export function PhotoBooth() {
     enabled: gestureEnabled && modals.layoutSlider,
   })
 
-  // Tick gesture hooks each frame (driven by useHandGesture's rAF)
+  // Drive gesture sequence/swipe ticks from useHandGesture's rAF loop (single loop)
   useEffect(() => {
-    if (!gestureEnabled) return
-    let running = true
-    const tick = () => {
-      if (!running) return
+    if (!gestureEnabled) {
+      frameTickRef.current = null
+      return
+    }
+    frameTickRef.current = () => {
       gestureSequenceOpen.tick()
       gestureSequenceClose.tick()
       gestureSwipe.tick()
-      requestAnimationFrame(tick)
     }
-    requestAnimationFrame(tick)
-    return () => { running = false }
+    return () => { frameTickRef.current = null }
   }, [gestureEnabled, gestureSequenceOpen, gestureSequenceClose, gestureSwipe])
 
   return (
@@ -340,7 +374,7 @@ export function PhotoBooth() {
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
-          holdProgress={holdProgress}
+          holdProgressRef={holdProgressRef}
           gestureSequenceOpen={gestureSequenceOpen}
           gestureSequenceClose={gestureSequenceClose}
           showAttract={isIdle && (!handBoxes || handBoxes.length === 0)}

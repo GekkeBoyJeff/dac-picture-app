@@ -2,6 +2,8 @@
 
 import { useRef, useCallback, useEffect } from "react"
 import { useCameraStore } from "@/stores/cameraStore"
+import { useUiStore } from "@/stores/uiStore"
+import { getCameraIdeal, isLowPowerDevice } from "@/lib/deviceCapability"
 import { logger } from "@/lib/logger"
 
 export function useCamera() {
@@ -45,6 +47,11 @@ export function useCamera() {
 
         const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
         const isPortrait = window.innerHeight > window.innerWidth
+        const { stripModeEnabled, forceLowPower } = useUiStore.getState()
+        const mode = stripModeEnabled ? "strip" : "single"
+        const lowPower = forceLowPower || isLowPowerDevice()
+        const resolution = getCameraIdeal(mode, isPortrait, lowPower)
+
         const constraints = {
           video: {
             ...(deviceId
@@ -52,16 +59,10 @@ export function useCamera() {
               : isMobile
                 ? { facingMode: "user" }
                 : {}),
-            ...(isMobile
-              ? {
-                  width: { ideal: 4096 },
-                  height: { ideal: 4096 },
-                }
-              : {
-                  width: { ideal: 4096 },
-                  height: { ideal: 4096 },
-                  aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
-                }),
+            ...resolution,
+            ...(!isMobile && {
+              aspectRatio: { ideal: isPortrait ? 9 / 16 : 16 / 9 },
+            }),
           },
         }
 

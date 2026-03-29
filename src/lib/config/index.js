@@ -11,7 +11,7 @@ export {
 // --- App settings ---
 
 export const IMAGE = {
-  EXPORT_QUALITY: 1.0,
+  EXPORT_QUALITY: 0.9,
   GALLERY_QUALITY: 0.75,
   FORMAT: "image/webp",
 }

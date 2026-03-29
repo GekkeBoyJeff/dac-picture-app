@@ -71,8 +71,8 @@ export const MASCOTS = [
   {
     id: "amelia",
     name: "Amelia",
-    path: `${BASE_PATH}/overlays/mascots/amelia.png`,
-    thumbnail: `${BASE_PATH}/overlays/mascots/amelia.png`,
+    path: `${BASE_PATH}/overlays/mascots/amelia.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia.webp`,
     defaults: {
       sizingAxis: "height",
     },
@@ -80,8 +80,8 @@ export const MASCOTS = [
   {
     id: "amelia-v2",
     name: "Amelia v2",
-    path: `${BASE_PATH}/overlays/mascots/amelia-v2.png`,
-    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-v2.png`,
+    path: `${BASE_PATH}/overlays/mascots/amelia-v2.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-v2.webp`,
     defaults: {
       sizingAxis: "height",
     },
@@ -89,8 +89,8 @@ export const MASCOTS = [
   {
     id: "amelia-beer",
     name: "Amelia (Beer)",
-    path: `${BASE_PATH}/overlays/mascots/amelia-beer.png`,
-    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer.png`,
+    path: `${BASE_PATH}/overlays/mascots/amelia-beer.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer.webp`,
     defaults: {
       sizingAxis: "height",
     },
@@ -98,8 +98,8 @@ export const MASCOTS = [
   {
     id: "amelia-hug",
     name: "Amelia (Hug)",
-    path: `${BASE_PATH}/overlays/mascots/amelia-hug.png`,
-    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-hug.png`,
+    path: `${BASE_PATH}/overlays/mascots/amelia-hug.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-hug.webp`,
     defaults: {
       sizingAxis: "width",
     },
@@ -107,8 +107,8 @@ export const MASCOTS = [
   {
     id: "amelia-beer-alt",
     name: "Amelia (Beer Alt)",
-    path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`,
-    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.png`,
+    path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.webp`,
     defaults: {
       sizingAxis: "height",
     },

@@ -1,5 +1,5 @@
-// Cap canvas size to prevent mobile browsers from running out of memory on 4K cameras.
-const MAX_PIXELS = 1920 * 1080
+import { getMaxCanvasPixels, isLowPowerDevice } from "@/lib/deviceCapability"
+import { useUiStore } from "@/stores/uiStore"
 
 export function getVideoCrop(video, containerRect) {
   const containerAspect = containerRect.width / containerRect.height
@@ -23,12 +23,19 @@ export function getVideoCrop(video, containerRect) {
   return { srcX, srcY, srcW, srcH }
 }
 
-export function getCanvasSize(srcW, srcH) {
+/**
+ * @param {number} srcW
+ * @param {number} srcH
+ * @param {"single" | "strip"} [mode="single"]
+ */
+export function getCanvasSize(srcW, srcH, mode = "single") {
+  const lowPower = useUiStore.getState().forceLowPower || isLowPowerDevice()
+  const maxPixels = getMaxCanvasPixels(mode, lowPower)
   let canvasW = srcW
   let canvasH = srcH
 
-  if (canvasW * canvasH > MAX_PIXELS) {
-    const s = Math.sqrt(MAX_PIXELS / (canvasW * canvasH))
+  if (canvasW * canvasH > maxPixels) {
+    const s = Math.sqrt(maxPixels / (canvasW * canvasH))
     canvasW = Math.round(canvasW * s)
     canvasH = Math.round(canvasH * s)
   }
