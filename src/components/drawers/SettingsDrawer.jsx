@@ -27,11 +27,13 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const debugEnabled = useUiStore((s) => s.debugEnabled)
+  const flashEnabled = useUiStore((s) => s.flashEnabled)
   const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
   const detectionIntervalMs = useUiStore((s) => s.detectionIntervalMs)
   const triggerMinScore = useUiStore((s) => s.triggerMinScore)
   const gestureHoldMs = useUiStore((s) => s.gestureHoldMs)
   const toggleDebug = useUiStore((s) => s.toggleDebug)
+  const toggleFlash = useUiStore((s) => s.toggleFlash)
   const toggleGestures = useUiStore((s) => s.toggleGestures)
   const setDetectionInterval = useUiStore((s) => s.setDetectionInterval)
   const setTriggerScore = useUiStore((s) => s.setTriggerScore)
@@ -80,10 +82,23 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
         </div>
 
         <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto pb-8">
+          {/* Flits toggle */}
+          <button
+            onClick={toggleFlash}
+            className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
+              flashEnabled
+                ? "border-amber-400/50 bg-amber-400/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)] text-white"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+            }`}
+          >
+            <p className="font-medium text-sm">Flits</p>
+            <p className="text-xs text-white/60">Schermflits bij het nemen van een foto</p>
+          </button>
+
           {/* Handgebaren toggle */}
           <button
             onClick={toggleGestures}
-            className={`w-full rounded-xl border transition-all text-left px-4 py-3 ${
+            className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
               gesturesEnabled
                 ? "border-sky-400/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(56,189,248,0.25)] text-white"
                 : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
@@ -143,7 +158,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
             <>
               <button
                 onClick={toggleDebug}
-                className={`w-full rounded-xl border transition-all text-left px-4 py-3 ${
+                className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
                   debugEnabled
                     ? "border-emerald-400/50 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(16,185,129,0.25)] text-white"
                     : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
@@ -222,7 +237,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
               )}
 
               {/* Analytics */}
-              <AnalyticsDashboard refreshKey={isOpen} />
+              <AnalyticsDashboard />
             </>
           )}
 

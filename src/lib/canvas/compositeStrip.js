@@ -1,7 +1,7 @@
 import { IMAGE, STRIP_CANVAS } from "@/lib/config"
 import {
-  loadStripAssets, drawPhotoFrame,
-  drawSparkles, drawBrandingZone, drawMascot,
+  loadStripAssets, drawDoodles,
+  drawSparkles, drawBrandingZone, drawQrTopRight, drawMascot,
 } from "./stripBranding"
 
 const {
@@ -71,12 +71,17 @@ export async function compositeStrip(photoBlobs) {
     ctx.drawImage(img, srcX, srcY, srcW, srcH, x, y, cellW, PHOTO_HEIGHT)
     ctx.restore()
 
-    // Thin gold hairline frame
-    drawPhotoFrame(ctx, x, y, cellW, PHOTO_HEIGHT)
+    // No border — clean edge photos
   })
 
+  // --- QR top-right (overlaps first photo) ---
+  drawQrTopRight(ctx, qr)
+
+  // --- Playful doodles in branding zone background ---
+  drawDoodles(ctx)
+
   // --- Branding ---
-  drawBrandingZone(ctx, logo, qr, conventionBanner)
+  drawBrandingZone(ctx, logo, conventionBanner)
 
   // --- Mascot (overlaps bottom photo) ---
   drawMascot(ctx, mascotImg)

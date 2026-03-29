@@ -34,24 +34,23 @@ export const TOAST_ACTION_DURATION_MS = 5000
 
 // --- Photo strip ---
 export const STRIP_PHOTO_COUNT = 3
-export const STRIP_PAUSE_MS = 2000
 export const STRIP_CANVAS = {
   WIDTH: 1080,
   HEIGHT: 1920,
   MARGIN_X: 40,
-  PHOTO_TOP: 40,
-  PHOTO_HEIGHT: 500,
-  PHOTO_GAP: 18,
+  PHOTO_TOP: 36,
+  PHOTO_HEIGHT: 460,
+  PHOTO_GAP: 16,
   BORDER_RADIUS: 12,
-  BRANDING_Y: 1598,
+  BRANDING_Y: 1460,
   ACCENT_COLOR: "#e6c189",
   BG_COLOR: "#0a0a0a",
-  LOGO_SIZE: 44,
-  QR_SIZE: 64,
-  MASCOT_MAX_HEIGHT: 440,
-  MASCOT_MAX_WIDTH: 300,
-  CONVENTION_BANNER_MAX_H: 48,
-  CONVENTION_BANNER_MAX_W: 160,
+  LOGO_SIZE: 100,
+  QR_SIZE: 140,
+  MASCOT_MAX_HEIGHT: 520,
+  MASCOT_MAX_WIDTH: 340,
+  CONVENTION_BANNER_MAX_H: 140,
+  CONVENTION_BANNER_MAX_W: 420,
 }
 
 // --- Gesture sequences ---
@@ -68,12 +67,12 @@ export const GESTURE_SWIPE_SNAP_THRESHOLD = 0.25
 // --- Strip branding (text + fonts for canvas composition) ---
 export const STRIP_BRANDING = {
   COMMUNITY_NAME: "Dutch Anime Community",
-  DISCORD_CTA: "Join our Discord",
+  DISCORD_CTA: "Word lid\nvan DAC",
   DATE_LOCALE: "nl-NL",
-  FONT_HEADING: "600 20px 'Geist', 'Inter', Arial, sans-serif",
-  FONT_CONVENTION: "500 14px 'Geist', 'Inter', Arial, sans-serif",
-  FONT_DATE: "400 13px 'Geist', 'Inter', Arial, sans-serif",
-  FONT_SMALL: "400 12px 'Geist', 'Inter', Arial, sans-serif",
+  FONT_HEADING: "700 56px 'Geist', 'Inter', Arial, sans-serif",
+  FONT_CONVENTION: "500 38px 'Geist', 'Inter', Arial, sans-serif",
+  FONT_DATE: "400 32px 'Geist', 'Inter', Arial, sans-serif",
+  FONT_SMALL: "400 26px 'Geist', 'Inter', Arial, sans-serif",
 }
 
 export const DISCORD_MESSAGE =

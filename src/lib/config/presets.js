@@ -16,7 +16,7 @@ export const CONVENTIONS = [
     slug: "hmia-2026",
     name: "Heroes Made in Asia",
     startDate: "2026-03-19",
-    endDate: "2026-03-29",
+    endDate: "2026-03-21",
     bannerPath: `${BASE_PATH}/overlays/conventions/hmia-2026/banner.png`,
     position: "bottom-left",
     opacity: 1,

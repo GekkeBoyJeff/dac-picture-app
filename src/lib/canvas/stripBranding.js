@@ -6,8 +6,8 @@ import { loadImage } from "./imageLoader"
 
 const {
   WIDTH, HEIGHT, MARGIN_X, ACCENT_COLOR,
-  BRANDING_Y, LOGO_SIZE, QR_SIZE, BORDER_RADIUS,
-  MASCOT_MAX_HEIGHT, MASCOT_MAX_WIDTH,
+  PHOTO_TOP, BRANDING_Y, LOGO_SIZE, QR_SIZE,
+  BORDER_RADIUS, MASCOT_MAX_HEIGHT, MASCOT_MAX_WIDTH,
   CONVENTION_BANNER_MAX_H, CONVENTION_BANNER_MAX_W,
 } = STRIP_CANVAS
 
@@ -30,18 +30,77 @@ export async function loadStripAssets() {
 }
 
 // ---------------------------------------------------------------------------
-// Photo frame — thin gold hairline
+// Doodles — playful semi-transparent shapes in the branding zone background
 // ---------------------------------------------------------------------------
 
-export function drawPhotoFrame(ctx, x, y, w, h) {
-  ctx.save()
-  ctx.strokeStyle = ACCENT_COLOR
-  ctx.globalAlpha = 0.25
-  ctx.lineWidth = 1
+function drawStar(ctx, cx, cy, outerR, innerR, points) {
   ctx.beginPath()
-  ctx.roundRect(x, y, w, h, BORDER_RADIUS)
-  ctx.stroke()
-  ctx.restore()
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR
+    const a = (Math.PI / points) * i - Math.PI / 2
+    ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r)
+  }
+  ctx.closePath()
+}
+
+function drawHeart(ctx, cx, cy, size) {
+  ctx.beginPath()
+  ctx.moveTo(cx, cy + size * 0.3)
+  ctx.bezierCurveTo(cx - size * 0.5, cy - size * 0.3, cx - size, cy + size * 0.1, cx, cy + size * 0.8)
+  ctx.bezierCurveTo(cx + size, cy + size * 0.1, cx + size * 0.5, cy - size * 0.3, cx, cy + size * 0.3)
+  ctx.closePath()
+}
+
+export function drawDoodles(ctx) {
+  const zoneTop = BRANDING_Y + 10
+  const zoneBottom = HEIGHT - 20
+
+  const doodles = [
+    // Stars
+    { type: "star", x: 820, y: zoneTop + 60, size: 18, a: 0.3 },
+    { type: "star", x: 960, y: zoneTop + 200, size: 12, a: 0.24 },
+    { type: "star", x: 120, y: zoneBottom - 80, size: 14, a: 0.24 },
+    { type: "star", x: 500, y: zoneBottom - 30, size: 10, a: 0.2 },
+    // Hearts
+    { type: "heart", x: 880, y: zoneBottom - 140, size: 20, a: 0.24 },
+    { type: "heart", x: 200, y: zoneBottom - 40, size: 14, a: 0.2 },
+    // Circles
+    { type: "circle", x: 760, y: zoneTop + 130, size: 12, a: 0.2 },
+    { type: "circle", x: 980, y: zoneBottom - 60, size: 9, a: 0.24 },
+    { type: "circle", x: 300, y: zoneTop + 200, size: 14, a: 0.16 },
+    // Small dots
+    { type: "dot", x: 680, y: zoneTop + 40, size: 4, a: 0.3 },
+    { type: "dot", x: 850, y: zoneBottom - 30, size: 5, a: 0.24 },
+    { type: "dot", x: 150, y: zoneTop + 140, size: 4, a: 0.2 },
+    { type: "dot", x: 1000, y: zoneTop + 100, size: 4, a: 0.24 },
+    { type: "dot", x: 440, y: zoneTop + 80, size: 3, a: 0.2 },
+  ]
+
+  doodles.forEach(({ type, x, y, size, a }) => {
+    ctx.save()
+    ctx.globalAlpha = a
+    ctx.fillStyle = ACCENT_COLOR
+    ctx.strokeStyle = ACCENT_COLOR
+    ctx.lineWidth = 1.5
+
+    if (type === "star") {
+      drawStar(ctx, x, y, size, size * 0.4, 5)
+      ctx.stroke()
+    } else if (type === "heart") {
+      drawHeart(ctx, x, y, size)
+      ctx.stroke()
+    } else if (type === "circle") {
+      ctx.beginPath()
+      ctx.arc(x, y, size, 0, Math.PI * 2)
+      ctx.stroke()
+    } else if (type === "dot") {
+      ctx.beginPath()
+      ctx.arc(x, y, size, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
+    ctx.restore()
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -67,11 +126,11 @@ function drawSparkle(ctx, cx, cy, size, alpha) {
 
 export function drawSparkles(ctx) {
   const spots = [
-    { x: 24, y: 22, s: 6, a: 0.3 },
-    { x: 1056, y: 24, s: 5, a: 0.25 },
-    { x: 22, y: 1580, s: 5, a: 0.2 },
-    { x: 1058, y: 1576, s: 4, a: 0.18 },
-    { x: 44, y: 1900, s: 5, a: 0.2 },
+    { x: 24, y: 20, s: 6, a: 0.3 },
+    { x: 1056, y: 22, s: 5, a: 0.25 },
+    { x: 22, y: 1440, s: 5, a: 0.2 },
+    { x: 1058, y: 1436, s: 4, a: 0.18 },
+    { x: 44, y: 1895, s: 5, a: 0.2 },
   ]
   spots.forEach(({ x, y, s, a }) => drawSparkle(ctx, x, y, s, a))
 }
@@ -80,52 +139,86 @@ export function drawSparkles(ctx) {
 // Branding zone — all left-aligned, right side reserved for mascot
 // ---------------------------------------------------------------------------
 
-export function drawBrandingZone(ctx, logo, qr, conventionBanner) {
-  const convention = getActiveConvention()
-  const x = MARGIN_X
-  const contentW = WIDTH - MARGIN_X * 2
+export function drawQrTopRight(ctx, qr) {
+  const inset = BORDER_RADIUS + 8
+  const qrX = WIDTH - MARGIN_X - inset - QR_SIZE
+  const qrY = PHOTO_TOP + inset
 
-  // Thin gold separator
   ctx.save()
-  ctx.strokeStyle = ACCENT_COLOR
-  ctx.globalAlpha = 0.12
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x, BRANDING_Y + 8)
-  ctx.lineTo(x + contentW, BRANDING_Y + 8)
-  ctx.stroke()
+  ctx.globalAlpha = 0.85
+  ctx.drawImage(qr, qrX, qrY, QR_SIZE, QR_SIZE)
   ctx.restore()
 
-  // --- Identity row: logo + text ---
-  let y = BRANDING_Y + 28
-
   ctx.save()
-  ctx.shadowColor = "rgba(230, 193, 137, 0.2)"
-  ctx.shadowBlur = 10
+  ctx.textBaseline = "top"
+  ctx.textAlign = "center"
+  ctx.font = STRIP_BRANDING.FONT_SMALL
+  ctx.fillStyle = "#ffffff"
+  ctx.globalAlpha = 0.5
+  const ctaLines = STRIP_BRANDING.DISCORD_CTA.split("\n")
+  const ctaX = qrX + QR_SIZE / 2
+  let ctaY = qrY + QR_SIZE + 12
+  for (const line of ctaLines) {
+    ctx.fillText(line, ctaX, ctaY)
+    ctaY += 32
+  }
+  ctx.restore()
+}
+
+export function drawBrandingZone(ctx, logo, conventionBanner) {
+  const convention = getActiveConvention()
+  const x = MARGIN_X
+  const zoneH = HEIGHT - BRANDING_Y
+
+  // Measure content height to vertically center in the zone
+  // Logo row: LOGO_SIZE, gap: 30, date: dateLineH, gap: 30, banner: ~bannerH
+  let bannerH = 0
+  let bannerW = 0
+  if (conventionBanner) {
+    const bannerScale = Math.min(
+      CONVENTION_BANNER_MAX_W / conventionBanner.naturalWidth,
+      CONVENTION_BANNER_MAX_H / conventionBanner.naturalHeight,
+    )
+    bannerW = conventionBanner.naturalWidth * bannerScale
+    bannerH = conventionBanner.naturalHeight * bannerScale
+  }
+  const dateLineH = 44 // approximate height for 32px date font
+  const contentH = LOGO_SIZE + 30 + dateLineH + (bannerH > 0 ? 30 + bannerH : 0)
+  const topPad = Math.max(24, (zoneH - contentH) / 2)
+
+  let y = BRANDING_Y + topPad
+
+  // --- DAC logo ---
+  ctx.save()
+  ctx.shadowColor = "rgba(230, 193, 137, 0.3)"
+  ctx.shadowBlur = 16
   ctx.drawImage(logo, x, y, LOGO_SIZE, LOGO_SIZE)
   ctx.restore()
 
-  const textX = x + LOGO_SIZE + 12
+  // --- "Dutch Anime Community" — vertically centered with logo top half ---
+  const textX = x + LOGO_SIZE + 24
   ctx.save()
   ctx.textBaseline = "top"
   ctx.font = STRIP_BRANDING.FONT_HEADING
   ctx.fillStyle = "#ffffff"
-  ctx.globalAlpha = 0.9
+  ctx.globalAlpha = 0.94
   ctx.fillText(STRIP_BRANDING.COMMUNITY_NAME, textX, y + 4)
   ctx.restore()
 
+  // --- Convention name — below heading, still beside logo ---
+  let dateY = y + 62 // default: below heading
   if (convention) {
     ctx.save()
     ctx.textBaseline = "top"
     ctx.font = STRIP_BRANDING.FONT_CONVENTION
     ctx.fillStyle = ACCENT_COLOR
-    ctx.globalAlpha = 0.65
-    ctx.fillText(convention.name, textX, y + 30)
+    ctx.globalAlpha = 0.75
+    ctx.fillText(convention.name, textX, y + 62)
     ctx.restore()
+    dateY = y + 62 + 48 // below convention name
   }
 
-  // --- Date ---
-  y += LOGO_SIZE + 18
+  // --- Date — aligned with heading text ---
   const dateStr = new Date().toLocaleDateString(STRIP_BRANDING.DATE_LOCALE, {
     day: "2-digit",
     month: "long",
@@ -135,43 +228,20 @@ export function drawBrandingZone(ctx, logo, qr, conventionBanner) {
   ctx.textBaseline = "top"
   ctx.font = STRIP_BRANDING.FONT_DATE
   ctx.fillStyle = ACCENT_COLOR
-  ctx.globalAlpha = 0.4
-  ctx.fillText(dateStr, x, y)
+  ctx.globalAlpha = 0.5
+  ctx.fillText(dateStr, textX, dateY)
   ctx.restore()
+
+  y += LOGO_SIZE + 30
 
   // --- Convention banner ---
-  if (conventionBanner) {
-    y += 24
-    const bannerScale = Math.min(
-      CONVENTION_BANNER_MAX_W / conventionBanner.naturalWidth,
-      CONVENTION_BANNER_MAX_H / conventionBanner.naturalHeight,
-    )
-    const bW = conventionBanner.naturalWidth * bannerScale
-    const bH = conventionBanner.naturalHeight * bannerScale
-
+  if (conventionBanner && bannerH > 0) {
+    y += 30 + dateLineH
     ctx.save()
-    ctx.globalAlpha = 0.85
-    ctx.drawImage(conventionBanner, x, y, bW, bH)
+    ctx.globalAlpha = 0.92
+    ctx.drawImage(conventionBanner, x, y, bannerW, bannerH)
     ctx.restore()
-
-    y += bH + 14
-  } else {
-    y += 24
   }
-
-  // --- QR + Discord ---
-  ctx.save()
-  ctx.globalAlpha = 0.55
-  ctx.drawImage(qr, x, y, QR_SIZE, QR_SIZE)
-  ctx.restore()
-
-  ctx.save()
-  ctx.textBaseline = "middle"
-  ctx.font = STRIP_BRANDING.FONT_SMALL
-  ctx.fillStyle = "#ffffff"
-  ctx.globalAlpha = 0.3
-  ctx.fillText(STRIP_BRANDING.DISCORD_CTA, x + QR_SIZE + 10, y + QR_SIZE / 2)
-  ctx.restore()
 }
 
 // ---------------------------------------------------------------------------

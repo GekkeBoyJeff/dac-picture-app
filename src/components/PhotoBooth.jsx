@@ -12,6 +12,7 @@ import { SettingsDrawer } from "./drawers/SettingsDrawer"
 import { AboutDrawer } from "./drawers/AboutDrawer"
 import { InstallBanner } from "./pwa/InstallBanner"
 import { ErrorBoundary } from "./ErrorBoundary"
+import { UploadStatus, createUploadEntry } from "./ui/UploadStatus"
 import { useCamera } from "@/hooks/useCamera"
 import { useToast } from "@/hooks/useToast"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
@@ -29,6 +30,7 @@ import { sendOrQueue } from "@/lib/discord/sendQueue"
 import {
   COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED,
   GESTURE_SEQUENCE_OPEN, GESTURE_SEQUENCE_CLOSE,
+  STRIP_PHOTO_COUNT, STRIP_CANVAS, IMAGE,
 } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
@@ -64,51 +66,109 @@ export function PhotoBooth() {
   const stripRef = useRef(null)
 
   // --- Shared capture helpers ---
-  /** Strip photos: clean frames — vignettes + corners only. No mascot/logo/convention/text. */
-  const STRIP_EXCLUDE = { excludeImageTypes: ["logo", "mascot", "convention"], excludeText: true }
-
   const captureOnePhoto = useCallback(async ({ forStrip = false } = {}) => {
     const video = videoRef.current
     const container = containerRef.current
     if (!video || !container) throw new Error("Missing video or container ref")
 
     const mirrored = useCameraStore.getState().isMirrored
-    const { exportBlob } = await compositePhoto(video, container, mirrored, forStrip ? STRIP_EXCLUDE : {})
-    return exportBlob
-  }, [videoRef])
 
-  const sendAndTrack = useCallback(async (blob) => {
-    await addPhoto(blob)
+    if (forStrip) {
+      // Capture directly from camera stream at strip photo ratio.
+      // Avoids double-crop: full-screen capture → strip crop = too zoomed.
+      const cellW = STRIP_CANVAS.WIDTH - STRIP_CANVAS.MARGIN_X * 2
+      const cellH = STRIP_CANVAS.PHOTO_HEIGHT
+      const canvas = document.createElement("canvas")
+      canvas.width = cellW
+      canvas.height = cellH
+      const ctx = canvas.getContext("2d")
+      if (!ctx) throw new Error("Failed to get canvas 2D context")
 
-    const result = await sendOrQueue(blob)
-    if (result.success) {
-      toast.show("Foto verzonden naar Discord!")
-    } else if (result.queued) {
-      toast.show("Foto in wachtrij — wordt verzonden zodra mogelijk")
-    } else {
-      toast.show("Verzenden mislukt")
+      const vw = video.videoWidth
+      const vh = video.videoHeight
+      const videoAspect = vw / vh
+      const cellAspect = cellW / cellH
+      let sx = 0, sy = 0, sw = vw, sh = vh
+      if (videoAspect > cellAspect) {
+        sw = Math.round(vh * cellAspect)
+        sx = Math.round((vw - sw) / 2)
+      } else {
+        sh = Math.round(vw / cellAspect)
+        sy = Math.round((vh - sh) / 2)
+      }
+
+      if (mirrored) {
+        ctx.translate(cellW, 0)
+        ctx.scale(-1, 1)
+      }
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cellW, cellH)
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+          IMAGE.FORMAT,
+          IMAGE.EXPORT_QUALITY,
+        )
+      })
     }
 
+    const { exportBlob } = await compositePhoto(video, container, mirrored)
+    return exportBlob
+  }, [])
+
+  const [uploadEntries, setUploadEntries] = useState([])
+  const dismissEntry = useCallback((id) => {
+    setUploadEntries((prev) => prev.filter((e) => e.id !== id))
+  }, [])
+
+  const sendAndTrack = useCallback(async (blob, { isStrip = false } = {}) => {
+    await addPhoto(blob)
+
+    const entry = createUploadEntry()
+    setUploadEntries((prev) => [...prev, entry])
+
+    const update = (status) =>
+      setUploadEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, status } : e)))
+
+    let result
+    try {
+      result = await sendOrQueue(blob)
+    } catch {
+      update("error")
+      trackEvent("discord_failed", { isStrip })
+      return
+    }
+
+    if (result.success) {
+      update("success")
+      trackEvent("discord_sent", { isStrip })
+    } else if (result.queued) {
+      update("queued")
+      trackEvent("discord_queued", { isStrip })
+    } else {
+      update("error")
+      trackEvent("discord_failed", { isStrip })
+    }
+
+    logger.info("capture", "Photo captured", { sent: result.success, queued: result.queued, isStrip })
+  }, [addPhoto])
+
+  // --- Strip capture (hook manages its own state + refs) ---
+  const handleStripComplete = useCallback(async (blob) => {
+    useUiStore.getState().toggleStripMode()
+
     const overlayState = useOverlayStore.getState()
-    trackEvent("photo_captured", {
-      trigger: captureTriggeredByRef.current,
+    trackEvent("strip_completed", {
       mascotId: overlayState.mascotId,
       layoutId: overlayState.layoutId,
     })
-    if (result.success) {
-      trackEvent("discord_sent")
-    } else if (!result.queued) {
-      trackEvent("discord_failed")
-    }
+    await sendAndTrack(blob, { isStrip: true })
+  }, [sendAndTrack])
 
-    logger.info("capture", "Photo captured", { sent: result.success, queued: result.queued })
-  }, [addPhoto, toast])
-
-  // --- Strip capture (hook manages its own state + refs) ---
   const strip = useStripCapture({
     enabled: stripModeEnabled,
     captureOne: captureOnePhoto,
-    onStripComplete: sendAndTrack,
+    onStripComplete: handleStripComplete,
     savePhoto: addPhoto,
     setAppState,
   })
@@ -118,6 +178,10 @@ export function PhotoBooth() {
   useEffect(() => {
     startCamera()
     loadPhotos()
+    trackEvent("session_start", {
+      userAgent: navigator.userAgent,
+      screen: `${screen.width}x${screen.height}`,
+    })
     const timer = setTimeout(() => setSplashDone(true), SPLASH_DURATION_MS)
     return () => clearTimeout(timer)
   }, [startCamera, loadPhotos])
@@ -137,12 +201,20 @@ export function PhotoBooth() {
     setAppState("countdown")
   }, [appState, isReady, setAppState, stripModeEnabled])
 
-  const handleCountdownComplete = useCallback(async () => {
-    setAppState("capturing")
-    setShowFlash(true)
+  const flashEnabled = useUiStore((s) => s.flashEnabled)
 
+  // The actual capture — called by flash (at peak brightness) or directly if flash is off
+  const doCapture = useCallback(async () => {
     try {
       const blob = await captureOnePhoto({ forStrip: stripModeEnabled })
+
+      const overlayState = useOverlayStore.getState()
+      trackEvent("photo_captured", {
+        trigger: captureTriggeredByRef.current,
+        mode: stripModeEnabled ? "strip" : "single",
+        mascotId: overlayState.mascotId,
+        layoutId: overlayState.layoutId,
+      })
 
       if (stripModeEnabled) {
         await stripRef.current.addPhoto(blob)
@@ -151,14 +223,28 @@ export function PhotoBooth() {
       }
     } catch (err) {
       logger.error("capture", "Capture failed", err)
-      toast.show("Foto maken mislukt")
       stripRef.current.reset()
+      setAppState("camera")
     }
-  }, [captureOnePhoto, setAppState, stripModeEnabled, sendAndTrack, toast])
+  }, [captureOnePhoto, stripModeEnabled, sendAndTrack, setAppState])
+
+  const handleCountdownComplete = useCallback(() => {
+    setAppState("capturing")
+    if (flashEnabled) {
+      setShowFlash(true)
+    } else {
+      doCapture().finally(() => {
+        // Only return to camera for single photos — strip mode sets its own state
+        if (!useUiStore.getState().stripModeEnabled) setAppState("camera")
+      })
+    }
+  }, [setAppState, flashEnabled, doCapture])
 
   const handleFlashComplete = useCallback(() => {
     setShowFlash(false)
-    setAppState("camera")
+    if (!useUiStore.getState().stripModeEnabled) {
+      setAppState("camera")
+    }
   }, [setAppState])
 
   // --- Gesture system ---
@@ -177,7 +263,7 @@ export function PhotoBooth() {
   const gestureActionsEnabled = appState === "camera" && !modals.layoutSlider && !strip.isActive
 
   const {
-    activeGesture, handBoxes, gestureBoxes, holdProgress,
+    activeGesture, handBoxes, gestureBoxes, holdProgress, gestureLoading,
     rawGestureNameRef, primaryHandLandmarksRef,
   } = useHandGesture(
     videoRef,
@@ -189,6 +275,22 @@ export function PhotoBooth() {
     gestureActionsEnabled,
     gestureHoldMs,
   )
+
+  // Track gesture model loading as a real upload entry so it fades out gracefully
+  const gestureEntryIdRef = useRef(null)
+  useEffect(() => {
+    if (gestureLoading && !gestureEntryIdRef.current) {
+      const id = crypto.randomUUID()
+      gestureEntryIdRef.current = id
+      setUploadEntries((prev) => [...prev, { id, status: "loading", label: "Handgebaren laden…" }])
+    } else if (!gestureLoading && gestureEntryIdRef.current) {
+      const id = gestureEntryIdRef.current
+      gestureEntryIdRef.current = null
+      setUploadEntries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status: "success", label: "Handgebaren gereed" } : e)),
+      )
+    }
+  }, [gestureLoading])
 
   // Gesture sequence: open layout slider
   const gestureSequenceOpen = useGestureSequence(rawGestureNameRef, {
@@ -261,7 +363,7 @@ export function PhotoBooth() {
           />
         )}
 
-        {showFlash && <FlashEffect onComplete={handleFlashComplete} />}
+        {showFlash && <FlashEffect videoRef={videoRef} onCapture={doCapture} onComplete={handleFlashComplete} />}
 
         <Gallery
           isOpen={modals.gallery}
@@ -294,6 +396,8 @@ export function PhotoBooth() {
             onDismiss={install.dismissBanner}
           />
         )}
+
+        <UploadStatus entries={uploadEntries} onDismiss={dismissEntry} />
 
         {toast.message && (
           <div role="status" aria-live="polite" className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">

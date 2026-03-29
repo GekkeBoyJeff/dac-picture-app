@@ -178,7 +178,7 @@ export const Overlays = memo(function Overlays() {
         if (c.position.includes("left")) style.left = rem(inset + cornerOffset.x)
         if (c.position.includes("right")) style.right = rem(inset + cornerOffset.x)
         return (
-          <img key={c.src} src={c.src} alt="" data-overlay="corner" draggable={false}
+          <img key={c.src} src={c.src} alt="" data-overlay="corner" data-image-type="corner" draggable={false}
             className="absolute pointer-events-none" style={style} />
         )
       })}
@@ -246,7 +246,7 @@ export const Overlays = memo(function Overlays() {
 
       {/* QR code */}
       <img
-        src={QR_CODE.src} alt="" data-overlay="qr" draggable={false}
+        src={QR_CODE.src} alt="" data-overlay="qr" data-image-type="qr" draggable={false}
         className="pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
         style={positionStyle({
           position: layout.qr.position,

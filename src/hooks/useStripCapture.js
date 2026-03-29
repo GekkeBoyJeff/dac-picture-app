@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
-import { STRIP_PHOTO_COUNT, STRIP_PAUSE_MS } from "@/lib/config"
+import { STRIP_PHOTO_COUNT } from "@/lib/config"
 import { compositeStrip } from "@/lib/canvas/compositeStrip"
 
 /**
@@ -39,12 +39,16 @@ export function useStripCapture({ enabled, captureOne, onStripComplete, savePhot
     setStripPhotos(newPhotos)
 
     if (newPhotos.length < STRIP_PHOTO_COUNT) {
-      // More photos needed — pause then start next countdown
-      setTimeout(() => setAppState("countdown"), STRIP_PAUSE_MS)
+      // More photos needed — start next countdown immediately
+      setAppState("countdown")
       return true
     }
 
-    // All photos taken — compose strip, save individual photos
+    // All photos taken — fade out strip overlay, then compose
+    setIsActive(false)
+    await new Promise((r) => setTimeout(r, 550))
+    reset()
+
     const stripBlob = await compositeStrip(newPhotos)
     await onStripComplete(stripBlob)
 
@@ -52,7 +56,6 @@ export function useStripCapture({ enabled, captureOne, onStripComplete, savePhot
       await savePhoto(photo)
     }
 
-    reset()
     return false
   }, [onStripComplete, savePhoto, setAppState, reset])
 

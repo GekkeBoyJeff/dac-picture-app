@@ -96,6 +96,8 @@ export function useHandGesture(
   const [holdProgress, setHoldProgress] = useState(null)
   const rawGestureNameRef = useRef("None")
   const primaryHandLandmarksRef = useRef(null)
+  const [gestureLoading, setGestureLoading] = useState(false)
+  const gestureLoadingRef = useRef(false)
 
   useEffect(() => {
     victoryFiredRef.current = false
@@ -108,10 +110,23 @@ export function useHandGesture(
     setGestureBoxes([])
   }, [enabled])
 
+  // Clear gesture UI and reset hold state when actions are disabled (countdown, strip active, etc.)
+  useEffect(() => {
+    if (!gestureActionsEnabled) {
+      setGestureBoxes([])
+      setActiveGesture(null)
+      setHoldProgress(null)
+      gestureStartRef.current = null
+      victoryFiredRef.current = false
+    }
+  }, [gestureActionsEnabled])
+
   // Dynamic import — MediaPipe only loads when gestures are first enabled
   const initRecognizer = useCallback(async () => {
     if (recognizerRef.current) return
 
+    setGestureLoading(true)
+    gestureLoadingRef.current = true
     logger.info("gesture", "Loading MediaPipe (dynamic import)...")
     installTfLiteNoiseFilter()
     const { GestureRecognizer, FilesetResolver } = await import("@mediapipe/tasks-vision")
@@ -144,6 +159,11 @@ export function useHandGesture(
         logger.warn("gesture", "Failed to initialize (GPU + CPU):", cpuErr?.message)
         recognizerRef.current = null
       }
+    } finally {
+      if (!recognizerRef.current) {
+        gestureLoadingRef.current = false
+        setGestureLoading(false)
+      }
     }
   }, [])
 
@@ -169,6 +189,10 @@ export function useHandGesture(
             lastTimestampRef.current = now
             try {
               const result = recognizer.recognizeForVideo(video, now)
+              if (gestureLoadingRef.current) {
+                gestureLoadingRef.current = false
+                setGestureLoading(false)
+              }
 
               const gestures = result?.gestures || []
               const allLandmarks = result?.landmarks || []
@@ -283,5 +307,5 @@ export function useHandGesture(
     }
   }, [])
 
-  return { activeGesture, handBoxes, gestureBoxes, holdProgress, rawGestureNameRef, primaryHandLandmarksRef }
+  return { activeGesture, handBoxes, gestureBoxes, holdProgress, gestureLoading, rawGestureNameRef, primaryHandLandmarksRef }
 }

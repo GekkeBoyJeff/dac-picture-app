@@ -1,9 +1,28 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+
 const GESTURE_CONFIG = {
   Victory: { emoji: "\u270C\uFE0F", label: "Houd vast..." },
 }
 
+const DEBOUNCE_MS = 50
+
 export function GestureIndicator({ gesture, holdProgress }) {
-  if (!gesture) return null
+  const [visible, setVisible] = useState(false)
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    clearTimeout(timerRef.current)
+    if (gesture) {
+      timerRef.current = setTimeout(() => setVisible(true), DEBOUNCE_MS)
+    } else {
+      setVisible(false)
+    }
+    return () => clearTimeout(timerRef.current)
+  }, [gesture])
+
+  if (!visible || !gesture) return null
 
   const { emoji, label } = GESTURE_CONFIG[gesture]
   const progress = holdProgress ?? 0
