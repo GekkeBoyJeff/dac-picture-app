@@ -105,6 +105,15 @@ export const MASCOTS = [
     },
   },
   {
+    id: "amelia-smile",
+    name: "Amelia (Smile)",
+    path: `${BASE_PATH}/overlays/mascots/amelia-smile.webp`,
+    thumbnail: `${BASE_PATH}/overlays/mascots/amelia-smile.webp`,
+    defaults: {
+      sizingAxis: "height",
+    },
+  },
+  {
     id: "amelia-beer-alt",
     name: "Amelia (Beer Alt)",
     path: `${BASE_PATH}/overlays/mascots/amelia-beer-alt.webp`,

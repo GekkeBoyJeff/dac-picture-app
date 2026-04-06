@@ -31,6 +31,7 @@ const OVERLAY_ASSETS = [
   "/overlays/qr-discord.svg",
   "/overlays/qr-app.svg",
   "/overlays/mascots/amelia.webp",
+  "/overlays/mascots/amelia-smile.webp",
   "/overlays/mascots/amelia-v2.webp",
   "/overlays/mascots/amelia-beer.webp",
   "/overlays/mascots/amelia-hug.webp",
