@@ -10,6 +10,7 @@ const FRAME_RATIO = `${STRIP_CANVAS.WIDTH - STRIP_CANVAS.MARGIN_X * 2} / ${STRIP
 
 const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoURL, attachStream, isMirrored, activeGesture, holdProgressRef }) {
   if (isCaptured && photoURL) {
+    // eslint-disable-next-line @next/next/no-img-element -- Blob URLs are rendered directly for captured strip frames.
     return <img src={photoURL} className="w-full h-full object-cover animate-strip-photo-land" alt="" />
   }
   if (isCurrent) {
@@ -33,12 +34,14 @@ const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoUR
 export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visible, activeGesture, holdProgressRef }) {
   const count = stripPhotos.length
   const isMirrored = useCameraStore((s) => s.isMirrored)
-  const [isLandscape, setIsLandscape] = useState(false)
+  const [isLandscape, setIsLandscape] = useState(() => {
+    if (typeof window === "undefined") return false
+    return window.matchMedia("(orientation: landscape)").matches
+  })
 
   // Detect orientation
   useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)")
-    setIsLandscape(mq.matches)
     const handler = (e) => setIsLandscape(e.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)

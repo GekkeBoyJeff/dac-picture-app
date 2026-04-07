@@ -1,7 +1,7 @@
 {
-  "name": "DAC Photo Booth",
-  "short_name": "Photo Booth",
-  "description": "Maak een foto en vind deze terug in de discord server!",
+  "name": "DAC Fotobooth",
+  "short_name": "Fotobooth",
+  "description": "Maak een foto en bekijk hem direct in de Discord-server.",
   "start_url": "/dac-picture-app/",
   "scope": "/dac-picture-app/",
   "display": "standalone",

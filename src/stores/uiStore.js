@@ -62,15 +62,42 @@ export const useUiStore = create(
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),
       toggleStripMode: () => set((state) => ({ stripModeEnabled: !state.stripModeEnabled })),
       toggleFlash: () => set((state) => ({ flashEnabled: !state.flashEnabled })),
+      applyLowPowerPreset: () =>
+        set({
+          debugEnabled: false,
+          gesturesEnabled: false,
+          stripModeEnabled: false,
+          forceLowPower: true,
+          lowPowerOverride: false,
+          detectionIntervalMs: 400,
+          triggerMinScore: 0.5,
+          numHands: 2,
+          minDetectionConfidence: 0.65,
+          minPresenceConfidence: 0.65,
+          minTrackingConfidence: 0.6,
+        }),
+      applyHighPowerPreset: () =>
+        set({
+          forceLowPower: false,
+          lowPowerOverride: false,
+          gesturesEnabled: true,
+          detectionIntervalMs: 0,
+          triggerMinScore: 0.25,
+          numHands: 8,
+          minDetectionConfidence: 0.4,
+          minPresenceConfidence: 0.4,
+          minTrackingConfidence: 0.4,
+        }),
       toggleForceLowPower: () =>
         set((state) => {
           const enabling = !state.forceLowPower
           if (enabling) {
-            // Enforce low-power defaults
             return {
+              debugEnabled: false,
+              gesturesEnabled: false,
+              stripModeEnabled: false,
               forceLowPower: true,
               lowPowerOverride: false,
-              gesturesEnabled: false,
               detectionIntervalMs: 400,
               triggerMinScore: 0.5,
               numHands: 2,
@@ -79,9 +106,9 @@ export const useUiStore = create(
               minTrackingConfidence: 0.6,
             }
           }
-          // Restore high-power defaults
           return {
             forceLowPower: false,
+            lowPowerOverride: false,
             gesturesEnabled: true,
             detectionIntervalMs: 0,
             triggerMinScore: 0.25,

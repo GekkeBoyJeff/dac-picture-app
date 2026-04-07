@@ -104,27 +104,34 @@ export function useHandGesture(
     gestureStartRef.current = null
     lastGestureSeenRef.current = 0
     lastSeenRef.current = new Map()
-    setActiveGesture(null)
     holdProgressRef.current = null
-    setHandBoxes([])
-    setGestureBoxes([])
+
+    const timeout = setTimeout(() => {
+      setActiveGesture(null)
+      setHandBoxes([])
+      setGestureBoxes([])
+    }, 0)
+
+    return () => clearTimeout(timeout)
   }, [enabled])
 
   useEffect(() => {
     if (!gestureActionsEnabled) {
-      setGestureBoxes([])
-      setActiveGesture(null)
       holdProgressRef.current = null
       gestureStartRef.current = null
       victoryFiredRef.current = false
+
+      const timeout = setTimeout(() => {
+        setGestureBoxes([])
+        setActiveGesture(null)
+      }, 0)
+
+      return () => clearTimeout(timeout)
     }
   }, [gestureActionsEnabled])
 
   const initWorker = useCallback(() => {
     if (workerRef.current) return
-
-    setGestureLoading(true)
-    gestureLoadingRef.current = true
     logger.info("gesture", "Spawning gesture worker...")
 
     const worker = new Worker(`${BASE_PATH}/gesture-worker.js`, { type: "module" })
@@ -195,8 +202,16 @@ export function useHandGesture(
     pendingResultRef.current = null
     lastDetectRef.current = -1
 
-    setActiveGesture(null)
     holdProgressRef.current = null
+
+    const timeout = setTimeout(() => {
+      setActiveGesture(null)
+    }, 0)
+
+    if (!workerRef.current) {
+      gestureLoadingRef.current = true
+      setTimeout(() => setGestureLoading(true), 0)
+    }
 
     initWorker()
 
@@ -287,7 +302,7 @@ export function useHandGesture(
       if (gestureStartRef.current !== null && !victoryFiredRef.current) {
         if (now - lastGestureSeenRef.current > GESTURE_GRACE_MS) {
           gestureStartRef.current = null
-      
+
           setActiveGesture(null)
           holdProgressRef.current = null
         } else {
@@ -298,7 +313,7 @@ export function useHandGesture(
           if (progress >= 1) {
             victoryFiredRef.current = true
             gestureStartRef.current = null
-        
+
             setActiveGesture(null)
             holdProgressRef.current = null
             callbacksRef.current.onVictory()
@@ -329,6 +344,7 @@ export function useHandGesture(
 
     return () => {
       stopped = true
+      clearTimeout(timeout)
       cancelAnimationFrame(animFrameRef.current)
     }
   }, [enabled, videoRef, initWorker])

@@ -12,17 +12,17 @@ export function InstallBanner({ isIOS, onInstall, onDismiss }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold">
-              Install Photo Booth
+              Installeer DAC Photo Booth
             </p>
             {isIOS ? (
               <p className="text-white/50 text-xs mt-0.5">
-                Druk{" "}
+                Tik op{" "}
                 <ShareIcon className="inline w-4 h-4 text-white/70 align-text-bottom" />{" "}
-                en kies &ldquo;voeg toe aan homescherm&rdquo;
+                en kies &ldquo;Zet op beginscherm&rdquo;
               </p>
             ) : (
               <p className="text-white/50 text-xs mt-0.5">
-                Voeg de app toe aan je homescherm
+                Voeg de app toe aan je beginscherm
               </p>
             )}
           </div>

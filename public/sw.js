@@ -74,6 +74,12 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
 
+  // Ignore browser-extension and other non-web requests.
+  // The Cache API only accepts http(s) requests.
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return
+  }
+
   // Skip non-GET, API requests, and the gesture worker (always fetch fresh)
   if (event.request.method !== "GET" || url.pathname.includes("/api/") || url.pathname.endsWith("/gesture-worker.js")) {
     return

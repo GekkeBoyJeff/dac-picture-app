@@ -12,14 +12,18 @@ export function useIdleTimer(timeoutMs = 60_000) {
   const [isIdle, setIsIdle] = useState(false)
   const timerRef = useRef(null)
 
-  const resetTimer = useCallback(() => {
-    setIsIdle(false)
+  const scheduleIdleTimeout = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setIsIdle(true), timeoutMs)
   }, [timeoutMs])
 
+  const resetTimer = useCallback(() => {
+    setIsIdle(false)
+    scheduleIdleTimeout()
+  }, [scheduleIdleTimeout])
+
   useEffect(() => {
-    resetTimer()
+    scheduleIdleTimeout()
 
     for (const event of IDLE_EVENTS) {
       window.addEventListener(event, resetTimer, { passive: true })
@@ -31,7 +35,7 @@ export function useIdleTimer(timeoutMs = 60_000) {
         window.removeEventListener(event, resetTimer)
       }
     }
-  }, [resetTimer])
+  }, [resetTimer, scheduleIdleTimeout])
 
   return isIdle
 }

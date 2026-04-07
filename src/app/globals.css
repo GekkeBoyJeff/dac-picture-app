@@ -29,6 +29,40 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   overflow: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 193, 137, 0.38) rgba(255, 255, 255, 0.05);
+}
+
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 193, 137, 0.38) rgba(255, 255, 255, 0.05);
+}
+
+*::-webkit-scrollbar {
+  width: 0.58rem;
+  height: 0.58rem;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(230, 193, 137, 0.42), rgba(255, 255, 255, 0.18));
+  border: 0.14rem solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(230, 193, 137, 0.62), rgba(255, 255, 255, 0.28));
+  border: 0.14rem solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Global focus-visible ring for keyboard navigation */

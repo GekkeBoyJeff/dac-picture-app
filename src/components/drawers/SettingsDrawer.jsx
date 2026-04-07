@@ -1,9 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { CloseIcon } from "@/components/ui/icons"
-import { useUiStore } from "@/stores/uiStore"
+import { CloseIcon, InfoIcon, SettingsIcon } from "@/components/ui/icons"
+import {
+  drawerButtonBaseClass,
+  drawerSectionHelpClass,
+  drawerSectionLabelClass,
+} from "@/components/ui/drawerStyles"
 import { usePowerStatus } from "@/hooks/usePowerStatus"
+import { useUiStore } from "@/stores/uiStore"
 import { AnalyticsDashboard } from "./AnalyticsDashboard"
 
 const gesturePresets = [
@@ -13,42 +18,10 @@ const gesturePresets = [
 ]
 
 const scenePresets = [
-  {
-    id: "convention",
-    label: "Conventie",
-    note: "Drukke omgeving, grote groepen",
-    numHands: 8,
-    minDetectionConfidence: 0.4,
-    minPresenceConfidence: 0.4,
-    minTrackingConfidence: 0.4,
-  },
-  {
-    id: "booth",
-    label: "Photobooth",
-    note: "Vaste camera, 1-4 personen",
-    numHands: 4,
-    minDetectionConfidence: 0.5,
-    minPresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-  },
-  {
-    id: "mobile",
-    label: "Mobiel",
-    note: "Telefoon of tablet, dichtbij",
-    numHands: 2,
-    minDetectionConfidence: 0.6,
-    minPresenceConfidence: 0.6,
-    minTrackingConfidence: 0.5,
-  },
-  {
-    id: "lowpower",
-    label: "Zuinig",
-    note: "Raspberry Pi of zwak apparaat",
-    numHands: 2,
-    minDetectionConfidence: 0.65,
-    minPresenceConfidence: 0.65,
-    minTrackingConfidence: 0.6,
-  },
+  { id: "convention", label: "Conventie", note: "Drukke omgeving", numHands: 8, minDetectionConfidence: 0.4, minPresenceConfidence: 0.4, minTrackingConfidence: 0.4 },
+  { id: "booth", label: "Photobooth", note: "Vaste camera", numHands: 4, minDetectionConfidence: 0.5, minPresenceConfidence: 0.5, minTrackingConfidence: 0.5 },
+  { id: "mobile", label: "Mobiel", note: "Telefoon of tablet", numHands: 2, minDetectionConfidence: 0.6, minPresenceConfidence: 0.6, minTrackingConfidence: 0.5 },
+  { id: "lowpower", label: "Zuinig", note: "Raspberry Pi", numHands: 2, minDetectionConfidence: 0.65, minPresenceConfidence: 0.65, minTrackingConfidence: 0.6 },
 ]
 
 const holdPresets = [
@@ -60,11 +33,124 @@ const holdPresets = [
 ]
 
 const formatInterval = (ms) => (ms <= 0 ? "Realtime (0ms)" : `${ms}ms`)
+const formatConfidence = (value) => Number(value).toFixed(2)
 
-const DRAWER_HEADER_HEIGHT = 72
+const DRAWER_HEADER_HEIGHT = 92
+const TAB_HEIGHT = 52
+const CARD_RADIUS = "rounded-xl"
+const INNER_RADIUS = "rounded-lg"
+const drawerCard = `${CARD_RADIUS} border border-white/10 bg-white/[0.04] shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]`
+const rowBase = `w-full ${CARD_RADIUS} border px-4 py-4 text-left ${drawerButtonBaseClass}`
+
+const tabs = [
+  { id: "basis", label: "Basis", description: "Dagelijkse bediening" },
+  { id: "advanced", label: "Geavanceerd", description: "Power en tuning" },
+]
+
+function SectionLabel({ title, description }) {
+  return (
+    <div className="space-y-1">
+      <p className={drawerSectionLabelClass}>{title}</p>
+      <p className={drawerSectionHelpClass}>{description}</p>
+    </div>
+  )
+}
+
+function ToggleRow({ title, description, active, disabled = false, onClick, activeTone = "sky" }) {
+  const activeStyles = {
+    amber: "border-amber-400/45 bg-amber-400/10 text-white shadow-[0_0_0_1px_rgba(245,158,11,0.18)]",
+    sky: "border-sky-400/45 bg-sky-400/10 text-white shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
+    emerald: "border-emerald-400/45 bg-emerald-400/10 text-white shadow-[0_0_0_1px_rgba(16,185,129,0.16)]",
+    violet: "border-violet-400/45 bg-violet-400/10 text-white shadow-[0_0_0_1px_rgba(167,139,250,0.16)]",
+  }
+
+  const inactiveStyles = "border-white/10 bg-white/5 text-white/75 hover:border-white/20 hover:bg-white/[0.07]"
+  const dotStyles = {
+    amber: active ? "bg-amber-300 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]" : "bg-white/20",
+    sky: active ? "bg-sky-300 shadow-[0_0_0_4px_rgba(56,189,248,0.12)]" : "bg-white/20",
+    emerald: active ? "bg-emerald-300 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" : "bg-white/20",
+    violet: active ? "bg-violet-300 shadow-[0_0_0_4px_rgba(167,139,250,0.12)]" : "bg-white/20",
+  }
+  const statusStyles = {
+    amber: active ? "border-amber-300/40 bg-amber-300/15 text-amber-50" : "border-white/10 bg-white/5 text-white/50",
+    sky: active ? "border-sky-300/40 bg-sky-300/15 text-sky-50" : "border-white/10 bg-white/5 text-white/50",
+    emerald: active ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-50" : "border-white/10 bg-white/5 text-white/50",
+    violet: active ? "border-violet-300/40 bg-violet-300/15 text-violet-50" : "border-white/10 bg-white/5 text-white/50",
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`${rowBase} relative min-h-[4.8rem] flex items-center justify-between gap-4 overflow-hidden ${drawerCard} ${disabled ? "opacity-55 cursor-not-allowed" : "cursor-pointer"} ${active ? activeStyles[activeTone] : inactiveStyles}`}
+    >
+      <span className={`relative h-2.5 w-2.5 shrink-0 rounded-full ${dotStyles[activeTone]}`} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-white">{title}</p>
+        <p className="mt-0.5 text-xs leading-5 text-white/55">{description}</p>
+      </div>
+      <span className={`shrink-0 rounded-full border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] ${statusStyles[activeTone]}`}>
+        {active ? "Aan" : "Uit"}
+      </span>
+    </button>
+  )
+}
+
+function StatPill({ label, value, tone = "white" }) {
+  const tones = {
+    white: "border-white/10 bg-white/5 text-white/80",
+    amber: "border-amber-400/25 bg-amber-400/10 text-amber-100",
+    sky: "border-sky-400/25 bg-sky-400/10 text-sky-100",
+  }
+
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${tones[tone]}`}>
+      <p className="text-[0.65rem] uppercase tracking-[0.18em] text-white/45">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+    </div>
+  )
+}
+
+function TopAction({ label, description, onClick, icon: Icon }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${drawerButtonBaseClass} ${drawerCard} flex min-h-[3.75rem] w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:border-white/20 hover:bg-white/[0.07]`}
+    >
+      <div className="min-w-0">
+        <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/45">{label}</p>
+        <p className="mt-0.5 text-sm font-semibold text-white">{description}</p>
+      </div>
+      {Icon && <Icon className="h-4 w-4 shrink-0 text-white/55" />}
+    </button>
+  )
+}
+
+function RangeControl({ label, value, min, max, step, onChange, formatValue = (v) => v }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs text-white/60">
+        <span>{label}</span>
+        <span className="font-mono text-white/80">{formatValue(value)}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="w-full cursor-pointer accent-sky-400"
+      />
+    </div>
+  )
+}
 
 export function SettingsDrawer({ isOpen, onClose, openAbout }) {
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [activeTab, setActiveTab] = useState("basis")
 
   const debugEnabled = useUiStore((s) => s.debugEnabled)
   const flashEnabled = useUiStore((s) => s.flashEnabled)
@@ -79,13 +165,18 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
   const minDetectionConfidence = useUiStore((s) => s.minDetectionConfidence)
   const minPresenceConfidence = useUiStore((s) => s.minPresenceConfidence)
   const minTrackingConfidence = useUiStore((s) => s.minTrackingConfidence)
+  const setNumHands = useUiStore((s) => s.setNumHands)
+  const setMinDetectionConfidence = useUiStore((s) => s.setMinDetectionConfidence)
+  const setMinPresenceConfidence = useUiStore((s) => s.setMinPresenceConfidence)
+  const setMinTrackingConfidence = useUiStore((s) => s.setMinTrackingConfidence)
   const setDetectionInterval = useUiStore((s) => s.setDetectionInterval)
   const setTriggerScore = useUiStore((s) => s.setTriggerScore)
   const setGestureHold = useUiStore((s) => s.setGestureHold)
   const applyScenePreset = useUiStore((s) => s.applyScenePreset)
+  const applyLowPowerPreset = useUiStore((s) => s.applyLowPowerPreset)
+  const applyHighPowerPreset = useUiStore((s) => s.applyHighPowerPreset)
   const forceLowPower = useUiStore((s) => s.forceLowPower)
   const lowPowerOverride = useUiStore((s) => s.lowPowerOverride)
-  const toggleForceLowPower = useUiStore((s) => s.toggleForceLowPower)
   const toggleLowPowerOverride = useUiStore((s) => s.toggleLowPowerOverride)
 
   const powerStatus = usePowerStatus()
@@ -93,281 +184,393 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
 
   useEffect(() => {
     if (!isOpen) return
-    const handler = (e) => {
-      if (e.key === "Escape") onClose()
+    const handler = (event) => {
+      if (event.key === "Escape") onClose()
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [isOpen, onClose])
 
-  const gestureControlsDisabled = !gesturesEnabled || lowPowerLocked
+  const gestureControlsDisabled = lowPowerLocked
 
-  const activePreset = useMemo(() => {
-    return gesturePresets.find(
-      (preset) => preset.detectionInterval === detectionIntervalMs && preset.triggerMinScore === triggerMinScore,
-    )
-  }, [detectionIntervalMs, triggerMinScore])
+  const activePreset = useMemo(
+    () => gesturePresets.find((preset) => preset.detectionInterval === detectionIntervalMs && preset.triggerMinScore === triggerMinScore),
+    [detectionIntervalMs, triggerMinScore],
+  )
+
+  const currentPowerLabel = powerStatus === "low" ? "Low-power" : "Standard"
+  const currentPowerTone = powerStatus === "low" ? "amber" : "sky"
+  const handOptions = [2, 4, 6, 8, 10, 12]
+  const settingsSummary = [
+    { label: "Power", value: currentPowerLabel },
+    { label: "Flash", value: flashEnabled ? "Aan" : "Uit" },
+    { label: "Gestures", value: gesturesEnabled ? "Aan" : "Uit" },
+  ]
 
   return (
-    <div
-      className={`fixed inset-0 z-50 transition-opacity duration-200 ${
-        isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-      }`}
-    >
+    <div className={`fixed inset-0 z-50 transition-opacity duration-200 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Instellingen"
-        className={`absolute top-0 bottom-0 left-0 w-full max-w-sm rounded-r-2xl bg-black/90 border-r border-white/10 shadow-2xl transition-transform duration-250 overflow-hidden flex flex-col ${
+        className={`absolute top-0 bottom-0 left-0 flex h-full w-full max-w-[32rem] flex-col overflow-hidden border-r border-white/10 bg-black/[0.92] shadow-2xl transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between sticky top-0 bg-black/90 z-10" style={{ minHeight: DRAWER_HEADER_HEIGHT }}>
-          <div className="flex items-center gap-2">
-            <p className="text-white font-semibold text-lg">Instellingen</p>
-            <button
-              type="button"
-              onClick={toggleForceLowPower}
-              className={`px-2 py-0.5 rounded-full border text-[0.625rem] font-medium leading-tight cursor-pointer transition-colors ${
-                powerStatus === "low"
-                  ? "bg-amber-400/15 border-amber-400/30 text-amber-300 hover:bg-amber-400/25"
-                  : "bg-emerald-400/15 border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/25"
-              }`}
-              title={forceLowPower ? "Low-power geforceerd — klik om uit te schakelen" : "Klik om low-power te forceren"}
-            >
-              {powerStatus === "low" ? "Low-power" : "High-power"}
+        <div className="relative border-b border-white/10 px-5 py-4" style={{ minHeight: DRAWER_HEADER_HEIGHT }}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(230,193,137,0.12),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)]" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-xl font-semibold text-white">Instellingen</p>
+              <p className="max-w-[20rem] text-sm text-white/45">Een vaste, rustige configuratie zonder springende layout.</p>
+            </div>
+            <button onClick={onClose} className="cursor-pointer rounded-full border border-white/10 bg-white/5 p-2.5 transition-colors hover:bg-white/10" aria-label="Sluiten">
+              <CloseIcon className="w-5 h-5 text-white/75" />
             </button>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer" aria-label="Sluiten">
-            <CloseIcon className="w-5 h-5 text-white/70" />
-          </button>
-        </div>
 
-        <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto pb-8">
-          {/* Flits toggle */}
-          <button
-            onClick={toggleFlash}
-            className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
-              flashEnabled
-                ? "border-amber-400/50 bg-amber-400/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)] text-white"
-                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-            }`}
-          >
-            <p className="font-medium text-sm">Flits</p>
-            <p className="text-xs text-white/60">Schermflits bij het nemen van een foto</p>
-          </button>
-
-          {/* Handgebaren toggle */}
-          <button
-            onClick={lowPowerLocked ? undefined : toggleGestures}
-            disabled={lowPowerLocked}
-            className={`w-full rounded-xl border transition-all text-left px-4 py-3 ${
-              lowPowerLocked
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer"
-            } ${
-              gesturesEnabled && !lowPowerLocked
-                ? "border-sky-400/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(56,189,248,0.25)] text-white"
-                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-            }`}
-          >
-            <p className="font-medium text-sm">Handgebaren</p>
-            <p className="text-xs text-white/60">
-              {lowPowerLocked ? "Uitgeschakeld in low-power modus" : "Automatisch afdrukken met victory-gebaar"}
-            </p>
-          </button>
-
-          {/* Vasthouden-duur */}
-          <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 ${gestureControlsDisabled ? "opacity-60" : ""}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white text-sm font-semibold">Vasthouden voor trigger</p>
-                <p className="text-white/50 text-xs">Hoe lang je het gebaar moet vasthouden</p>
-              </div>
-              <span className="text-white/70 text-xs font-mono">{(gestureHoldMs / 1000).toFixed(1)}s</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {holdPresets.map((preset) => {
-                const active = gestureHoldMs === preset.value
-                return (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    onClick={() => setGestureHold(preset.value)}
-                    disabled={gestureControlsDisabled}
-                    className={`rounded-lg border px-3 py-1.5 text-xs transition-all ${
-                      active
-                        ? "border-sky-400/60 bg-sky-400/15 text-white shadow-[0_0_0_1px_rgba(56,189,248,0.2)]"
-                        : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                    } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                  >
-                    {preset.label}
-                  </button>
-                )
-              })}
-            </div>
+          <div className="relative mt-4 grid grid-cols-3 gap-2">
+            {settingsSummary.map((item) => (
+              <StatPill key={item.label} label={item.label} value={item.value} tone={item.label === "Power" ? currentPowerTone : "white"} />
+            ))}
           </div>
 
-          {/* Geavanceerd toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced((v) => !v)}
-            className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-white/8 transition-colors"
-          >
-            <div className="text-left">
-              <p className="text-white/70 text-sm font-medium">Geavanceerd</p>
-              <p className="text-white/40 text-xs">Debug, detectie-snelheid en drempels</p>
-            </div>
-            <svg className={`w-4 h-4 text-white/40 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-            </svg>
-          </button>
-
-          {showAdvanced && (
-            <>
-              {powerStatus === "low" && (
+          <div className="relative mt-4 grid grid-cols-2 rounded-xl border border-white/10 bg-white/5 p-1" style={{ minHeight: TAB_HEIGHT }}>
+            {tabs.map((tab) => {
+              const active = activeTab === tab.id
+              return (
                 <button
-                  onClick={toggleLowPowerOverride}
-                  className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
-                    lowPowerOverride
-                      ? "border-amber-400/50 bg-amber-400/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)] text-white"
-                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                  }`}
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`cursor-pointer rounded-xl px-4 py-2 text-left transition-all ${active ? "bg-white/12 text-white shadow-sm hover:bg-white/[0.16]" : "text-white/55 hover:bg-white/[0.08] hover:text-white/80"}`}
                 >
-                  <p className="font-medium text-sm">Low-power override</p>
-                  <p className="text-xs text-white/60">
-                    {lowPowerOverride
-                      ? "Alle instellingen zijn ontgrendeld"
-                      : "Ontgrendel instellingen die geblokkeerd zijn door low-power modus"}
-                  </p>
+                  <span className="block text-base font-semibold leading-tight">{tab.label}</span>
+                  <span className="block text-[0.7rem] leading-tight text-white/45">{tab.description}</span>
                 </button>
-              )}
+              )
+            })}
+          </div>
 
-              <button
-                onClick={toggleDebug}
-                className={`w-full rounded-xl border transition-all text-left px-4 py-3 cursor-pointer ${
-                  debugEnabled
-                    ? "border-emerald-400/50 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(16,185,129,0.25)] text-white"
-                    : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <p className="font-medium text-sm">Debug</p>
-                <p className="text-xs text-white/60">Groene/blauwe kaders + gesture status</p>
-              </button>
+          <div className="relative mt-4">
+            <TopAction label="Over de app" description="Info en versie" onClick={() => { openAbout(); onClose() }} icon={InfoIcon} />
+          </div>
+        </div>
 
-              <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4 ${gestureControlsDisabled ? "opacity-60" : ""}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-white text-sm font-semibold">Gebaren-tempo</p>
-                    <p className="text-white/50 text-xs">Groen volgt elke frame, blauw volgt dit tempo.</p>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <div className="min-h-[42rem] space-y-5 lg:min-h-[38rem]">
+            {activeTab === "basis" ? (
+              <>
+                <section className="space-y-3">
+                  <SectionLabel title="Snel" description="De meest gebruikte toggles staan hier als strakke, vaste rows." />
+
+                  <ToggleRow
+                    title="Flits"
+                    description="Schermflits bij het nemen van een foto"
+                    active={flashEnabled}
+                    activeTone="amber"
+                    onClick={toggleFlash}
+                  />
+
+                  <ToggleRow
+                    title="Handgebaren"
+                    description={lowPowerLocked ? "Uitgeschakeld in low-power modus" : "Automatisch afdrukken met victory-gebaar"}
+                    active={gesturesEnabled && !lowPowerLocked}
+                    disabled={lowPowerLocked}
+                    activeTone="sky"
+                    onClick={lowPowerLocked ? undefined : toggleGestures}
+                  />
+
+                  <div className={`${drawerCard} p-4 space-y-4`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Vasthouden voor trigger</p>
+                        <p className="text-xs text-white/55">Hoe lang je het gebaar moet vasthouden</p>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-white/80">{(gestureHoldMs / 1000).toFixed(1)}s</span>
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-2">
+                      {holdPresets.map((preset) => {
+                        const active = gestureHoldMs === preset.value
+                        return (
+                          <button
+                            key={preset.value}
+                            type="button"
+                            onClick={() => setGestureHold(preset.value)}
+                            className={`${INNER_RADIUS} cursor-pointer border px-2 py-3 text-xs font-medium transition-all ${
+                              active
+                                ? "border-sky-400/55 bg-sky-400/15 text-white"
+                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/[0.07]"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <span className="text-white/70 text-xs font-mono">{formatInterval(detectionIntervalMs)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {gesturePresets.map((preset) => {
-                    const active = activePreset?.label === preset.label
-                    return (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => {
-                          setDetectionInterval(preset.detectionInterval)
-                          setTriggerScore(preset.triggerMinScore)
-                        }}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("advanced")}
+                    className={`${drawerCard} w-full cursor-pointer px-4 py-4 text-left transition-all hover:border-white/20 hover:bg-white/[0.07]`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Naar geavanceerd</p>
+                        <p className="mt-0.5 text-xs text-white/55">Power, debug en tuning openen in een aparte, stabiele view.</p>
+                      </div>
+                      <SettingsIcon className="h-5 w-5 text-white/35" />
+                    </div>
+                  </button>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="space-y-3">
+                  <SectionLabel title="Power" description="Raspberry Pi of standaard laptop/pc. Deze keuze beïnvloedt de lichte of zware configuratie." />
+
+                  <button
+                    type="button"
+                    onClick={() => (forceLowPower ? applyHighPowerPreset() : applyLowPowerPreset())}
+                    className={`${rowBase} ${drawerCard} min-h-[5.5rem] cursor-pointer flex items-center justify-between gap-4 ${
+                      powerStatus === "low"
+                        ? "border-amber-400/45 bg-amber-400/10 text-white shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
+                        : "border-emerald-400/35 bg-emerald-400/10 text-white shadow-[0_0_0_1px_rgba(16,185,129,0.16)]"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">Raspberry Pi mode</p>
+                      <p className="mt-0.5 text-xs leading-5 text-white/55">{powerStatus === "low" ? "Aan: minimale belasting, camera blijft hoog" : "Uit: standaard instellingen voor reguliere pc's"}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] ${powerStatus === "low" ? "border-amber-300/40 bg-amber-300/15 text-amber-50" : "border-emerald-300/40 bg-emerald-300/15 text-emerald-50"}`}>
+                      {powerStatus === "low" ? "Aan" : "Uit"}
+                    </span>
+                  </button>
+
+                  {powerStatus === "low" && (
+                    <ToggleRow
+                      title="Low-power override"
+                      description={lowPowerOverride ? "Alle instellingen zijn ontgrendeld" : "Ontgrendel instellingen die geblokkeerd zijn door low-power modus"}
+                      active={lowPowerOverride}
+                      activeTone="amber"
+                      onClick={toggleLowPowerOverride}
+                    />
+                  )}
+
+                  <ToggleRow
+                    title="Debug"
+                    description="Groene/blauwe kaders + gesture status"
+                    active={debugEnabled}
+                    activeTone="emerald"
+                    onClick={toggleDebug}
+                  />
+                </section>
+
+                <section className="space-y-3">
+                  <SectionLabel title="Opstelling" description="Pas handen, detectie en tracking aan per situatie." />
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {scenePresets.map((preset) => {
+                      const active =
+                        numHands === preset.numHands &&
+                        minDetectionConfidence === preset.minDetectionConfidence &&
+                        minPresenceConfidence === preset.minPresenceConfidence &&
+                        minTrackingConfidence === preset.minTrackingConfidence
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyScenePreset(preset)}
+                          disabled={gestureControlsDisabled}
+                          className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-[7rem] flex flex-col justify-between gap-1.5 ${
+                            active
+                              ? "border-violet-400/60 bg-violet-400/15 text-white"
+                              : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/[0.07]"
+                          } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                          <div>
+                            <p className="font-semibold text-sm leading-tight">{preset.label}</p>
+                            <p className="mt-1 text-white/50 leading-snug">{preset.note}</p>
+                          </div>
+                          <p className="font-mono leading-snug text-white/60">{preset.numHands} handen · {preset.minDetectionConfidence.toFixed(2)}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className={`${drawerCard} p-4 space-y-4`}>
+                    <div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Personaliseer opstelling</p>
+                        <p className="text-xs text-white/55">Pas het aantal handen en confidence-waarden handmatig aan.</p>
+                      </div>
+                    </div>
+
+                    <div className={`${INNER_RADIUS} border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs text-white/55`}>
+                      <p>Detectie = nieuwe hand oppikken</p>
+                      <p className="mt-1">Presence = hand blijft aanwezig</p>
+                      <p className="mt-1">Tracking = beweging stabiel volgen</p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {handOptions.map((option) => {
+                        const active = numHands === option
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => setNumHands(option)}
+                            disabled={gestureControlsDisabled}
+                            className={`${INNER_RADIUS} border px-2 py-2 text-xs font-semibold transition-all ${
+                              active
+                                ? "border-sky-400/55 bg-sky-400/15 text-white"
+                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/[0.07]"
+                            } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            {option} handen
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <RangeControl
+                      label="Detectie confidence"
+                      value={minDetectionConfidence}
+                      min={0.2}
+                      max={0.9}
+                      step={0.01}
+                      onChange={setMinDetectionConfidence}
+                      formatValue={formatConfidence}
+                    />
+
+                    <RangeControl
+                      label="Presence confidence"
+                      value={minPresenceConfidence}
+                      min={0.2}
+                      max={0.9}
+                      step={0.01}
+                      onChange={setMinPresenceConfidence}
+                      formatValue={formatConfidence}
+                    />
+
+                    <RangeControl
+                      label="Tracking confidence"
+                      value={minTrackingConfidence}
+                      min={0.2}
+                      max={0.9}
+                      step={0.01}
+                      onChange={setMinTrackingConfidence}
+                      formatValue={formatConfidence}
+                    />
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <SectionLabel title="Gebaren" description="Snelle, vaste presets met duidelijke rangschikking. Geen springende panelen." />
+
+                  <div className={`${drawerCard} p-4 space-y-4`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Gebaren-tempo</p>
+                        <p className="text-xs text-white/55">Groen volgt elke frame, blauw volgt dit tempo.</p>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-white/80">{formatInterval(detectionIntervalMs)}</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {gesturePresets.map((preset) => {
+                        const active = activePreset?.label === preset.label
+                        return (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => {
+                              setDetectionInterval(preset.detectionInterval)
+                              setTriggerScore(preset.triggerMinScore)
+                            }}
+                            disabled={gestureControlsDisabled}
+                            className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-[7.4rem] flex flex-col justify-between gap-1.5 ${
+                              active
+                                ? "border-sky-400/60 bg-sky-400/15 text-white"
+                                : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/[0.07]"
+                            } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            <div>
+                              <p className="font-semibold text-sm leading-tight">{preset.label}</p>
+                              <p className="mt-1 text-white/50 leading-snug">{preset.note}</p>
+                            </div>
+                            <p className="font-mono leading-snug text-white/60">{formatInterval(preset.detectionInterval)} · {preset.triggerMinScore.toFixed(2)}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-white/60">
+                        <span>Gesture check interval</span>
+                        <span className="font-mono text-white/80">{formatInterval(detectionIntervalMs)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1200"
+                        step="60"
+                        value={detectionIntervalMs}
+                        onChange={(event) => setDetectionInterval(Number(event.target.value))}
                         disabled={gestureControlsDisabled}
-                        className={`rounded-xl border px-3 py-2 text-left text-xs transition-all h-full flex flex-col gap-1 justify-between ${
-                          active
-                            ? "border-sky-400/60 bg-sky-400/15 text-white shadow-[0_0_0_1px_rgba(56,189,248,0.2)]"
-                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                        } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <p className="font-semibold text-sm leading-tight">{preset.label}</p>
-                        <p className="text-white/50 text-[0.6875rem] leading-snug">{preset.note}</p>
-                        <p className="text-white/60 text-[0.6875rem] font-mono leading-snug">{formatInterval(preset.detectionInterval)} · {preset.triggerMinScore.toFixed(2)}</p>
-                      </button>
-                    )
-                  })}
-                </div>
+                        className="w-full accent-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>Gesture check interval</span>
-                    <span className="font-mono text-white/70">{formatInterval(detectionIntervalMs)}</span>
-                  </div>
-                  <input type="range" min="0" max="1200" step="60" value={detectionIntervalMs}
-                    onChange={(e) => setDetectionInterval(Number(e.target.value))}
-                    disabled={gestureControlsDisabled} className="w-full accent-sky-400 disabled:opacity-50 disabled:cursor-not-allowed" />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>Trigger score drempel</span>
-                    <span className="font-mono text-white/70">{triggerMinScore.toFixed(2)}</span>
-                  </div>
-                  <input type="range" min="0" max="1" step="0.01" value={triggerMinScore}
-                    onChange={(e) => setTriggerScore(Number(e.target.value))}
-                    disabled={gestureControlsDisabled} className="w-full accent-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed" />
-                </div>
-
-                {/* Scene presets */}
-                <div className="pt-1 space-y-2">
-                  <p className="text-white text-sm font-semibold">Opstelling</p>
-                  <p className="text-white/50 text-xs">Past handen, detectie en tracking aan per situatie</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {scenePresets.map((preset) => {
-                    const active =
-                      numHands === preset.numHands &&
-                      minDetectionConfidence === preset.minDetectionConfidence &&
-                      minPresenceConfidence === preset.minPresenceConfidence &&
-                      minTrackingConfidence === preset.minTrackingConfidence
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => applyScenePreset(preset)}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-white/60">
+                        <span>Trigger score drempel</span>
+                        <span className="font-mono text-white/80">{triggerMinScore.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={triggerMinScore}
+                        onChange={(event) => setTriggerScore(Number(event.target.value))}
                         disabled={gestureControlsDisabled}
-                        className={`rounded-xl border px-3 py-2 text-left text-xs transition-all h-full flex flex-col gap-1 justify-between ${
-                          active
-                            ? "border-violet-400/60 bg-violet-400/15 text-white shadow-[0_0_0_1px_rgba(167,139,250,0.2)]"
-                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                        } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <p className="font-semibold text-sm leading-tight">{preset.label}</p>
-                        <p className="text-white/50 text-[0.6875rem] leading-snug">{preset.note}</p>
-                        <p className="text-white/60 text-[0.6875rem] font-mono leading-snug">{preset.numHands} handen · {preset.minDetectionConfidence.toFixed(2)}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+                        className="w-full accent-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                </section>
 
-              {debugEnabled && (
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[0.6875rem] text-white/50">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-400/80" />
-                    <span>Groen: tracking elke frame</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block w-3 h-3 rounded-full border-2 border-sky-400/80" />
-                    <span>Blauw: tempo volgens gesture interval</span>
-                  </span>
-                </div>
-              )}
+                <section className="space-y-3">
+                  <SectionLabel title="Informatie" description="Technische details en diagnostiek, zonder de rest van de layout te verstoren." />
 
-              {/* Analytics */}
-              <AnalyticsDashboard />
-            </>
-          )}
+                  {debugEnabled && (
+                    <div className={`${CARD_RADIUS} border border-white/10 bg-white/[0.03] px-4 py-3 text-[0.6875rem] text-white/55`}>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400/80" />
+                          <span>Groen: tracking elke frame</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-block h-3 w-3 rounded-full border-2 border-sky-400/80" />
+                          <span>Blauw: tempo volgens gesture interval</span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-          <button
-            onClick={() => { openAbout(); onClose() }}
-            className="text-white/30 text-xs hover:text-white/50 transition-colors cursor-pointer text-center py-2"
-          >
-            Over deze app
-          </button>
+                  <div className={`${drawerCard} overflow-hidden`}>
+                    <AnalyticsDashboard />
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

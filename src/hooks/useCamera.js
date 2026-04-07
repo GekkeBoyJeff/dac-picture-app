@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger"
 export function useCamera() {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const requestSeqRef = useRef(0)
 
   const {
     isReady, isRecalibrating, isSwitching, isMirrored, error,
@@ -41,6 +42,8 @@ export function useCamera() {
 
   const startCamera = useCallback(
     async (deviceId) => {
+      const requestId = ++requestSeqRef.current
+
       try {
         setError(null)
         stopCamera()
@@ -66,6 +69,13 @@ export function useCamera() {
         }
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
+
+        // Ignore results from stale starts (e.g. React Strict Mode double-effects).
+        if (requestId !== requestSeqRef.current) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
+
         streamRef.current = stream
 
         const track = stream.getVideoTracks()[0]
@@ -106,6 +116,7 @@ export function useCamera() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
+          setError(null)
           setReady(true)
           setRecalibrating(false)
           setSwitching(false)
@@ -114,6 +125,10 @@ export function useCamera() {
         await enumerateDevices()
         logger.info("camera", "Camera started", { deviceId: activeDeviceId })
       } catch (err) {
+        if (requestId !== requestSeqRef.current) {
+          return
+        }
+
         if (err instanceof DOMException) {
           const messages = {
             NotAllowedError: "Camera toegang geweigerd. Sta camera toe in je browser.",
@@ -162,6 +177,7 @@ export function useCamera() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      requestSeqRef.current += 1
       streamRef.current?.getTracks().forEach((track) => track.stop())
     }
   }, [])

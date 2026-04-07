@@ -91,28 +91,41 @@ export function Gallery({ isOpen, onClose, toast }) {
 
   return (
     <>
-      <BottomDrawer title="Gallery" onClose={onClose}>
+      <BottomDrawer title="Galerij" subtitle="Bekijk en beheer je gemaakte foto's." onClose={onClose} fullHeight>
         {photos.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-white/40">
-            <CameraEmptyIcon className="w-10 h-10 mr-3" />
-            <p className="text-sm">Nog geen foto&apos;s</p>
+          <div className="flex min-h-[16rem] items-center justify-center px-4 py-10 text-white/45">
+            <div className="max-w-sm rounded-3xl border border-white/10 bg-white/[0.04] px-5 py-6 text-center">
+              <CameraEmptyIcon className="mx-auto h-10 w-10 text-white/35" />
+              <p className="mt-4 text-sm font-semibold text-white">Nog geen foto&apos;s</p>
+              <p className="mt-1 text-xs leading-5 text-white/50">Zodra er een foto is gemaakt, verschijnt hij hier als overzichtelijke kaart.</p>
+            </div>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-2 px-3 scrollbar-none">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {photos.filter((p) => p.id !== pendingDelete).map((photo) => (
               <button
                 key={photo.id}
                 onClick={() => openLightbox(photo)}
-                className="shrink-0 w-36 aspect-video rounded-xl overflow-hidden bg-white/5 cursor-pointer border-2 border-transparent hover:border-white/30 transition-all"
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] text-left transition-all hover:border-white/25 hover:bg-white/[0.07]"
               >
-                {thumbnails[photo.id] && (
-                  <img // eslint-disable-line @next/next/no-img-element
-                    src={thumbnails[photo.id]}
-                    alt={`Foto ${new Date(photo.createdAt).toLocaleTimeString("nl-NL")}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                )}
+                <div className="aspect-[4/3] overflow-hidden bg-black/30">
+                  {thumbnails[photo.id] && (
+                    <img // eslint-disable-line @next/next/no-img-element
+                      src={thumbnails[photo.id]}
+                      alt={`Foto ${new Date(photo.createdAt).toLocaleTimeString("nl-NL")}`}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                  <p className="truncate text-xs font-medium text-white/75">
+                    {new Date(photo.createdAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })}
+                  </p>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[0.65rem] uppercase tracking-[0.18em] text-white/45">
+                    Open
+                  </span>
+                </div>
               </button>
             ))}
           </div>
@@ -131,14 +144,14 @@ export function Gallery({ isOpen, onClose, toast }) {
           <div className="absolute top-6 right-6 flex gap-2">
             <button
               onClick={handleDelete}
-              className="w-10 h-10 rounded-lg bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-xl border border-red-400/20 bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors cursor-pointer"
               aria-label="Verwijder foto"
             >
               <TrashIcon className="w-5 h-5 text-white" />
             </button>
             <button
               onClick={closeLightbox}
-              className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-xl border border-white/10 bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
               aria-label="Sluiten"
             >
               <CloseIcon className="w-5 h-5 text-white" />

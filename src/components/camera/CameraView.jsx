@@ -3,14 +3,15 @@
 import { Overlays } from "./Overlays"
 import { CaptureButton } from "./CaptureButton"
 import { ControlBar } from "./ControlBar"
-import { SplashOverlay } from "./SplashOverlay"
 import { StatusOverlay } from "./StatusOverlay"
 import { AttractOverlay } from "./AttractOverlay"
 import { StripFrameOverlay } from "@/components/capture/StripFrameOverlay"
 import { GestureIndicator } from "@/components/gestures/GestureIndicator"
 import { GestureSequenceHint } from "@/components/gestures/GestureSequenceHint"
 import { HandBox } from "@/components/gestures/HandBox"
+import { CameraIssueOverlay } from "./CameraIssueOverlay"
 import { ANIMATION_DELAYS } from "@/lib/styles/animations"
+import { BOOT_STAGES, useBootStore } from "@/stores/bootStore"
 import { useCameraStore } from "@/stores/cameraStore"
 import { useUiStore } from "@/stores/uiStore"
 import { OfflineBadge } from "./OfflineBadge"
@@ -28,8 +29,9 @@ const RECALIBRATE_MESSAGES = [
 ]
 
 export function CameraView({
-  videoRef, containerRef, splashDone, onCapture, switchCamera,
+  videoRef, containerRef, onCapture, switchCamera,
   canInstall, onInstall,
+  cameraError, cameraDeviceCount, onRetryCamera,
   activeGesture, handBoxes, gestureBoxes, holdProgressRef,
   gestureSequenceOpen, gestureSequenceClose,
   showAttract,
@@ -39,6 +41,7 @@ export function CameraView({
   const isRecalibrating = useCameraStore((s) => s.isRecalibrating)
   const isSwitching = useCameraStore((s) => s.isSwitching)
   const isMirrored = useCameraStore((s) => s.isMirrored)
+  const bootStage = useBootStore((s) => s.bootStage)
   const debugEnabled = useUiStore((s) => s.debugEnabled)
   const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
   const showLayoutSlider = useUiStore((s) => s.modals.layoutSlider)
@@ -70,7 +73,7 @@ export function CameraView({
           className={`w-full h-full object-cover transition-all duration-500 ${isMirrored ? "-scale-x-100" : ""} ${isReady && !isSwitching ? "opacity-100 blur-0" : "opacity-0 blur-sm"}`}
         />
 
-        {(isReady || isSwitching || isRecalibrating) && splashDone && (
+        {(isReady || isSwitching || isRecalibrating) && (
           <>
             <div className="absolute inset-0 animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.overlays }}>
               <Overlays />
@@ -121,10 +124,12 @@ export function CameraView({
           </>
         )}
 
-        <SplashOverlay visible={!splashDone || (!isReady && !isSwitching && !isRecalibrating)} />
-        <StatusOverlay visible={isRecalibrating && splashDone} messages={RECALIBRATE_MESSAGES} />
-        <StatusOverlay visible={isSwitching && splashDone} messages="Camera wisselen..." />
-        <AttractOverlay visible={showAttract && splashDone && isReady} />
+        {(bootStage === BOOT_STAGES.ERROR || cameraError) && cameraError && !isReady && (
+          <CameraIssueOverlay error={cameraError} deviceCount={cameraDeviceCount} onRetry={onRetryCamera} />
+        )}
+        <StatusOverlay visible={isRecalibrating} messages={RECALIBRATE_MESSAGES} />
+        <StatusOverlay visible={isSwitching} messages="Camera wisselen..." />
+        <AttractOverlay visible={showAttract && isReady} />
       </div>
     </main>
   )

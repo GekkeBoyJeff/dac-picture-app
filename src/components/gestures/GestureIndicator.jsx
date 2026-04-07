@@ -19,8 +19,6 @@ export function GestureIndicator({ gesture, holdProgressRef }) {
     clearTimeout(timerRef.current)
     if (gesture) {
       timerRef.current = setTimeout(() => setVisible(true), DEBOUNCE_MS)
-    } else {
-      setVisible(false)
     }
     return () => clearTimeout(timerRef.current)
   }, [gesture])

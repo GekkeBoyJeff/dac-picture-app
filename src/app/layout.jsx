@@ -20,17 +20,29 @@ export const viewport = {
 
 /** @type {import('next').Metadata} */
 export const metadata = {
-  title: "DAC Photo Booth",
-  description: "Take a photo and share it on Discord!",
+  title: "DAC Fotobooth",
+  description: "Maak een foto en deel hem direct in Discord.",
   manifest: assetPath("/manifest.json"),
   icons: {
     icon: assetPath("/overlays/logo.png"),
     apple: assetPath("/overlays/logo.png"),
   },
+  openGraph: {
+    title: "DAC Fotobooth",
+    description: "Maak een foto en deel hem direct in Discord.",
+    siteName: "DAC Fotobooth",
+    locale: "nl_NL",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DAC Fotobooth",
+    description: "Maak een foto en deel hem direct in Discord.",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Photo Booth",
+    title: "DAC Fotobooth",
   },
   other: {
     "mobile-web-app-capable": "yes",

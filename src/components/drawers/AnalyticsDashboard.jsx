@@ -5,10 +5,10 @@ import { getSummary, downloadCsv, clearAnalytics, subscribe } from "@/lib/storag
 
 function Stat({ label, value, sub }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-white/50 text-xs">{label}</p>
-      <p className="text-white text-xl font-semibold mt-0.5">{value}</p>
-      {sub && <p className="text-white/40 text-xs mt-0.5">{sub}</p>}
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+      <p className="text-white/50 text-xs uppercase tracking-[0.16em]">{label}</p>
+      <p className="mt-0.5 text-xl font-semibold text-white">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-white/45">{sub}</p>}
     </div>
   )
 }
@@ -16,13 +16,13 @@ function Stat({ label, value, sub }) {
 function HourlyChart({ data }) {
   const max = Math.max(...data, 1)
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-white/50 text-xs mb-2">Uurverdeling</p>
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/50">Uurverdeling</p>
       <div className="flex items-end gap-px h-12">
         {data.map((count, hour) => (
           <div
             key={hour}
-            className="flex-1 rounded-t-sm bg-[#e6c189] transition-all"
+            className="flex-1 rounded-t-sm bg-gradient-to-t from-sky-300/45 to-amber-200/80 transition-all"
             style={{
               height: `${(count / max) * 100}%`,
               opacity: count > 0 ? 0.4 + (count / max) * 0.6 : 0.08,
@@ -55,7 +55,7 @@ export function AnalyticsDashboard() {
   const dayCount = Object.keys(summary.dailyCounts || {}).length
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
+    <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white text-sm font-semibold">Analytics</p>
@@ -103,7 +103,7 @@ export function AnalyticsDashboard() {
       <div className="flex gap-2">
         <button
           onClick={downloadCsv}
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white/70 text-xs hover:bg-white/10 transition-colors cursor-pointer"
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 transition-colors cursor-pointer hover:bg-white/10"
         >
           CSV exporteren
         </button>
@@ -112,7 +112,7 @@ export function AnalyticsDashboard() {
             await clearAnalytics()
             setSummary(await getSummary())
           }}
-          className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-2 text-red-300/70 text-xs hover:bg-red-400/10 transition-colors cursor-pointer"
+          className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs text-red-300/70 transition-colors cursor-pointer hover:bg-red-400/10"
         >
           Wissen
         </button>

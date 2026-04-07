@@ -34,7 +34,8 @@ export function LayoutPicker({ onClose }) {
 
   return (
     <PickerDrawer
-      title="Layout"
+      title="Opmaak"
+      subtitle="Kies de kaart- en overlayopstelling voor de foto-uitvoer."
       onClose={onClose}
       options={LAYOUTS}
       selectedId={layout.id}
@@ -42,7 +43,7 @@ export function LayoutPicker({ onClose }) {
       getOptionKey={(item) => item.id}
       getOptionLabel={(item) => item.name}
       renderOption={(item, isSelected) => (
-        <div className={`rounded-xl ${isSelected ? "border-2 border-white" : "border-2 border-transparent"}`}>
+        <div className={`rounded-lg ${isSelected ? "border-2 border-white" : "border-2 border-transparent"}`}>
           <LayoutPreview layout={item} />
         </div>
       )}

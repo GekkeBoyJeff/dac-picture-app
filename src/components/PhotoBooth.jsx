@@ -25,22 +25,22 @@ import { useCameraStore } from "@/stores/cameraStore"
 import { useUiStore } from "@/stores/uiStore"
 import { useGalleryStore } from "@/stores/galleryStore"
 import { useSendQueueStore } from "@/stores/sendQueueStore"
+import { useOverlayStore } from "@/stores/overlayStore"
+import { BOOT_STAGES, useBootStore } from "@/stores/bootStore"
 import { compositePhoto } from "@/lib/canvas/compositePhoto"
 import { sendOrQueue, processNextInQueue } from "@/lib/discord/sendQueue"
 import {
   COUNTDOWN_SECONDS, LOOK_UP_PROMPT_ENABLED,
   GESTURE_SEQUENCE_OPEN, GESTURE_SEQUENCE_CLOSE,
+  MASCOTS,
   STRIP_PHOTO_COUNT, STRIP_CANVAS, IMAGE,
 } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
-import { useOverlayStore } from "@/stores/overlayStore"
-
-const SPLASH_DURATION_MS = 1500
 
 export function PhotoBooth() {
   const containerRef = useRef(null)
-  const { videoRef, startCamera, switchCamera, isReady, isMirrored } = useCamera()
+  const { videoRef, startCamera, switchCamera, isReady, isMirrored, error: cameraError, selectedDeviceId, devices } = useCamera()
   const toast = useToast()
   const install = useInstallPrompt()
   const isIdle = useIdleTimer(60_000)
@@ -61,9 +61,10 @@ export function PhotoBooth() {
   const gestureHoldMs = useUiStore((s) => s.gestureHoldMs)
   const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
   const forceLowPower = useUiStore((s) => s.forceLowPower)
+  const setBootStage = useBootStore((s) => s.setBootStage)
 
-  const [splashDone, setSplashDone] = useState(false)
   const [showFlash, setShowFlash] = useState(false)
+
   const captureTriggeredByRef = useRef("touch")
   const stripRef = useRef(null)
 
@@ -116,7 +117,7 @@ export function PhotoBooth() {
 
     const { exportBlob } = await compositePhoto(video, container, mirrored)
     return exportBlob
-  }, [])
+  }, [videoRef])
 
   const [uploadEntries, setUploadEntries] = useState([])
   const dismissEntry = useCallback((id) => {
@@ -175,7 +176,9 @@ export function PhotoBooth() {
     savePhoto: addPhoto,
     setAppState,
   })
-  stripRef.current = strip
+  useEffect(() => {
+    stripRef.current = strip
+  }, [strip])
 
   // --- Init ---
   useEffect(() => {
@@ -186,9 +189,26 @@ export function PhotoBooth() {
       userAgent: navigator.userAgent,
       screen: `${screen.width}x${screen.height}`,
     })
-    const timer = setTimeout(() => setSplashDone(true), SPLASH_DURATION_MS)
-    return () => clearTimeout(timer)
   }, [startCamera, loadPhotos, loadQueue])
+
+  // Warm mascot images in idle time so opening the mascot drawer feels instant.
+  useEffect(() => {
+    const preload = () => {
+      MASCOTS.forEach((mascot) => {
+        const img = new Image()
+        img.decoding = "async"
+        img.src = mascot.thumbnail
+      })
+    }
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 1200 })
+      return () => window.cancelIdleCallback(id)
+    }
+
+    const timeout = setTimeout(preload, 250)
+    return () => clearTimeout(timeout)
+  }, [])
 
   // Restart camera when power mode changes (different resolution constraints)
   const initialPowerRef = useRef(forceLowPower)
@@ -289,7 +309,7 @@ export function PhotoBooth() {
     },
   }), [appState, isReady, setAppState])
 
-  const gestureEnabled = gesturesEnabled && isReady && splashDone
+  const gestureEnabled = gesturesEnabled && isReady
   const gestureActionsEnabled = gestureEnabled && appState === "camera" && !modals.layoutSlider && !strip.isActive
 
   // Stable ref for frame tick — avoids re-creating the detection loop on every render
@@ -311,21 +331,9 @@ export function PhotoBooth() {
     onFrameTick,
   )
 
-  // Track gesture model loading as a real upload entry so it fades out gracefully
-  const gestureEntryIdRef = useRef(null)
-  useEffect(() => {
-    if (gestureLoading && !gestureEntryIdRef.current) {
-      const id = crypto.randomUUID()
-      gestureEntryIdRef.current = id
-      setUploadEntries((prev) => [...prev, { id, status: "loading", label: "Handgebaren laden…" }])
-    } else if (!gestureLoading && gestureEntryIdRef.current) {
-      const id = gestureEntryIdRef.current
-      gestureEntryIdRef.current = null
-      setUploadEntries((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, status: "success", label: "Handgebaren gereed" } : e)),
-      )
-    }
-  }, [gestureLoading])
+  const displayUploadEntries = gestureLoading
+    ? [...uploadEntries, { id: "gesture-loading", status: "loading", label: "Handgebaren laden…" }]
+    : uploadEntries
 
   // Gesture sequence: open layout slider
   const gestureSequenceOpen = useGestureSequence(rawGestureNameRef, {
@@ -366,7 +374,12 @@ export function PhotoBooth() {
         <CameraView
           videoRef={videoRef}
           containerRef={containerRef}
-          splashDone={splashDone}
+          cameraError={cameraError}
+          cameraDeviceCount={devices.length}
+          onRetryCamera={() => {
+            setBootStage(BOOT_STAGES.CAMERA_STARTING)
+            startCamera(selectedDeviceId ?? undefined)
+          }}
           onCapture={handleCapture}
           switchCamera={switchCamera}
           canInstall={install.canInstall}
@@ -431,7 +444,7 @@ export function PhotoBooth() {
           />
         )}
 
-        <UploadStatus entries={uploadEntries} onDismiss={dismissEntry} />
+        <UploadStatus entries={displayUploadEntries} onDismiss={dismissEntry} />
 
         {toast.message && (
           <div role="status" aria-live="polite" className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 text-white text-sm font-medium animate-fade-in">

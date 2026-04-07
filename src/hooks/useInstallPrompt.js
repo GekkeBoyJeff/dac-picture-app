@@ -31,20 +31,14 @@ function wasDismissed() {
 
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
-  // Start false on both server and client to avoid hydration mismatch
-  const [showIOSBanner, setShowIOSBanner] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
-
-  // Detect install state on client only, after hydration
-  useEffect(() => {
-    const standalone = isStandalone()
-    const alreadyDismissed = wasDismissed()
-    if (standalone || alreadyDismissed) {
-      setDismissed(true)
-    } else if (isIOSDevice()) {
-      setShowIOSBanner(true)
-    }
-  }, [])
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false
+    return isStandalone() || wasDismissed()
+  })
+  const [showIOSBanner, setShowIOSBanner] = useState(() => {
+    if (typeof window === "undefined") return false
+    return !isStandalone() && !wasDismissed() && isIOSDevice()
+  })
 
   useEffect(() => {
     if (dismissed) return
