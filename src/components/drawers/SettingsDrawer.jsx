@@ -100,15 +100,14 @@ function ToggleRow({ title, description, active, disabled = false, onClick, acti
 
 function StatPill({ label, value, tone = "white" }) {
   const tones = {
-    white: "border-white/10 bg-white/5 text-white/80",
-    amber: "border-amber-400/25 bg-amber-400/10 text-amber-100",
-    sky: "border-sky-400/25 bg-sky-400/10 text-sky-100",
+    default: "border-white/10 bg-white/5 text-white/80",
+    sky: "border-sky-400/35 bg-sky-400/10 text-sky-50 shadow-[0_0_0_1px_rgba(56,189,248,0.08)]",
   }
 
   return (
     <div className={`rounded-lg border px-3 py-2.5 ${tones[tone]}`}>
-      <p className="text-[0.65rem] uppercase tracking-[0.18em] text-white/45">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+      <p className={`text-[0.65rem] uppercase tracking-[0.18em] ${tone === "default" ? "text-white/45" : "text-white/60"}`}>{label}</p>
+      <p className={`mt-1 text-sm font-semibold ${tone === "default" ? "text-white" : "text-white"}`}>{value}</p>
     </div>
   )
 }
@@ -199,12 +198,12 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
   )
 
   const currentPowerLabel = powerStatus === "low" ? "Low-power" : "Standard"
-  const currentPowerTone = powerStatus === "low" ? "amber" : "sky"
+  const currentPowerTone = "sky"
   const handOptions = [2, 4, 6, 8, 10, 12]
   const settingsSummary = [
-    { label: "Power", value: currentPowerLabel },
-    { label: "Flash", value: flashEnabled ? "Aan" : "Uit" },
-    { label: "Gestures", value: gesturesEnabled ? "Aan" : "Uit" },
+    { label: "Power", value: currentPowerLabel, tone: "sky" },
+    { label: "Flash", value: flashEnabled ? "Aan" : "Uit", tone: flashEnabled ? "sky" : "default" },
+    { label: "Gestures", value: gesturesEnabled ? "Aan" : "Uit", tone: gesturesEnabled ? "sky" : "default" },
   ]
 
   return (
@@ -233,7 +232,12 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
 
           <div className="relative mt-4 grid grid-cols-3 gap-2">
             {settingsSummary.map((item) => (
-              <StatPill key={item.label} label={item.label} value={item.value} tone={item.label === "Power" ? currentPowerTone : "white"} />
+              <StatPill
+                key={item.label}
+                label={item.label}
+                value={item.value}
+                tone={item.label === "Power" ? currentPowerTone : item.tone || "default"}
+              />
             ))}
           </div>
 
