@@ -16,7 +16,7 @@ export function BottomDrawer({
   children,
   fullHeight = false,
   closeOnSelect = false,
-  showHeaderDivider = true,
+  showHeaderDivider = false,
 }) {
   const [closing, setClosing] = useState(false)
   const timerRef = useRef(null)
@@ -48,7 +48,7 @@ export function BottomDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={title || "Drawer"}
-        className={`relative flex flex-col overflow-hidden border-t border-white/10 px-5 pt-4 pb-6 ${drawerShellClass} rounded-b-none rounded-t-[2rem] ${fullHeight ? "max-h-[86dvh]" : ""}`}
+        className={`relative flex max-h-[86dvh] flex-col overflow-hidden border-t border-white/10 px-5 pt-4 pb-6 ${drawerShellClass} rounded-b-none rounded-t-4xl ${fullHeight ? "max-h-[86dvh]" : ""}`}
         style={{
           animation: closing
             ? `slide-down ${ANIM_MS}ms ease-in forwards`
@@ -70,7 +70,7 @@ export function BottomDrawer({
         </div>
 
         <div
-          className={fullHeight ? "overflow-y-auto flex-1 -mx-1 px-1" : ""}
+          className={fullHeight ? "min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y -mx-1 px-1" : ""}
           onClick={closeOnSelect ? handleClose : undefined}
         >
           {children}

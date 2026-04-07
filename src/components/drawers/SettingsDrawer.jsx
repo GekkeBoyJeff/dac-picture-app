@@ -118,7 +118,7 @@ function TopAction({ label, description, onClick, icon: Icon }) {
     <button
       type="button"
       onClick={onClick}
-      className={`${drawerButtonBaseClass} ${drawerCard} flex min-h-[3.75rem] w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:border-white/20 hover:bg-white/[0.07]`}
+      className={`${drawerButtonBaseClass} ${drawerCard} flex min-h-15 w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:border-white/20 hover:bg-white/7`}
     >
       <div className="min-w-0">
         <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/45">{label}</p>
@@ -215,8 +215,8 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
         role="dialog"
         aria-modal="true"
         aria-label="Instellingen"
-        className={`absolute top-0 bottom-0 left-0 flex h-full w-full max-w-[32rem] flex-col overflow-hidden border-r border-white/10 bg-black/[0.92] shadow-2xl transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`absolute left-0 top-0 flex h-dvh w-full max-w-lg flex-col overflow-hidden border-r border-white/10 bg-black/92 shadow-2xl transition-transform duration-300 md:translate-x-0 md:translate-y-0 max-md:bottom-0 max-md:top-auto max-md:right-0 max-md:h-[92dvh] max-md:max-w-none max-md:border-r-0 max-md:border-t max-md:rounded-t-4xl ${
+          isOpen ? "translate-x-0 translate-y-0" : "md:-translate-x-full max-md:translate-y-full"
         }`}
       >
         <div className="relative border-b border-white/10 px-5 py-4" style={{ minHeight: DRAWER_HEADER_HEIGHT }}>
@@ -237,7 +237,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
             ))}
           </div>
 
-          <div className="relative mt-4 grid grid-cols-2 rounded-xl border border-white/10 bg-white/5 p-1" style={{ minHeight: TAB_HEIGHT }}>
+          <div className="relative mt-4 grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-white/5 p-1.5" style={{ minHeight: TAB_HEIGHT }}>
             {tabs.map((tab) => {
               const active = activeTab === tab.id
               return (
@@ -245,7 +245,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`cursor-pointer rounded-xl px-4 py-2 text-left transition-all ${active ? "bg-white/12 text-white shadow-sm hover:bg-white/[0.16]" : "text-white/55 hover:bg-white/[0.08] hover:text-white/80"}`}
+                  className={`cursor-pointer rounded-xl px-4 py-2 text-left transition-all ${active ? "bg-white/12 text-white shadow-sm hover:bg-white/16" : "text-white/55 hover:bg-white/8 hover:text-white/80"}`}
                 >
                   <span className="block text-base font-semibold leading-tight">{tab.label}</span>
                   <span className="block text-[0.7rem] leading-tight text-white/45">{tab.description}</span>
@@ -259,8 +259,8 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          <div className="min-h-[42rem] space-y-5 lg:min-h-[38rem]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 touch-pan-y">
+          <div className="min-h-168 space-y-5 lg:min-h-152">
             {activeTab === "basis" ? (
               <>
                 <section className="space-y-3">
@@ -336,7 +336,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                   <button
                     type="button"
                     onClick={() => (forceLowPower ? applyHighPowerPreset() : applyLowPowerPreset())}
-                    className={`${rowBase} ${drawerCard} min-h-[5.5rem] cursor-pointer flex items-center justify-between gap-4 ${
+                    className={`${rowBase} ${drawerCard} min-h-22 cursor-pointer flex items-center justify-between gap-4 ${
                       powerStatus === "low"
                         ? "border-amber-400/45 bg-amber-400/10 text-white shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
                         : "border-emerald-400/35 bg-emerald-400/10 text-white shadow-[0_0_0_1px_rgba(16,185,129,0.16)]"
@@ -387,7 +387,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                           type="button"
                           onClick={() => applyScenePreset(preset)}
                           disabled={gestureControlsDisabled}
-                          className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-[7rem] flex flex-col justify-between gap-1.5 ${
+                          className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-28 flex flex-col justify-between gap-1.5 ${
                             active
                               ? "border-violet-400/60 bg-violet-400/15 text-white"
                               : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/[0.07]"
@@ -411,7 +411,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                       </div>
                     </div>
 
-                    <div className={`${INNER_RADIUS} border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs text-white/55`}>
+                    <div className={`${INNER_RADIUS} border border-white/10 bg-white/3 px-3 py-2.5 text-xs text-white/55`}>
                       <p>Detectie = nieuwe hand oppikken</p>
                       <p className="mt-1">Presence = hand blijft aanwezig</p>
                       <p className="mt-1">Tracking = beweging stabiel volgen</p>
@@ -550,7 +550,7 @@ export function SettingsDrawer({ isOpen, onClose, openAbout }) {
                   <SectionLabel title="Informatie" description="Technische details en diagnostiek, zonder de rest van de layout te verstoren." />
 
                   {debugEnabled && (
-                    <div className={`${CARD_RADIUS} border border-white/10 bg-white/[0.03] px-4 py-3 text-[0.6875rem] text-white/55`}>
+                    <div className={`${CARD_RADIUS} border border-white/10 bg-white/3 px-4 py-3 text-[0.6875rem] text-white/55`}>
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="inline-flex items-center gap-1.5">
                           <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400/80" />
