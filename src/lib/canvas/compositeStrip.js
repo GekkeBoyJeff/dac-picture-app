@@ -1,12 +1,23 @@
 import { IMAGE, STRIP_CANVAS } from "@/lib/config"
 import {
-  loadStripAssets, drawDoodles,
-  drawSparkles, drawBrandingZone, drawQrTopRight, drawMascot,
+  loadStripAssets,
+  drawDoodles,
+  drawSparkles,
+  drawBrandingZone,
+  drawQrTopRight,
+  drawMascot,
 } from "./stripBranding"
 
 const {
-  WIDTH, HEIGHT, MARGIN_X, BG_COLOR, ACCENT_COLOR,
-  PHOTO_TOP, PHOTO_HEIGHT, PHOTO_GAP, BORDER_RADIUS,
+  WIDTH,
+  HEIGHT,
+  MARGIN_X,
+  BG_COLOR,
+  ACCENT_COLOR,
+  PHOTO_TOP,
+  PHOTO_HEIGHT,
+  PHOTO_GAP,
+  BORDER_RADIUS,
 } = STRIP_CANVAS
 
 /**
@@ -19,7 +30,7 @@ const {
  * @returns {Promise<Blob>}
  */
 export async function compositeStrip(photoBlobs) {
-  const [images, { logo, qr, mascotImg, conventionBanner }] = await Promise.all([
+  const [images, { logo, qr, mascotImg, conventionBanner, convention }] = await Promise.all([
     Promise.all(
       photoBlobs.map(
         (blob) =>
@@ -54,7 +65,10 @@ export async function compositeStrip(photoBlobs) {
     // Object-cover crop
     const imgAspect = img.naturalWidth / img.naturalHeight
     const cellAspect = cellW / PHOTO_HEIGHT
-    let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight
+    let srcX = 0,
+      srcY = 0,
+      srcW = img.naturalWidth,
+      srcH = img.naturalHeight
     if (imgAspect > cellAspect) {
       srcW = Math.round(img.naturalHeight * cellAspect)
       srcX = Math.round((img.naturalWidth - srcW) / 2)
@@ -81,7 +95,7 @@ export async function compositeStrip(photoBlobs) {
   drawDoodles(ctx)
 
   // --- Branding ---
-  drawBrandingZone(ctx, logo, conventionBanner)
+  drawBrandingZone(ctx, logo, conventionBanner, convention)
 
   // --- Mascot (overlaps bottom photo) ---
   drawMascot(ctx, mascotImg)

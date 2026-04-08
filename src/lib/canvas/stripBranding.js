@@ -5,10 +5,19 @@ import { useOverlayStore } from "@/stores/overlayStore"
 import { loadImage } from "./imageLoader"
 
 const {
-  WIDTH, HEIGHT, MARGIN_X, ACCENT_COLOR,
-  PHOTO_TOP, BRANDING_Y, LOGO_SIZE, QR_SIZE,
-  BORDER_RADIUS, MASCOT_MAX_HEIGHT, MASCOT_MAX_WIDTH,
-  CONVENTION_BANNER_MAX_H, CONVENTION_BANNER_MAX_W,
+  WIDTH,
+  HEIGHT,
+  MARGIN_X,
+  ACCENT_COLOR,
+  PHOTO_TOP,
+  BRANDING_Y,
+  LOGO_SIZE,
+  QR_SIZE,
+  BORDER_RADIUS,
+  MASCOT_MAX_HEIGHT,
+  MASCOT_MAX_WIDTH,
+  CONVENTION_BANNER_MAX_H,
+  CONVENTION_BANNER_MAX_W,
 } = STRIP_CANVAS
 
 // ---------------------------------------------------------------------------
@@ -26,7 +35,7 @@ export async function loadStripAssets() {
     loadImage(mascot.path),
     convention ? loadImage(convention.bannerPath).catch(() => null) : Promise.resolve(null),
   ])
-  return { logo, qr, mascotImg, conventionBanner }
+  return { logo, qr, mascotImg, conventionBanner, convention }
 }
 
 // ---------------------------------------------------------------------------
@@ -46,8 +55,22 @@ function drawStar(ctx, cx, cy, outerR, innerR, points) {
 function drawHeart(ctx, cx, cy, size) {
   ctx.beginPath()
   ctx.moveTo(cx, cy + size * 0.3)
-  ctx.bezierCurveTo(cx - size * 0.5, cy - size * 0.3, cx - size, cy + size * 0.1, cx, cy + size * 0.8)
-  ctx.bezierCurveTo(cx + size, cy + size * 0.1, cx + size * 0.5, cy - size * 0.3, cx, cy + size * 0.3)
+  ctx.bezierCurveTo(
+    cx - size * 0.5,
+    cy - size * 0.3,
+    cx - size,
+    cy + size * 0.1,
+    cx,
+    cy + size * 0.8,
+  )
+  ctx.bezierCurveTo(
+    cx + size,
+    cy + size * 0.1,
+    cx + size * 0.5,
+    cy - size * 0.3,
+    cx,
+    cy + size * 0.3,
+  )
   ctx.closePath()
 }
 
@@ -55,25 +78,27 @@ export function drawDoodles(ctx) {
   const zoneTop = BRANDING_Y + 10
   const zoneBottom = HEIGHT - 20
 
+  const zoneH = zoneBottom - zoneTop
+
   const doodles = [
-    // Stars
-    { type: "star", x: 820, y: zoneTop + 60, size: 18, a: 0.3 },
-    { type: "star", x: 960, y: zoneTop + 200, size: 12, a: 0.24 },
-    { type: "star", x: 120, y: zoneBottom - 80, size: 14, a: 0.24 },
-    { type: "star", x: 500, y: zoneBottom - 30, size: 10, a: 0.2 },
+    // Stars — positioned relative to WIDTH and zone
+    { type: "star", x: WIDTH * 0.76, y: zoneTop + zoneH * 0.15, size: 18, a: 0.3 },
+    { type: "star", x: WIDTH * 0.89, y: zoneTop + zoneH * 0.5, size: 12, a: 0.24 },
+    { type: "star", x: WIDTH * 0.11, y: zoneBottom - zoneH * 0.2, size: 14, a: 0.24 },
+    { type: "star", x: WIDTH * 0.46, y: zoneBottom - zoneH * 0.07, size: 10, a: 0.2 },
     // Hearts
-    { type: "heart", x: 880, y: zoneBottom - 140, size: 20, a: 0.24 },
-    { type: "heart", x: 200, y: zoneBottom - 40, size: 14, a: 0.2 },
+    { type: "heart", x: WIDTH * 0.81, y: zoneBottom - zoneH * 0.35, size: 20, a: 0.24 },
+    { type: "heart", x: WIDTH * 0.19, y: zoneBottom - zoneH * 0.1, size: 14, a: 0.2 },
     // Circles
-    { type: "circle", x: 760, y: zoneTop + 130, size: 12, a: 0.2 },
-    { type: "circle", x: 980, y: zoneBottom - 60, size: 9, a: 0.24 },
-    { type: "circle", x: 300, y: zoneTop + 200, size: 14, a: 0.16 },
+    { type: "circle", x: WIDTH * 0.7, y: zoneTop + zoneH * 0.33, size: 12, a: 0.2 },
+    { type: "circle", x: WIDTH * 0.91, y: zoneBottom - zoneH * 0.15, size: 9, a: 0.24 },
+    { type: "circle", x: WIDTH * 0.28, y: zoneTop + zoneH * 0.5, size: 14, a: 0.16 },
     // Small dots
-    { type: "dot", x: 680, y: zoneTop + 40, size: 4, a: 0.3 },
-    { type: "dot", x: 850, y: zoneBottom - 30, size: 5, a: 0.24 },
-    { type: "dot", x: 150, y: zoneTop + 140, size: 4, a: 0.2 },
-    { type: "dot", x: 1000, y: zoneTop + 100, size: 4, a: 0.24 },
-    { type: "dot", x: 440, y: zoneTop + 80, size: 3, a: 0.2 },
+    { type: "dot", x: WIDTH * 0.63, y: zoneTop + zoneH * 0.1, size: 4, a: 0.3 },
+    { type: "dot", x: WIDTH * 0.79, y: zoneBottom - zoneH * 0.07, size: 5, a: 0.24 },
+    { type: "dot", x: WIDTH * 0.14, y: zoneTop + zoneH * 0.35, size: 4, a: 0.2 },
+    { type: "dot", x: WIDTH * 0.93, y: zoneTop + zoneH * 0.25, size: 4, a: 0.24 },
+    { type: "dot", x: WIDTH * 0.41, y: zoneTop + zoneH * 0.2, size: 3, a: 0.2 },
   ]
 
   ctx.save()
@@ -127,11 +152,11 @@ function drawSparkle(ctx, cx, cy, size, alpha) {
 
 export function drawSparkles(ctx) {
   const spots = [
-    { x: 24, y: 20, s: 6, a: 0.3 },
-    { x: 1056, y: 22, s: 5, a: 0.25 },
-    { x: 22, y: 1440, s: 5, a: 0.2 },
-    { x: 1058, y: 1436, s: 4, a: 0.18 },
-    { x: 44, y: 1895, s: 5, a: 0.2 },
+    { x: MARGIN_X - 16, y: 20, s: 6, a: 0.3 },
+    { x: WIDTH - MARGIN_X + 16, y: 22, s: 5, a: 0.25 },
+    { x: MARGIN_X - 18, y: BRANDING_Y - 20, s: 5, a: 0.2 },
+    { x: WIDTH - MARGIN_X + 18, y: BRANDING_Y - 24, s: 4, a: 0.18 },
+    { x: MARGIN_X + 4, y: HEIGHT - 25, s: 5, a: 0.2 },
   ]
   spots.forEach(({ x, y, s, a }) => drawSparkle(ctx, x, y, s, a))
 }
@@ -166,8 +191,7 @@ export function drawQrTopRight(ctx, qr) {
   ctx.restore()
 }
 
-export function drawBrandingZone(ctx, logo, conventionBanner) {
-  const convention = getActiveConvention()
+export function drawBrandingZone(ctx, logo, conventionBanner, convention) {
   const x = MARGIN_X
   const zoneH = HEIGHT - BRANDING_Y
 
@@ -250,7 +274,10 @@ export function drawBrandingZone(ctx, logo, conventionBanner) {
 // ---------------------------------------------------------------------------
 
 export function drawMascot(ctx, mascotImg) {
-  const scale = Math.min(MASCOT_MAX_WIDTH / mascotImg.naturalWidth, MASCOT_MAX_HEIGHT / mascotImg.naturalHeight)
+  const scale = Math.min(
+    MASCOT_MAX_WIDTH / mascotImg.naturalWidth,
+    MASCOT_MAX_HEIGHT / mascotImg.naturalHeight,
+  )
   const mW = mascotImg.naturalWidth * scale
   const mH = mascotImg.naturalHeight * scale
   const mX = WIDTH - MARGIN_X - mW + 12

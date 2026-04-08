@@ -1,53 +1,7 @@
 import { describe, it, expect } from "vitest"
-import { t, setLocale, getLocale } from "@/lib/i18n/t"
-import { validateConfigShapes } from "@/lib/config/validate"
 import { pickRandom } from "@/lib/random"
 import { getVideoCrop, getCanvasSize } from "@/lib/canvas/videoFrame"
 import { measureBoxRect, measureContainRect } from "@/lib/canvas/overlayMeasurer"
-
-// --- i18n ---
-describe("i18n", () => {
-  it("returns Dutch strings by default", () => {
-    setLocale("nl")
-    expect(t("capture_button")).toBe("Foto maken")
-    expect(t("gallery_empty")).toBe("Nog geen foto's")
-  })
-
-  it("returns English strings when locale is en", () => {
-    setLocale("en")
-    expect(t("capture_button")).toBe("Take photo")
-    expect(t("gallery_empty")).toBe("No photos yet")
-  })
-
-  it("interpolates params", () => {
-    setLocale("nl")
-    expect(t("queue_pending", { count: 3 })).toBe("3 foto's in wachtrij")
-  })
-
-  it("falls back to key for unknown keys", () => {
-    expect(t("nonexistent_key")).toBe("nonexistent_key")
-  })
-
-  it("falls back to NL for missing EN keys", () => {
-    setLocale("en")
-    // All keys exist in both, so test a key that exists
-    expect(t("loading")).toBe("Loading...")
-  })
-
-  it("getLocale returns current locale", () => {
-    setLocale("en")
-    expect(getLocale()).toBe("en")
-    setLocale("nl")
-    expect(getLocale()).toBe("nl")
-  })
-})
-
-// --- config validation ---
-describe("validateConfigShapes", () => {
-  it("passes validation in dev mode", () => {
-    expect(validateConfigShapes()).toBe(true)
-  })
-})
 
 // --- pickRandom ---
 describe("pickRandom", () => {

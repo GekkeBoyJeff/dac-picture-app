@@ -4,7 +4,7 @@ const CACHE_PREFIX = "dac-photo-booth-v"
 let cacheName = null
 
 async function fetchVersionInfo() {
-  const res = await fetch("version.json")
+  const res = await fetch("version.json", { cache: "no-store" })
   return res.json()
 }
 
@@ -47,25 +47,25 @@ self.addEventListener("install", (event) => {
       cacheName = CACHE_PREFIX + version
       const prefix = basePath || ""
       const cache = await caches.open(cacheName)
-      return cache.addAll([
-        prefix + "/",
-        ...OVERLAY_ASSETS.map((p) => prefix + p),
-      ])
+      await cache.addAll([prefix + "/", ...OVERLAY_ASSETS.map((p) => prefix + p)])
+      // skipWaiting AFTER cache is complete — prevents activation before assets are cached
+      await self.skipWaiting()
     }),
   )
-  self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     getCacheName().then((current) =>
-      caches.keys().then((names) =>
-        Promise.all(
-          names
-            .filter((name) => name.startsWith(CACHE_PREFIX) && name !== current)
-            .map((name) => caches.delete(name)),
+      caches
+        .keys()
+        .then((names) =>
+          Promise.all(
+            names
+              .filter((name) => name.startsWith(CACHE_PREFIX) && name !== current)
+              .map((name) => caches.delete(name)),
+          ),
         ),
-      ),
     ),
   )
   self.clients.claim()
@@ -81,7 +81,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Skip non-GET, API requests, and the gesture worker (always fetch fresh)
-  if (event.request.method !== "GET" || url.pathname.includes("/api/") || url.pathname.endsWith("/gesture-worker.js")) {
+  if (
+    event.request.method !== "GET" ||
+    url.pathname.includes("/api/") ||
+    url.pathname.endsWith("/gesture-worker.js")
+  ) {
     return
   }
 
@@ -152,7 +156,5 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Default: network-first
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request)),
-  )
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)))
 })

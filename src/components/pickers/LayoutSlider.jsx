@@ -3,24 +3,15 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { LAYOUTS, GESTURE_SWIPE_SNAP_THRESHOLD } from "@/lib/config"
 import { useOverlayStore, selectLayout } from "@/stores/overlayStore"
-
-function Block({ position, className }) {
-  const pos = { position: "absolute" }
-  if (position.includes("top")) pos.top = 6
-  if (position.includes("bottom")) pos.bottom = 6
-  if (position.includes("left")) pos.left = 6
-  if (position.includes("right")) pos.right = 6
-  if (position === "middle-right") {
-    pos.right = 6
-    pos.top = "50%"
-    pos.transform = "translateY(-50%)"
-  }
-  return <div className={className} style={pos} />
-}
+import { LayoutPreviewBlock } from "./LayoutPreviewBlock"
 
 function LayoutCard({ layout, isSelected, onClick }) {
   return (
-    <button onClick={onClick} className="shrink-0 cursor-pointer outline-none" style={{ width: CARD_W, padding: "0 8px" }}>
+    <button
+      onClick={onClick}
+      className="shrink-0 cursor-pointer outline-none"
+      style={{ width: `${CARD_W_REM}rem`, padding: "0 0.5rem" }}
+    >
       <div
         className={`relative w-full aspect-[4/3] rounded-2xl overflow-hidden transition-all duration-300 ${
           isSelected
@@ -28,21 +19,40 @@ function LayoutCard({ layout, isSelected, onClick }) {
             : "bg-white/[0.03] border-2 border-white/[0.06] scale-[0.88] opacity-50"
         }`}
       >
-        <Block position={layout.logo.position} className="w-4 h-4 rounded bg-white/50" />
-        <Block position={layout.qr.position} className="w-5 h-5 rounded bg-white/20" />
-        <Block position={layout.mascot.position} className="w-7 h-10 rounded bg-[#e6c189]/40" />
-        <Block position={layout.convention.position} className="w-9 h-4 rounded bg-red-400/30" />
+        <LayoutPreviewBlock
+          position={layout.logo.position}
+          className="w-4 h-4 rounded bg-white/50"
+          offset={6}
+        />
+        <LayoutPreviewBlock
+          position={layout.qr.position}
+          className="w-5 h-5 rounded bg-white/20"
+          offset={6}
+        />
+        <LayoutPreviewBlock
+          position={layout.mascot.position}
+          className="w-7 h-10 rounded bg-[#e6c189]/40"
+          offset={6}
+        />
+        <LayoutPreviewBlock
+          position={layout.convention.position}
+          className="w-9 h-4 rounded bg-red-400/30"
+          offset={6}
+        />
       </div>
-      <p className={`text-center text-sm mt-2 font-medium transition-all duration-300 ${
-        isSelected ? "text-white" : "text-white/30"
-      }`}>
+      <p
+        className={`text-center text-sm mt-2 font-medium transition-all duration-300 ${
+          isSelected ? "text-white" : "text-white/30"
+        }`}
+      >
         {layout.name}
       </p>
     </button>
   )
 }
 
-const CARD_W = 160
+const CARD_W_REM = 10
+const CARD_W = CARD_W_REM * 16
 
 const STEP_ICONS = { Open_Palm: "\u{1F44B}", Closed_Fist: "\u270A" }
 
@@ -51,7 +61,10 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
   const setLayoutId = useOverlayStore((s) => s.setLayoutId)
 
   const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.max(0, LAYOUTS.findIndex((l) => l.id === layout.id)),
+    Math.max(
+      0,
+      LAYOUTS.findIndex((l) => l.id === layout.id),
+    ),
   )
   const [touchDelta, setTouchDelta] = useState(0)
   const [isSnapping, setIsSnapping] = useState(false)
@@ -64,26 +77,37 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentIndex(Math.max(0, LAYOUTS.findIndex((l) => l.id === layout.id)))
+      setCurrentIndex(
+        Math.max(
+          0,
+          LAYOUTS.findIndex((l) => l.id === layout.id),
+        ),
+      )
     }
   }, [isOpen, layout.id])
 
-  const snapTo = useCallback((newIndex) => {
-    const clamped = Math.max(0, Math.min(LAYOUTS.length - 1, newIndex))
-    setIsSnapping(true)
-    setCurrentIndex(clamped)
-    setTouchDelta(0)
-    setLayoutId(LAYOUTS[clamped].id)
-    setTimeout(() => setIsSnapping(false), 300)
-  }, [setLayoutId])
+  const snapTo = useCallback(
+    (newIndex) => {
+      const clamped = Math.max(0, Math.min(LAYOUTS.length - 1, newIndex))
+      setIsSnapping(true)
+      setCurrentIndex(clamped)
+      setTouchDelta(0)
+      setLayoutId(LAYOUTS[clamped].id)
+      setTimeout(() => setIsSnapping(false), 300)
+    },
+    [setLayoutId],
+  )
 
   // --- Touch ---
-  const onTouchStart = useCallback((e) => {
-    if (isSnapping) return
-    touchStartRef.current = e.touches[0].clientX
-    isTouchActiveRef.current = true
-    setIsSnapping(false)
-  }, [isSnapping])
+  const onTouchStart = useCallback(
+    (e) => {
+      if (isSnapping) return
+      touchStartRef.current = e.touches[0].clientX
+      isTouchActiveRef.current = true
+      setIsSnapping(false)
+    },
+    [isSnapping],
+  )
 
   const onTouchMove = useCallback((e) => {
     if (!isTouchActiveRef.current || touchStartRef.current == null) return
@@ -107,22 +131,29 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
   }, [touchDelta, currentIndex, snapTo])
 
   // --- Pointer (mouse) ---
-  const onPointerDown = useCallback((e) => {
-    if (isSnapping || e.pointerType === "touch") return
-    touchStartRef.current = e.clientX
-    isTouchActiveRef.current = true
-    setIsSnapping(false)
-  }, [isSnapping])
+  const onPointerDown = useCallback(
+    (e) => {
+      if (isSnapping || e.pointerType === "touch") return
+      touchStartRef.current = e.clientX
+      isTouchActiveRef.current = true
+      setIsSnapping(false)
+    },
+    [isSnapping],
+  )
 
   const onPointerMove = useCallback((e) => {
-    if (!isTouchActiveRef.current || touchStartRef.current == null || e.pointerType === "touch") return
+    if (!isTouchActiveRef.current || touchStartRef.current == null || e.pointerType === "touch")
+      return
     setTouchDelta(e.clientX - touchStartRef.current)
   }, [])
 
-  const onPointerUp = useCallback((e) => {
-    if (e.pointerType === "touch") return
-    finishSwipe()
-  }, [finishSwipe])
+  const onPointerUp = useCallback(
+    (e) => {
+      if (e.pointerType === "touch") return
+      finishSwipe()
+    },
+    [finishSwipe],
+  )
 
   // --- Gesture swipe rAF ---
   useEffect(() => {
@@ -165,7 +196,10 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
       rafRef.current = requestAnimationFrame(animate)
     }
     rafRef.current = requestAnimationFrame(animate)
-    return () => { running = false; cancelAnimationFrame(rafRef.current) }
+    return () => {
+      running = false
+      cancelAnimationFrame(rafRef.current)
+    }
   }, [isOpen, currentIndex, snapTo, gestureSwipe])
 
   // Force a re-render once the strip ref is measured so centering is correct
@@ -188,7 +222,11 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-40 animate-fade-in">
       <div className="relative pt-2 pb-6 bg-black/80 backdrop-blur-md border-t border-white/[0.06]">
-        <button onClick={onClose} className="w-full py-2 mb-1 shrink-0 cursor-pointer" aria-label="Sluiten">
+        <button
+          onClick={onClose}
+          className="w-full py-2 mb-1 shrink-0 cursor-pointer"
+          aria-label="Sluiten"
+        >
           <div className="w-10 h-1 rounded-full bg-white/30 mx-auto" />
         </button>
 
@@ -201,10 +239,14 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
               <span className="text-white/20">|</span>
               <div className="flex items-center gap-1">
                 {closeSequence.sequence.map((step, i) => (
-                  <span key={i} className={`text-sm ${
-                    closeSequence.isActiveRef.current && i < closeSequence.currentStepRef.current
-                      ? "opacity-100" : "opacity-40"
-                  }`}>
+                  <span
+                    key={i}
+                    className={`text-sm ${
+                      closeSequence.isActiveRef.current && i < closeSequence.currentStepRef.current
+                        ? "opacity-100"
+                        : "opacity-40"
+                    }`}
+                  >
                     {STEP_ICONS[step]}
                   </span>
                 ))}

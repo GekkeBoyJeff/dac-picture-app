@@ -72,6 +72,15 @@ export async function processNextInQueue() {
     return { processed: true, remaining: pending.length - 1 }
   }
 
+  // Respect Discord rate-limit — bubble up so the caller waits
+  if (result.retryAfterMs) {
+    logger.warn("queue", "Rate limited, backing off", {
+      id: item.id,
+      retryAfterMs: result.retryAfterMs,
+    })
+    return { processed: false, remaining: pending.length, retryAfterMs: result.retryAfterMs }
+  }
+
   // Mark attempt
   const attempts = (item.attempts || 0) + 1
   const failed = attempts >= MAX_ATTEMPTS

@@ -17,36 +17,59 @@ export function Gallery({ isOpen, onClose, toast }) {
   const [thumbnails, setThumbnails] = useState({})
   const [pendingDelete, setPendingDelete] = useState(null)
   const undoTimerRef = useRef(null)
+  const urlMapRef = useRef(new Map())
 
-  // Generate object URLs for thumbnails
+  // Generate object URLs for thumbnails — track and revoke properly
   useEffect(() => {
     let active = true
-    const urls = {}
+    const currentIds = new Set(photos.map((p) => p.id))
 
+    // Revoke URLs for photos that no longer exist
+    for (const [id, url] of urlMapRef.current) {
+      if (!currentIds.has(id)) {
+        URL.revokeObjectURL(url)
+        urlMapRef.current.delete(id)
+      }
+    }
+
+    // Load thumbnails for new photos
     const loadThumbnails = async () => {
       for (const photo of photos) {
-        if (thumbnails[photo.id]) continue
+        if (urlMapRef.current.has(photo.id)) continue
         const blob = await getPhotoBlob(photo.id)
         if (!active || !blob) continue
-        urls[photo.id] = URL.createObjectURL(blob)
+        const url = URL.createObjectURL(blob)
+        urlMapRef.current.set(photo.id, url)
+        setThumbnails((prev) => ({ ...prev, [photo.id]: url }))
       }
-      if (active) setThumbnails((prev) => ({ ...prev, ...urls }))
     }
 
     loadThumbnails()
     return () => {
       active = false
-      Object.values(urls).forEach(URL.revokeObjectURL)
     }
-  }, [photos, getPhotoBlob]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [photos, getPhotoBlob])
 
-  const openLightbox = useCallback(async (photo) => {
-    const blob = await getPhotoBlob(photo.id)
-    if (!blob) return
-    const url = URL.createObjectURL(blob)
-    setLightboxPhoto(photo)
-    setLightboxUrl(url)
-  }, [getPhotoBlob])
+  // Cleanup ALL URLs on unmount
+  useEffect(() => {
+    return () => {
+      for (const url of urlMapRef.current.values()) {
+        URL.revokeObjectURL(url)
+      }
+      urlMapRef.current.clear()
+    }
+  }, [])
+
+  const openLightbox = useCallback(
+    async (photo) => {
+      const blob = await getPhotoBlob(photo.id)
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      setLightboxPhoto(photo)
+      setLightboxUrl(url)
+    },
+    [getPhotoBlob],
+  )
 
   const closeLightbox = useCallback(() => {
     if (lightboxUrl) URL.revokeObjectURL(lightboxUrl)
@@ -59,24 +82,27 @@ export function Gallery({ isOpen, onClose, toast }) {
     setPendingDelete(null)
   }, [])
 
-  const handleDelete = useCallback((e) => {
-    e.stopPropagation()
-    const id = lightboxPhoto?.id
-    closeLightbox()
-    if (!id) return
+  const handleDelete = useCallback(
+    (e) => {
+      e.stopPropagation()
+      const id = lightboxPhoto?.id
+      closeLightbox()
+      if (!id) return
 
-    // Commit any previous pending delete immediately
-    if (pendingDelete) removePhoto(pendingDelete)
+      // Commit any previous pending delete immediately
+      if (pendingDelete) removePhoto(pendingDelete)
 
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    setPendingDelete(id)
-    undoTimerRef.current = setTimeout(() => {
-      removePhoto(id)
-      setPendingDelete(null)
-    }, UNDO_DURATION_MS)
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+      setPendingDelete(id)
+      undoTimerRef.current = setTimeout(() => {
+        removePhoto(id)
+        setPendingDelete(null)
+      }, UNDO_DURATION_MS)
 
-    toast.show("Foto verwijderd", { label: "Ongedaan maken", onClick: handleUndo })
-  }, [lightboxPhoto, closeLightbox, removePhoto, pendingDelete, toast, handleUndo])
+      toast.show("Foto verwijderd", { label: "Ongedaan maken", onClick: handleUndo })
+    },
+    [lightboxPhoto, closeLightbox, removePhoto, pendingDelete, toast, handleUndo],
+  )
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -91,43 +117,55 @@ export function Gallery({ isOpen, onClose, toast }) {
 
   return (
     <>
-      <BottomDrawer title="Galerij" subtitle="Bekijk en beheer je gemaakte foto's." onClose={onClose} fullHeight>
+      <BottomDrawer
+        title="Galerij"
+        subtitle="Bekijk en beheer je gemaakte foto's."
+        onClose={onClose}
+        fullHeight
+      >
         {photos.length === 0 ? (
           <div className="flex min-h-[16rem] items-center justify-center px-4 py-10 text-white/45">
             <div className="max-w-sm rounded-3xl border border-white/10 bg-white/[0.04] px-5 py-6 text-center">
               <CameraEmptyIcon className="mx-auto h-10 w-10 text-white/35" />
               <p className="mt-4 text-sm font-semibold text-white">Nog geen foto&apos;s</p>
-              <p className="mt-1 text-xs leading-5 text-white/50">Zodra er een foto is gemaakt, verschijnt hij hier als overzichtelijke kaart.</p>
+              <p className="mt-1 text-xs leading-5 text-white/50">
+                Zodra er een foto is gemaakt, verschijnt hij hier als overzichtelijke kaart.
+              </p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {photos.filter((p) => p.id !== pendingDelete).map((photo) => (
-              <button
-                key={photo.id}
-                onClick={() => openLightbox(photo)}
-                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] text-left transition-all hover:border-white/25 hover:bg-white/[0.07]"
-              >
-                <div className="aspect-[4/3] overflow-hidden bg-black/30">
-                  {thumbnails[photo.id] && (
-                    <img // eslint-disable-line @next/next/no-img-element
-                      src={thumbnails[photo.id]}
-                      alt={`Foto ${new Date(photo.createdAt).toLocaleTimeString("nl-NL")}`}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      loading="lazy"
-                    />
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                  <p className="truncate text-xs font-medium text-white/75">
-                    {new Date(photo.createdAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })}
-                  </p>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[0.65rem] uppercase tracking-[0.18em] text-white/45">
-                    Open
-                  </span>
-                </div>
-              </button>
-            ))}
+            {photos
+              .filter((p) => p.id !== pendingDelete)
+              .map((photo) => (
+                <button
+                  key={photo.id}
+                  onClick={() => openLightbox(photo)}
+                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] text-left transition-all hover:border-white/25 hover:bg-white/[0.07]"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-black/30">
+                    {thumbnails[photo.id] && (
+                      <img // eslint-disable-line @next/next/no-img-element
+                        src={thumbnails[photo.id]}
+                        alt={`Foto ${new Date(photo.createdAt).toLocaleTimeString("nl-NL")}`}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                    <p className="truncate text-xs font-medium text-white/75">
+                      {new Date(photo.createdAt).toLocaleDateString("nl-NL", {
+                        day: "2-digit",
+                        month: "short",
+                      })}
+                    </p>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[0.65rem] uppercase tracking-[0.18em] text-white/45">
+                      Open
+                    </span>
+                  </div>
+                </button>
+              ))}
           </div>
         )}
       </BottomDrawer>

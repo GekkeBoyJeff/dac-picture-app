@@ -23,12 +23,10 @@ export function isLowPowerDevice() {
     // Chromium on RPi typically includes "Linux armv" or "aarch64"
     (navigator.platform && /arm|aarch/i.test(navigator.platform))
 
-  const lowMemory =
-    typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 2
+  const lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 2
 
   const lowCores =
-    typeof navigator.hardwareConcurrency === "number" &&
-    navigator.hardwareConcurrency <= 4
+    typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4
 
   _isLowPower = isARM || (lowMemory && lowCores)
   return _isLowPower
@@ -100,21 +98,4 @@ export function getMaxCanvasPixels(mode, lowPower) {
 
   // Single photo
   return lowPower ? 1920 * 1080 : 2560 * 1440
-}
-
-// ---------------------------------------------------------------------------
-// Gesture detection
-// ---------------------------------------------------------------------------
-
-/**
- * Recommended detection interval (ms) for the gesture loop.
- *
- * @param {boolean} [lowPower] — override; falls back to hardware detection
- */
-export function getGestureDefaults(lowPower) {
-  if (lowPower === undefined) lowPower = isLowPowerDevice()
-  return {
-    detectionIntervalMs: lowPower ? 250 : 120,
-    numHands: lowPower ? 2 : 6,
-  }
 }

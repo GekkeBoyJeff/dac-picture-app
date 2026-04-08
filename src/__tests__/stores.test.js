@@ -111,10 +111,6 @@ describe("uiStore", () => {
     expect(useUiStore.getState().debugEnabled).toBe(false)
   })
 
-  it("setLocale changes locale", () => {
-    useUiStore.getState().setLocale("en")
-    expect(useUiStore.getState().locale).toBe("en")
-  })
 })
 
 // --- overlayStore ---

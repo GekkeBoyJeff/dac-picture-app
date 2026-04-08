@@ -23,8 +23,19 @@ export function drawTitle(ctx, el, containerRect, scaleX, scaleY) {
   const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2
   const scaledLineHeight = lineHeight * scaleY
 
-  ctx.fillText("DUTCH ANIME", x, y + fontSize)
-  ctx.fillText("COMMUNITY", x, y + fontSize + scaledLineHeight)
+  // Read lines from DOM instead of hardcoded strings
+  const spans = el.querySelectorAll("span")
+  if (spans.length > 0) {
+    spans.forEach((s, i) => {
+      ctx.fillText(s.textContent, x, y + fontSize + scaledLineHeight * i)
+    })
+  } else {
+    // Fallback: split textContent by newlines or use as single line
+    const lines = el.textContent.split("\n").filter(Boolean)
+    lines.forEach((line, i) => {
+      ctx.fillText(line, x, y + fontSize + scaledLineHeight * i)
+    })
+  }
   ctx.restore()
 }
 

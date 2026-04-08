@@ -1,13 +1,5 @@
 export const STORAGE_KEYS = {
   INSTALL_PROMPT_DISMISSED_AT: "pwa-install-dismissed",
-  OVERLAY_LAYOUT: "overlay-layout",
-  OVERLAY_MASCOT: "overlay-mascot",
-  SEND_QUEUE: "photobooth-send-queue",
-  UI_DEBUG: "ui-debug-enabled",
-  UI_GESTURES: "ui-gestures-enabled",
-  UI_DETECTION_INTERVAL: "ui-detection-interval",
-  UI_TRIGGER_MIN_SCORE: "ui-trigger-min-score",
-  UI_GESTURE_HOLD_MS: "ui-gesture-hold-ms",
 }
 
 function canUseStorage() {
