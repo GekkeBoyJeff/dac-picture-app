@@ -2,7 +2,8 @@
 
 import { BUTTON_STYLES } from "@/lib/styles/buttons"
 
-const TOOLTIP_CLASS = "pointer-events-none absolute -left-38 top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden"
+const TOOLTIP_CLASS =
+  "pointer-events-none absolute -left-[9.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-none bg-black border border-white/20 text-white/60 text-xs font-mono opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden"
 
 /**
  * Shared tooltip for ControlBar items.
@@ -15,7 +16,7 @@ export function ControlBarTooltip({ label, className = "" }) {
 
 /**
  * Reusable ControlBar item with icon button + hover tooltip.
- * Eliminates the repeated tooltip pattern across all ControlBar buttons.
+ * Touch target: 3rem (48px) minimum.
  */
 export function ControlBarItem({ onClick, icon, label, ariaLabel, className = "", children }) {
   return (

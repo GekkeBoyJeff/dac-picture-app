@@ -1,4 +1,5 @@
-import { IMAGE, STRIP_CANVAS } from "@/lib/config"
+import { IMAGE, STRIP_CANVAS, DEFAULT_MASCOT_ID } from "@/lib/config"
+import { getActiveConvention } from "@/lib/config/presets"
 import {
   loadStripAssets,
   drawDoodles,
@@ -21,16 +22,18 @@ const {
 } = STRIP_CANVAS
 
 /**
- * Combines photo blobs into a 9:16 strip.
- *
- * "Bleed" design: photos take 83% of the canvas. Mascot overlaps the
- * bottom photo as a signature element. Branding is compact at the bottom.
+ * Combine photo blobs into a 9:16 strip with branding.
+ * Pure — assets config is passed in, no store access.
  *
  * @param {Blob[]} photoBlobs
+ * @param {{ mascotId: string, convention: object | null }} assets
  * @returns {Promise<Blob>}
  */
-export async function compositeStrip(photoBlobs) {
-  const [images, { logo, qr, mascotImg, conventionBanner, convention }] = await Promise.all([
+export async function compositeStrip(photoBlobs, assets = {}) {
+  const mascotId = assets.mascotId || DEFAULT_MASCOT_ID
+  const convention = assets.convention !== undefined ? assets.convention : getActiveConvention()
+
+  const [images, stripAssets] = await Promise.all([
     Promise.all(
       photoBlobs.map(
         (blob) =>
@@ -42,7 +45,7 @@ export async function compositeStrip(photoBlobs) {
           }),
       ),
     ),
-    loadStripAssets(),
+    loadStripAssets(mascotId, convention),
   ])
 
   const canvas = document.createElement("canvas")
@@ -55,20 +58,22 @@ export async function compositeStrip(photoBlobs) {
   ctx.fillStyle = BG_COLOR
   ctx.fillRect(0, 0, WIDTH, HEIGHT)
 
-  // --- Photos ---
+  // Photos
   const cellW = WIDTH - MARGIN_X * 2
 
-  images.forEach((img, i) => {
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i]
     const x = MARGIN_X
     const y = PHOTO_TOP + i * (PHOTO_HEIGHT + PHOTO_GAP)
 
     // Object-cover crop
     const imgAspect = img.naturalWidth / img.naturalHeight
     const cellAspect = cellW / PHOTO_HEIGHT
-    let srcX = 0,
-      srcY = 0,
-      srcW = img.naturalWidth,
-      srcH = img.naturalHeight
+    let srcX = 0
+    let srcY = 0
+    let srcW = img.naturalWidth
+    let srcH = img.naturalHeight
+
     if (imgAspect > cellAspect) {
       srcW = Math.round(img.naturalHeight * cellAspect)
       srcX = Math.round((img.naturalWidth - srcW) / 2)
@@ -77,33 +82,30 @@ export async function compositeStrip(photoBlobs) {
       srcY = Math.round((img.naturalHeight - srcH) / 2)
     }
 
-    // Draw clipped photo
     ctx.save()
     ctx.beginPath()
     ctx.roundRect(x, y, cellW, PHOTO_HEIGHT, BORDER_RADIUS)
     ctx.clip()
     ctx.drawImage(img, srcX, srcY, srcW, srcH, x, y, cellW, PHOTO_HEIGHT)
     ctx.restore()
+  }
 
-    // No border — clean edge photos
-  })
+  // QR top-right (overlaps first photo)
+  drawQrTopRight(ctx, stripAssets.qr)
 
-  // --- QR top-right (overlaps first photo) ---
-  drawQrTopRight(ctx, qr)
-
-  // --- Playful doodles in branding zone background ---
+  // Playful doodles in branding zone background
   drawDoodles(ctx)
 
-  // --- Branding ---
-  drawBrandingZone(ctx, logo, conventionBanner, convention)
+  // Branding
+  drawBrandingZone(ctx, stripAssets.logo, stripAssets.conventionBanner, convention)
 
-  // --- Mascot (overlaps bottom photo) ---
-  drawMascot(ctx, mascotImg)
+  // Mascot (overlaps bottom photo)
+  drawMascot(ctx, stripAssets.mascotImg)
 
-  // --- Sparkles ---
+  // Sparkles
   drawSparkles(ctx)
 
-  // --- Outer border ---
+  // Outer border
   ctx.save()
   ctx.strokeStyle = ACCENT_COLOR
   ctx.globalAlpha = 0.12
@@ -113,8 +115,10 @@ export async function compositeStrip(photoBlobs) {
   ctx.stroke()
   ctx.restore()
 
-  // Cleanup
-  images.forEach((img) => URL.revokeObjectURL(img.src))
+  // Cleanup object URLs
+  for (const img of images) {
+    URL.revokeObjectURL(img.src)
+  }
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

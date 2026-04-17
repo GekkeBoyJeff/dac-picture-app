@@ -1,3 +1,11 @@
+/**
+ * Measure a DOM element's rect relative to a container, scaled to canvas coords.
+ * @param {DOMRect} elRect
+ * @param {DOMRect} containerRect
+ * @param {number} scaleX
+ * @param {number} scaleY
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
 export function measureBoxRect(elRect, containerRect, scaleX, scaleY) {
   return {
     x: (elRect.left - containerRect.left) * scaleX,
@@ -7,11 +15,20 @@ export function measureBoxRect(elRect, containerRect, scaleX, scaleY) {
   }
 }
 
+/**
+ * Measure an element with object-fit: contain, accounting for the image
+ * being rendered smaller than the element box.
+ * @param {DOMRect} elRect
+ * @param {DOMRect} containerRect
+ * @param {number} scaleX
+ * @param {number} scaleY
+ * @param {number} imageAspect - naturalWidth / naturalHeight
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
 export function measureContainRect(elRect, containerRect, scaleX, scaleY, imageAspect) {
   const boxW = elRect.width
   const boxH = elRect.height
-  let renderW
-  let renderH
+  let renderW, renderH
 
   if (boxW / boxH > imageAspect) {
     renderH = boxH

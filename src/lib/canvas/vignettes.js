@@ -1,3 +1,9 @@
+/**
+ * Draw three vignette gradients: radial, bottom, and top.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} w - canvas width
+ * @param {number} h - canvas height
+ */
 export function drawVignettes(ctx, w, h) {
   // Radial vignette
   const cx = w / 2

@@ -5,8 +5,11 @@ import { useState, useEffect, useCallback, useRef } from "react"
 const IDLE_EVENTS = ["pointerdown", "pointermove", "keydown", "touchstart"]
 
 /**
- * Returns `true` when the user has been idle for `timeoutMs`.
- * Resets on pointer/touch/key activity.
+ * Returns true when the user has been idle for the given timeout.
+ * Resets on pointer, touch, or keyboard activity.
+ *
+ * @param {number} [timeoutMs=60000] - Idle threshold in milliseconds
+ * @returns {boolean}
  */
 export function useIdleTimer(timeoutMs = 60_000) {
   const [isIdle, setIsIdle] = useState(false)

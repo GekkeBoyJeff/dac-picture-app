@@ -13,3 +13,7 @@ export const useBootStore = create((set) => ({
   bootStage: BOOT_STAGES.HYDRATING,
   setBootStage: (bootStage) => set({ bootStage }),
 }))
+
+// -- Selectors --
+
+export const selectBootStage = (state) => state.bootStage

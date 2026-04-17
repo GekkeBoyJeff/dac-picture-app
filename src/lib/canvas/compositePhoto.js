@@ -5,22 +5,30 @@ import { drawImageOverlays } from "./imageOverlays"
 import { drawTitle, drawDate } from "./textOverlays"
 
 /**
- * Creates a photo by reading overlay positions directly from the DOM.
+ * Composite a single photo by reading overlay positions from the DOM.
+ * Pure — maxPixels is passed in, no store access.
  *
  * @param {HTMLVideoElement} video
  * @param {HTMLElement} container
- * @param {boolean} [mirror=true]
+ * @param {boolean} mirrored
+ * @param {number} maxPixels - from getMaxCanvasPixels()
  * @param {object} [options]
- * @param {string[]} [options.excludeImageTypes] - Image types to exclude (e.g. ["logo", "convention"])
- * @param {boolean} [options.excludeText] - Skip title and date overlays
- * @returns {Promise<{exportBlob: Blob}>}
+ * @param {string[]} [options.excludeImageTypes]
+ * @param {boolean} [options.excludeText]
+ * @returns {Promise<{ exportBlob: Blob }>}
  */
-export async function compositePhoto(video, container, mirror = true, options = {}) {
+export async function compositePhoto(
+  video,
+  container,
+  mirrored,
+  maxPixels = 2560 * 1440,
+  options = {},
+) {
   const { excludeImageTypes, excludeText = false } = options
 
   const containerRect = container.getBoundingClientRect()
   const crop = getVideoCrop(video, containerRect)
-  const { canvasW, canvasH } = getCanvasSize(crop.srcW, crop.srcH)
+  const { canvasW, canvasH } = getCanvasSize(crop.srcW, crop.srcH, maxPixels)
 
   const canvas = document.createElement("canvas")
   canvas.width = canvasW
@@ -28,7 +36,7 @@ export async function compositePhoto(video, container, mirror = true, options = 
   const ctx = canvas.getContext("2d")
   if (!ctx) throw new Error("Failed to get canvas 2D context")
 
-  drawVideoFrame(ctx, video, crop, { canvasW, canvasH }, mirror)
+  drawVideoFrame(ctx, video, crop, { canvasW, canvasH }, mirrored)
 
   const scaleX = canvasW / containerRect.width
   const scaleY = canvasH / containerRect.height

@@ -1,11 +1,13 @@
 import { lazy, Suspense, useMemo } from "react"
 import { Spinner } from "@/components/ui/Spinner"
-import { usePowerStatus } from "@/hooks/usePowerStatus"
+import { usePowerStatus } from "@/features/settings/hooks/usePowerStatus"
 import { useUiStore } from "@/stores/uiStore"
 import { SectionLabel, ToggleRow, RangeControl } from "./shared"
 
 const AnalyticsDashboard = lazy(() =>
-  import("../AnalyticsDashboard").then((m) => ({ default: m.AnalyticsDashboard })),
+  import("@/features/analytics/components/AnalyticsDashboard").then((m) => ({
+    default: m.AnalyticsDashboard,
+  })),
 )
 
 const gesturePresets = [
@@ -67,10 +69,7 @@ const formatInterval = (ms) => (ms <= 0 ? "Realtime (0ms)" : `${ms}ms`)
 const formatConfidence = (value) => Number(value).toFixed(2)
 const handOptions = [2, 4, 6, 8, 10, 12]
 
-const CARD_RADIUS = "rounded-xl"
-const INNER_RADIUS = "rounded-lg"
-const drawerCard = `${CARD_RADIUS} border border-white/10 bg-white/[0.04] shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]`
-const rowBase = `w-full ${CARD_RADIUS} border px-4 py-4 text-left transition-all duration-200`
+const GOLD = "#e6c189"
 
 export function AdvancedTab() {
   const debugEnabled = useUiStore((s) => s.debugEnabled)
@@ -108,33 +107,34 @@ export function AdvancedTab() {
     [detectionIntervalMs, triggerMinScore],
   )
 
+  const activeCardBorder = (isActive) =>
+    isActive ? "border-[#e6c189] bg-[#1a1a1a]" : "border-white/10 bg-black hover:border-white/20"
+
   return (
     <>
       <section className="space-y-3">
-        <SectionLabel
-          title="Power"
-          description="Raspberry Pi of standaard laptop/pc. Deze keuze beïnvloedt de lichte of zware configuratie."
-        />
-
+        <SectionLabel title="Power" description="Raspberry Pi of standaard laptop/pc." />
         <button
           type="button"
           onClick={() => (forceLowPower ? applyHighPowerPreset() : applyLowPowerPreset())}
-          className={`${rowBase} ${drawerCard} min-h-22 cursor-pointer flex items-center justify-between gap-4 ${
-            powerStatus === "low"
-              ? "border-amber-400/45 bg-amber-400/10 text-white shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
-              : "border-emerald-400/35 bg-emerald-400/10 text-white shadow-[0_0_0_1px_rgba(16,185,129,0.16)]"
+          className={`flex min-h-[4.5rem] w-full cursor-pointer items-center justify-between gap-4 rounded-none border px-4 py-4 text-left transition-all duration-200 active:scale-[0.98] ${
+            powerStatus === "low" ? "border-[#e6c189] bg-[#111]" : "border-white/10 bg-[#111]"
           }`}
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">Raspberry Pi mode</p>
-            <p className="mt-0.5 text-xs leading-5 text-white/55">
+            <p className="text-sm font-bold text-white">Raspberry Pi mode</p>
+            <p className="mt-0.5 text-xs leading-5 text-white/40">
               {powerStatus === "low"
                 ? "Aan: minimale belasting, camera blijft hoog"
                 : "Uit: standaard instellingen voor reguliere pc's"}
             </p>
           </div>
           <span
-            className={`shrink-0 rounded-full border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] ${powerStatus === "low" ? "border-amber-300/40 bg-amber-300/15 text-amber-50" : "border-emerald-300/40 bg-emerald-300/15 text-emerald-50"}`}
+            className={`shrink-0 rounded-none border px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] font-mono ${
+              powerStatus === "low"
+                ? "border-[#e6c189] text-[#e6c189]"
+                : "border-white/10 text-white/60"
+            }`}
           >
             {powerStatus === "low" ? "Aan" : "Uit"}
           </span>
@@ -146,10 +146,9 @@ export function AdvancedTab() {
             description={
               lowPowerOverride
                 ? "Alle instellingen zijn ontgrendeld"
-                : "Ontgrendel instellingen die geblokkeerd zijn door low-power modus"
+                : "Ontgrendel instellingen geblokkeerd door low-power"
             }
             active={lowPowerOverride}
-            activeTone="amber"
             onClick={toggleLowPowerOverride}
           />
         )}
@@ -158,7 +157,6 @@ export function AdvancedTab() {
           title="Debug"
           description="Groene/blauwe kaders + gesture status"
           active={debugEnabled}
-          activeTone="emerald"
           onClick={toggleDebug}
         />
       </section>
@@ -168,10 +166,9 @@ export function AdvancedTab() {
           title="Opstelling"
           description="Pas handen, detectie en tracking aan per situatie."
         />
-
         <div className="grid grid-cols-2 gap-2.5">
           {scenePresets.map((preset) => {
-            const active =
+            const isActive =
               numHands === preset.numHands &&
               minDetectionConfidence === preset.minDetectionConfidence &&
               minPresenceConfidence === preset.minPresenceConfidence &&
@@ -182,61 +179,48 @@ export function AdvancedTab() {
                 type="button"
                 onClick={() => applyScenePreset(preset)}
                 disabled={gestureControlsDisabled}
-                className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-28 flex flex-col justify-between gap-1.5 ${
-                  active
-                    ? "border-violet-400/60 bg-violet-400/15 text-white"
-                    : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/[0.07]"
-                } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                className={`flex min-h-[7rem] flex-col justify-between gap-1.5 rounded-none border px-3 py-3 text-left text-xs transition-all ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-[0.97]"} ${activeCardBorder(isActive)}`}
               >
                 <div>
-                  <p className="font-semibold text-sm leading-tight">{preset.label}</p>
-                  <p className="mt-1 text-white/50 leading-snug">{preset.note}</p>
+                  <p className="text-sm font-bold leading-tight text-white">{preset.label}</p>
+                  <p className="mt-1 leading-snug text-white/40">{preset.note}</p>
                 </div>
                 <p className="font-mono leading-snug text-white/60">
-                  {preset.numHands} handen · {preset.minDetectionConfidence.toFixed(2)}
+                  {preset.numHands} handen &middot; {preset.minDetectionConfidence.toFixed(2)}
                 </p>
               </button>
             )
           })}
         </div>
 
-        <div className={`${drawerCard} p-4 space-y-4`}>
+        <div className="space-y-4 rounded-none border border-white/10 bg-[#111] p-4">
           <div>
-            <p className="text-sm font-semibold text-white">Personaliseer opstelling</p>
-            <p className="text-xs text-white/55">
+            <p className="text-sm font-bold text-white">Personaliseer opstelling</p>
+            <p className="text-xs text-white/40">
               Pas het aantal handen en confidence-waarden handmatig aan.
             </p>
           </div>
-
-          <div
-            className={`${INNER_RADIUS} border border-white/10 bg-white/3 px-3 py-2.5 text-xs text-white/55`}
-          >
+          <div className="rounded-none border border-white/10 bg-black px-3 py-2.5 text-[0.6875rem] text-white/40 font-mono">
             <p>Detectie = nieuwe hand oppikken</p>
             <p className="mt-1">Presence = hand blijft aanwezig</p>
             <p className="mt-1">Tracking = beweging stabiel volgen</p>
           </div>
-
           <div className="grid grid-cols-3 gap-2">
             {handOptions.map((option) => {
-              const active = numHands === option
+              const isActive = numHands === option
               return (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setNumHands(option)}
                   disabled={gestureControlsDisabled}
-                  className={`${INNER_RADIUS} border px-2 py-2 text-xs font-semibold transition-all ${
-                    active
-                      ? "border-sky-400/55 bg-sky-400/15 text-white"
-                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/[0.07]"
-                  } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  className={`rounded-none border px-2 py-2 text-xs font-bold font-mono transition-all ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"} ${activeCardBorder(isActive)}`}
                 >
                   {option} handen
                 </button>
               )
             })}
           </div>
-
           <RangeControl
             label="Detectie confidence"
             value={minDetectionConfidence}
@@ -273,25 +257,23 @@ export function AdvancedTab() {
       <section className="space-y-3">
         <SectionLabel
           title="Gebaren"
-          description="Snelle, vaste presets met duidelijke rangschikking. Geen springende panelen."
+          description="Snelle, vaste presets met duidelijke rangschikking."
         />
-
-        <div className={`${drawerCard} p-4 space-y-4`}>
+        <div className="space-y-4 rounded-none border border-white/10 bg-[#111] p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Gebaren-tempo</p>
-              <p className="text-xs text-white/55">
+              <p className="text-sm font-bold text-white">Gebaren-tempo</p>
+              <p className="text-xs text-white/40">
                 Groen volgt elke frame, blauw volgt dit tempo.
               </p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-white/80">
+            <span className="rounded-none border border-white/10 bg-black px-2.5 py-1 text-xs font-mono text-white">
               {formatInterval(detectionIntervalMs)}
             </span>
           </div>
-
           <div className="grid grid-cols-3 gap-2.5">
             {gesturePresets.map((preset) => {
-              const active = activePreset?.label === preset.label
+              const isActive = activePreset?.label === preset.label
               return (
                 <button
                   key={preset.label}
@@ -301,24 +283,20 @@ export function AdvancedTab() {
                     setTriggerScore(preset.triggerMinScore)
                   }}
                   disabled={gestureControlsDisabled}
-                  className={`${CARD_RADIUS} border px-3 py-3 text-left text-xs transition-all min-h-[7.4rem] flex flex-col justify-between gap-1.5 ${
-                    active
-                      ? "border-sky-400/60 bg-sky-400/15 text-white"
-                      : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/[0.07]"
-                  } ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  className={`flex min-h-[7.4rem] flex-col justify-between gap-1.5 rounded-none border px-3 py-3 text-left text-xs transition-all ${gestureControlsDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-[0.97]"} ${activeCardBorder(isActive)}`}
                 >
                   <div>
-                    <p className="font-semibold text-sm leading-tight">{preset.label}</p>
-                    <p className="mt-1 text-white/50 leading-snug">{preset.note}</p>
+                    <p className="text-sm font-bold leading-tight text-white">{preset.label}</p>
+                    <p className="mt-1 leading-snug text-white/40">{preset.note}</p>
                   </div>
                   <p className="font-mono leading-snug text-white/60">
-                    {formatInterval(preset.detectionInterval)} · {preset.triggerMinScore.toFixed(2)}
+                    {formatInterval(preset.detectionInterval)} &middot;{" "}
+                    {preset.triggerMinScore.toFixed(2)}
                   </p>
                 </button>
               )
             })}
           </div>
-
           <RangeControl
             label="Gesture check interval"
             value={detectionIntervalMs}
@@ -329,11 +307,10 @@ export function AdvancedTab() {
             formatValue={formatInterval}
             disabled={gestureControlsDisabled}
           />
-
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-white/60">
               <span>Trigger score drempel</span>
-              <span className="font-mono text-white/80">{triggerMinScore.toFixed(2)}</span>
+              <span className="font-mono text-white">{triggerMinScore.toFixed(2)}</span>
             </div>
             <input
               type="range"
@@ -343,36 +320,30 @@ export function AdvancedTab() {
               value={triggerMinScore}
               onChange={(event) => setTriggerScore(Number(event.target.value))}
               disabled={gestureControlsDisabled}
-              className="w-full accent-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ accentColor: GOLD }}
             />
           </div>
         </div>
       </section>
 
       <section className="space-y-3">
-        <SectionLabel
-          title="Informatie"
-          description="Technische details en diagnostiek, zonder de rest van de layout te verstoren."
-        />
-
+        <SectionLabel title="Informatie" description="Technische details en diagnostiek." />
         {debugEnabled && (
-          <div
-            className={`${CARD_RADIUS} border border-white/10 bg-white/3 px-4 py-3 text-[0.6875rem] text-white/55`}
-          >
+          <div className="rounded-none border border-white/10 bg-black px-4 py-3 text-[0.6875rem] text-white/40 font-mono">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400/80" />
+                <span className="inline-block h-3 w-3 rounded-none border-2 border-white/60" />
                 <span>Groen: tracking elke frame</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-full border-2 border-sky-400/80" />
+                <span className="inline-block h-3 w-3 rounded-none border-2 border-white/30" />
                 <span>Blauw: tempo volgens gesture interval</span>
               </span>
             </div>
           </div>
         )}
-
-        <div className={`${drawerCard} overflow-hidden`}>
+        <div className="overflow-hidden rounded-none border border-white/10 bg-[#111]">
           <Suspense
             fallback={
               <div className="flex items-center justify-center py-8">

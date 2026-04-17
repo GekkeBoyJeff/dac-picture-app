@@ -1,19 +1,16 @@
-// Asset paths only — all sizing and positioning lives in the layout presets.
-// This file is the single place to change file paths if assets move.
-
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ""
+import { assetPath } from "./basePath"
 
 export const CORNERS = [
-  { src: `${BASE_PATH}/overlays/corner-tl.svg`, position: "top-left" },
-  { src: `${BASE_PATH}/overlays/corner-tr.svg`, position: "top-right" },
-  { src: `${BASE_PATH}/overlays/corner-bl.svg`, position: "bottom-left" },
-  { src: `${BASE_PATH}/overlays/corner-br.svg`, position: "bottom-right" },
+  { src: assetPath("/overlays/corner-tl.svg"), position: "top-left" },
+  { src: assetPath("/overlays/corner-tr.svg"), position: "top-right" },
+  { src: assetPath("/overlays/corner-bl.svg"), position: "bottom-left" },
+  { src: assetPath("/overlays/corner-br.svg"), position: "bottom-right" },
 ]
 
 export const LOGO = {
-  src: `${BASE_PATH}/overlays/logo.svg`,
+  src: assetPath("/overlays/logo.svg"),
 }
 
 export const QR_CODE = {
-  src: `${BASE_PATH}/overlays/qr-discord.svg`,
+  src: assetPath("/overlays/qr-discord.svg"),
 }

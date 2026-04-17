@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import { pickRandom } from "@/lib/random"
 import { getVideoCrop, getCanvasSize } from "@/lib/canvas/videoFrame"
 import { measureBoxRect, measureContainRect } from "@/lib/canvas/overlayMeasurer"
+import { getBackoffDelay } from "@/features/discord/lib/sendQueue"
 
 // --- pickRandom ---
 describe("pickRandom", () => {
@@ -13,7 +14,6 @@ describe("pickRandom", () => {
 
   it("excludes given value", () => {
     const list = ["a", "b"]
-    // With only 2 items and excluding "a", must pick "b"
     expect(pickRandom(list, "a")).toBe("b")
   })
 
@@ -22,25 +22,25 @@ describe("pickRandom", () => {
   })
 })
 
-// --- canvas math ---
+// --- getVideoCrop ---
 describe("getVideoCrop", () => {
   it("crops wider video to match container aspect", () => {
     const video = { videoWidth: 1920, videoHeight: 1080 }
-    const containerRect = { width: 400, height: 600 } // portrait
+    const containerRect = { width: 400, height: 600 }
     const crop = getVideoCrop(video, containerRect)
 
-    expect(crop.srcW).toBeLessThan(1920) // should be cropped
-    expect(crop.srcH).toBe(1080) // full height
-    expect(crop.srcX).toBeGreaterThan(0) // offset from left
+    expect(crop.srcW).toBeLessThan(1920)
+    expect(crop.srcH).toBe(1080)
+    expect(crop.srcX).toBeGreaterThan(0)
   })
 
   it("crops taller video to match container aspect", () => {
     const video = { videoWidth: 1080, videoHeight: 1920 }
-    const containerRect = { width: 600, height: 400 } // landscape
+    const containerRect = { width: 600, height: 400 }
     const crop = getVideoCrop(video, containerRect)
 
-    expect(crop.srcW).toBe(1080) // full width
-    expect(crop.srcH).toBeLessThan(1920) // should be cropped
+    expect(crop.srcW).toBe(1080)
+    expect(crop.srcH).toBeLessThan(1920)
   })
 
   it("no crop needed when aspects match", () => {
@@ -55,47 +55,69 @@ describe("getVideoCrop", () => {
   })
 })
 
+// --- getCanvasSize ---
 describe("getCanvasSize", () => {
-  it("caps at MAX_PIXELS for large sources", () => {
-    const { canvasW, canvasH } = getCanvasSize(3840, 2160)
-    expect(canvasW * canvasH).toBeLessThanOrEqual(1920 * 1080 * 1.01) // small margin
+  it("caps at maxPixels for large sources", () => {
+    const maxPixels = 1920 * 1080
+    const { canvasW, canvasH } = getCanvasSize(3840, 2160, maxPixels)
+    expect(canvasW * canvasH).toBeLessThanOrEqual(maxPixels * 1.01)
   })
 
   it("preserves aspect ratio when scaling down", () => {
-    const { canvasW, canvasH } = getCanvasSize(3840, 2160)
+    const maxPixels = 1920 * 1080
+    const { canvasW, canvasH } = getCanvasSize(3840, 2160, maxPixels)
     const original = 3840 / 2160
     const scaled = canvasW / canvasH
     expect(Math.abs(original - scaled)).toBeLessThan(0.01)
   })
 
   it("does not scale small sources", () => {
-    const { canvasW, canvasH } = getCanvasSize(800, 600)
+    const maxPixels = 1920 * 1080
+    const { canvasW, canvasH } = getCanvasSize(800, 600, maxPixels)
     expect(canvasW).toBe(800)
     expect(canvasH).toBe(600)
   })
 })
 
-describe("overlayMeasurer", () => {
-  it("measureBoxRect converts screen to canvas coords", () => {
+// --- overlayMeasurer ---
+describe("measureBoxRect", () => {
+  it("converts screen to canvas coords", () => {
     const elRect = { left: 110, top: 220, width: 50, height: 50 }
     const containerRect = { left: 100, top: 200 }
     const result = measureBoxRect(elRect, containerRect, 2, 2)
 
-    expect(result.x).toBe(20) // (110-100)*2
-    expect(result.y).toBe(40) // (220-200)*2
-    expect(result.w).toBe(100) // 50*2
-    expect(result.h).toBe(100) // 50*2
+    expect(result.x).toBe(20)
+    expect(result.y).toBe(40)
+    expect(result.w).toBe(100)
+    expect(result.h).toBe(100)
   })
+})
 
-  it("measureContainRect centers image in box", () => {
+describe("measureContainRect", () => {
+  it("centers image in box", () => {
     const elRect = { left: 100, top: 200, width: 200, height: 100 }
     const containerRect = { left: 0, top: 0 }
-    // Image is 1:1 in a 2:1 box → should be centered horizontally
     const result = measureContainRect(elRect, containerRect, 1, 1, 1)
 
-    expect(result.w).toBe(100) // height-constrained: 100*1 = 100
+    expect(result.w).toBe(100)
     expect(result.h).toBe(100)
-    expect(result.x).toBe(150) // centered: 100 + (200-100)/2
+    expect(result.x).toBe(150)
     expect(result.y).toBe(200)
+  })
+})
+
+// --- getBackoffDelay ---
+describe("getBackoffDelay", () => {
+  it("returns a positive delay", () => {
+    expect(getBackoffDelay(0)).toBeGreaterThan(0)
+  })
+
+  it("increases with attempts", () => {
+    expect(getBackoffDelay(5)).toBeGreaterThanOrEqual(1200)
+  })
+
+  it("caps at maximum delay", () => {
+    const d = getBackoffDelay(100)
+    expect(d).toBeLessThanOrEqual(15600)
   })
 })

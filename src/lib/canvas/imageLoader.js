@@ -1,6 +1,11 @@
 // Overlay images are cached across captures to avoid re-fetching on every photo.
 const imageCache = new Map()
 
+/**
+ * Load an image and cache it. Returns a resolved promise on cache hit.
+ * @param {string} src
+ * @returns {Promise<HTMLImageElement>}
+ */
 export function loadImage(src) {
   const cached = imageCache.get(src)
   if (cached) return Promise.resolve(cached)

@@ -1,17 +1,24 @@
+/**
+ * Web Audio API sound effects for countdown and shutter.
+ * No audio files needed — all sounds are synthesized.
+ */
+
 let audioCtx = null
 
 function getContext() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  }
   return audioCtx
 }
 
 /**
- * Play a short beep using the Web Audio API (no files needed).
+ * Play a sine-wave beep.
  * @param {number} frequency - Hz
  * @param {number} duration - seconds
- * @param {number} [volume=0.3] - gain 0-1
+ * @param {number} volume - gain 0-1
  */
-export function playBeep(frequency = 880, duration = 0.1, volume = 0.3) {
+function playBeep(frequency, duration, volume) {
   try {
     const ctx = getContext()
     const osc = ctx.createOscillator()
@@ -32,18 +39,27 @@ export function playBeep(frequency = 880, duration = 0.1, volume = 0.3) {
   }
 }
 
-/** Short countdown tick */
-export function playCountdownTick() {
-  playBeep(660, 0.08, 0.2)
+/**
+ * Countdown beep — 660 Hz tick or 1200 Hz final.
+ * @param {boolean} isFinal - true for the last count
+ */
+export function playCountdownBeep(isFinal) {
+  if (isFinal) {
+    playBeep(1200, 0.15, 0.35)
+  } else {
+    playBeep(660, 0.08, 0.2)
+  }
 }
 
-/** Final countdown beep (higher pitch) */
-export function playCountdownFinal() {
-  playBeep(1200, 0.15, 0.35)
-}
+// Legacy aliases for old components
+export const playCountdownTick = () => playCountdownBeep(false)
+export const playCountdownFinal = () => playCountdownBeep(true)
+export const playShutter = playShutterSound
 
-/** Camera shutter sound */
-export function playShutter() {
+/**
+ * Camera shutter sound — shaped white noise burst through a highpass filter.
+ */
+export function playShutterSound() {
   try {
     const ctx = getContext()
     const bufferSize = ctx.sampleRate * 0.06

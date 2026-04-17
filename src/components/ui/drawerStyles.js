@@ -1,20 +1,18 @@
-export const drawerShellClass =
-  "rounded-[2rem] border border-white/10 bg-black/[0.92] shadow-2xl shadow-black/40 backdrop-blur-xl"
+export const drawerShellClass = "rounded-none border border-white/20 bg-[#0a0a0a]"
 
-export const drawerHeaderClass = "border-b border-white/10"
+export const drawerHeaderClass = "border-b border-white/20"
 
-export const drawerCardClass =
-  "rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]"
+export const drawerCardClass = "rounded-none border border-white/10 bg-black"
 
-export const drawerCompactCardClass = "rounded-xl border border-white/10 bg-white/[0.04]"
+export const drawerCompactCardClass = "rounded-none border border-white/10 bg-black"
 
-export const drawerOptionCardClass =
-  "rounded-lg border border-white/10 bg-white/[0.04] shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]"
+export const drawerOptionCardClass = "rounded-none border border-white/10 bg-black"
 
 export const drawerSoftPillClass =
-  "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/75"
+  "rounded-sm border border-white/10 bg-black px-3 py-1 text-xs font-medium text-white/60"
 
-export const drawerSectionLabelClass = "text-[0.7rem] uppercase tracking-[0.24em] text-white/35"
+export const drawerSectionLabelClass =
+  "text-[0.7rem] uppercase tracking-[0.24em] text-white/35 font-mono"
 
 export const drawerSectionHelpClass = "text-xs leading-5 text-white/45"
 

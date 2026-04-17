@@ -1,5 +1,5 @@
 /**
- * Shared layout preview block — positioned absolutely within a preview card.
+ * Shared layout preview block -- positioned absolutely within a preview card.
  * Used by both LayoutPicker and LayoutSlider.
  *
  * @param {{ position: string, className: string, offset?: number }} props

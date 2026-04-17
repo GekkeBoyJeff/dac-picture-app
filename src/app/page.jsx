@@ -6,7 +6,7 @@ import { DeviceSetupGate } from "@/components/DeviceSetupGate"
 import { AppLoader } from "@/components/ui/AppLoader"
 import { useHydrated } from "@/hooks/useHydrated"
 import { BOOT_STAGES, useBootStore } from "@/stores/bootStore"
-import { useCameraStore } from "@/stores/cameraStore"
+import { useCameraStore } from "@/features/camera/store"
 
 const Home = () => {
   const hydrated = useHydrated()
@@ -42,11 +42,9 @@ const Home = () => {
   const showBootLoader =
     !isReady &&
     !cameraError &&
-    (
-      bootStage === BOOT_STAGES.HYDRATING ||
+    (bootStage === BOOT_STAGES.HYDRATING ||
       bootStage === BOOT_STAGES.DEVICE_CHECK ||
-      bootStage === BOOT_STAGES.CAMERA_STARTING
-    )
+      bootStage === BOOT_STAGES.CAMERA_STARTING)
 
   return (
     <>

@@ -6,15 +6,14 @@ import { assetPath } from "@/lib/config/basePath"
 /**
  * Shared base for full-screen overlays (splash, attract, etc.).
  * Provides the logo, title, and subtitle in a consistent layout.
- *
- * @param {object} props
- * @param {boolean} props.visible
- * @param {string} [props.bgClass="bg-black"] - Background class
- * @param {string} [props.logoClass] - Extra classes for the logo image
- * @param {React.ReactNode} [props.children] - Content below the title block
- * @param {React.ReactNode} [props.footer] - Content at the absolute bottom
  */
-export function FullScreenOverlay({ visible, bgClass = "bg-black", logoClass = "", children, footer }) {
+export function FullScreenOverlay({
+  visible,
+  bgClass = "bg-black",
+  logoClass = "",
+  children,
+  footer,
+}) {
   return (
     <div
       className={`absolute inset-0 z-30 flex flex-col items-center justify-center ${bgClass} transition-opacity duration-500 ${
@@ -31,13 +30,13 @@ export function FullScreenOverlay({ visible, bgClass = "bg-black", logoClass = "
       />
 
       <div className="mt-6 text-center">
-        <h1 className="text-white text-2xl md:text-3xl font-semibold tracking-[0.15em] uppercase">
+        <h1 className="text-white text-2xl md:text-3xl font-bold tracking-[0.15em] uppercase font-display">
           Photo Booth
         </h1>
-        <p className="text-white/40 text-sm mt-2 tracking-wide">
+        <p className="text-white/40 text-sm mt-2 tracking-[0.2em] uppercase font-mono">
           Dutch Anime Community
         </p>
-        <p className="text-white/20 text-[0.625rem] mt-1">v{process.env.APP_VERSION}</p>
+        <p className="text-white/30 text-[0.625rem] mt-1 font-mono">v{process.env.APP_VERSION}</p>
       </div>
 
       {children}

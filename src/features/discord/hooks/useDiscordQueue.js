@@ -1,16 +1,33 @@
 import { useEffect, useState, useCallback } from "react"
-import { processNextInQueue, sendOrQueue } from "@/lib/discord/sendQueue"
-import { useSendQueueStore } from "@/stores/sendQueueStore"
-import { useGalleryStore } from "@/stores/galleryStore"
+import { processNextInQueue, sendOrQueue } from "@/features/discord/lib/sendQueue"
+import { useSendQueueStore } from "@/features/discord/store"
+import { useGalleryStore } from "@/features/gallery/store"
 import { createUploadEntry } from "@/components/ui/UploadStatus"
-import { trackEvent } from "@/lib/storage/analytics"
+import { trackEvent } from "@/features/analytics/lib/analytics"
 import { logger } from "@/lib/logger"
+
+/**
+ * Updates the status of a specific upload entry immutably.
+ *
+ * @param {string} id
+ * @param {string} status
+ * @returns {(prev: Array) => Array}
+ */
+function updateEntryStatus(id, status) {
+  return (prev) => prev.map((e) => (e.id === id ? { ...e, status } : e))
+}
 
 /**
  * Manages Discord send queue: drain loop + send-and-track for new photos.
  *
+ * - Adds captured photos to the gallery
+ * - Sends to Discord (or enqueues for retry)
+ * - Tracks upload status per entry
+ * - Drains the queue on mount and on window.online events
+ * - Respects retryAfterMs from rate-limited responses
+ *
  * @returns {{
- *   uploadEntries: Array,
+ *   uploadEntries: Array<{ id: string, status: string }>,
  *   dismissEntry: (id: string) => void,
  *   sendAndTrack: (blob: Blob, opts?: { isStrip?: boolean }) => Promise<void>,
  * }}
@@ -32,12 +49,12 @@ export function useDiscordQueue() {
       const entry = createUploadEntry()
       setUploadEntries((prev) => [...prev, entry])
 
-      const update = (status) =>
-        setUploadEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, status } : e)))
+      const update = (status) => setUploadEntries(updateEntryStatus(entry.id, status))
 
+      const storeActions = useSendQueueStore.getState()
       let result
       try {
-        result = await sendOrQueue(blob)
+        result = await sendOrQueue(blob, storeActions)
       } catch {
         update("error")
         trackEvent("discord_failed", { isStrip })
@@ -70,12 +87,15 @@ export function useDiscordQueue() {
 
     async function drain() {
       while (!cancelled) {
-        const result = await processNextInQueue()
+        const storeActions = useSendQueueStore.getState()
+        const result = await processNextInQueue(storeActions)
         await loadQueue()
+
         if (result.retryAfterMs) {
           await new Promise((r) => setTimeout(r, result.retryAfterMs))
           continue
         }
+
         if (!result.processed || result.remaining === 0) break
       }
     }

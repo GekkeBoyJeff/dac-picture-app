@@ -1,164 +1,99 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  --black: #000;
+  --white: #fff;
+  --gold: #e6c189;
+  --gold-dim: #e6c18940;
+  --gray: #333;
+  --gray-light: #666;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --animate-countdown: countdown 0.6s ease-out;
-  --animate-flash: flash 0.4s ease-out forwards;
-  --animate-fade-in: fade-in 0.3s ease-out;
-  --animate-shutter-pulse: shutter-pulse 2s ease-in-out infinite;
-  --animate-slide-up: slide-up 0.4s ease-out;
-  --animate-pop-in: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  --animate-splash-logo: splash-logo 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  --animate-splash-text: splash-text 0.5s ease-out backwards;
-  --animate-splash-dots: splash-dots 1.2s ease-in-out infinite;
-  --animate-attract-cta: attract-fade-up 0.8s ease-out backwards;
-  --animate-strip-photo-land: strip-photo-land 0.3s ease-out;
+  --color-background: var(--black);
+  --color-foreground: var(--white);
+  --font-sans: var(--font-dm-sans), var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
+  --animate-countdown: countdown 0.5s ease-out;
+  --animate-flash: flash 0.35s linear forwards;
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-shutter-pulse: shutter-pulse 2s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-pop-in: pop-in 0.3s ease-out backwards;
+  --animate-strip-photo-land: strip-photo-land 0.2s ease-out;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-sans);
   overflow: hidden;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(230, 193, 137, 0.38) rgba(255, 255, 255, 0.05);
+  -webkit-font-smoothing: antialiased;
 }
 
-html, body, * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(230, 193, 137, 0.38) rgba(255, 255, 255, 0.05);
-}
+/* Scrollbar: thin, minimal */
+* { scrollbar-width: thin; scrollbar-color: var(--gray) transparent; }
+*::-webkit-scrollbar { width: 0.375rem; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--gray); }
+*::-webkit-scrollbar-thumb:hover { background: var(--gray-light); }
 
-*::-webkit-scrollbar {
-  width: 0.58rem;
-  height: 0.58rem;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(230, 193, 137, 0.42), rgba(255, 255, 255, 0.18));
-  border: 0.14rem solid transparent;
-  background-clip: padding-box;
-  border-radius: 9999px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(230, 193, 137, 0.62), rgba(255, 255, 255, 0.28));
-  border: 0.14rem solid transparent;
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Global focus-visible ring for keyboard navigation */
+/* Focus: hard gold outline, no radius */
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
 input:focus-visible {
-  outline: 2px solid rgba(56, 189, 248, 0.7);
-  outline-offset: 2px;
-  border-radius: inherit;
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
 }
 
+/* Selection */
+::selection {
+  background: var(--gold);
+  color: var(--black);
+}
+
+/* --- Keyframes --- */
 @keyframes countdown {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  0% { opacity: 0; transform: scale(2); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes flash {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 @keyframes fade-in {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(0.5rem); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slide-up {
-  0% {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
 }
 
-@keyframes slide-down {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(100%);
-  }
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes splash-logo {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-    filter: blur(8px);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-  }
+@keyframes shutter-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+  50% { box-shadow: 0 0 0 0.5rem rgba(255,255,255,0); }
 }
 
-@keyframes splash-text {
-  0% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes strip-photo-land {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes attract-fade-up {
+  0% { opacity: 0; transform: translateY(1rem); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes splash-dots {
@@ -167,44 +102,10 @@ input:focus-visible {
   80%, 100% { opacity: 0.2; }
 }
 
-@keyframes pop-in {
-  0% {
-    opacity: 0;
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shutter-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
-  }
-}
-
-@keyframes strip-photo-land {
-  0% {
-    transform: scale(1.08);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes attract-fade-up {
-  0% {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

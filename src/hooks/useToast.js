@@ -10,8 +10,16 @@ import { TOAST_DURATION_MS, TOAST_ACTION_DURATION_MS } from "@/lib/config"
  */
 
 /**
- * @param {number} [duration]
- * @returns {{ message: string|null, action: ToastAction|null, show: (msg: string, action?: ToastAction) => void, dismiss: () => void }}
+ * Transient notification state with configurable auto-dismiss.
+ * Supports an optional action button that extends the visible duration.
+ *
+ * @param {number} [duration] - Base auto-dismiss timeout
+ * @returns {{
+ *   message: string | null,
+ *   action: ToastAction | null,
+ *   show: (msg: string, action?: ToastAction) => void,
+ *   dismiss: () => void,
+ * }}
  */
 export function useToast(duration = TOAST_DURATION_MS) {
   const [message, setMessage] = useState(null)
@@ -29,6 +37,7 @@ export function useToast(duration = TOAST_DURATION_MS) {
       if (timerRef.current) clearTimeout(timerRef.current)
       setMessage(msg)
       setAction(toastAction)
+
       const timeout = toastAction ? TOAST_ACTION_DURATION_MS : duration
       timerRef.current = setTimeout(() => {
         setMessage(null)

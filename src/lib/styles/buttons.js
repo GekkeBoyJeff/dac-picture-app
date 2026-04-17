@@ -1,4 +1,5 @@
+// Shared button style constants — brutalist design system
 export const BUTTON_STYLES = {
-  icon: "w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer",
-  primary: "px-6 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer",
+  // Icon button: 3rem touch target (48px), solid black, hard border
+  icon: "flex items-center justify-center w-12 h-12 rounded-none border border-white/20 bg-black text-white/70 hover:text-white hover:border-[#e6c189] active:scale-95 transition-all duration-150 cursor-pointer",
 }

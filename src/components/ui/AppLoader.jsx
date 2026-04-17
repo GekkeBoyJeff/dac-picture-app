@@ -23,8 +23,8 @@ export function AppLoader({ absolute = false, visible = true, label = "Laden..."
         draggable={false}
         priority
       />
-      <div className="mt-5 h-6 w-6 rounded-full border-2 border-white/15 border-t-white/70 animate-spin" />
-      <p className="mt-3 text-xs uppercase tracking-[0.22em] text-white/45">{label}</p>
+      <div className="mt-5 h-6 w-6 rounded-none border-2 border-white/20 border-t-[#e6c189] animate-spin" />
+      <p className="mt-3 text-xs uppercase tracking-[0.22em] text-white/40 font-mono">{label}</p>
     </div>
   )
 }

@@ -5,9 +5,8 @@ describe("cameraStore", () => {
   let useCameraStore
 
   beforeEach(async () => {
-    const mod = await import("@/stores/cameraStore")
+    const mod = await import("@/features/camera/store")
     useCameraStore = mod.useCameraStore
-    // Reset store state
     useCameraStore.setState({
       isReady: false,
       isRecalibrating: false,
@@ -70,7 +69,6 @@ describe("uiStore", () => {
       detectionIntervalMs: 120,
       triggerMinScore: 0.35,
       gestureHoldMs: 1500,
-      locale: "nl",
     })
   })
 
@@ -110,7 +108,6 @@ describe("uiStore", () => {
     useUiStore.getState().toggleDebug()
     expect(useUiStore.getState().debugEnabled).toBe(false)
   })
-
 })
 
 // --- overlayStore ---
@@ -118,7 +115,7 @@ describe("overlayStore", () => {
   let useOverlayStore, selectLayout, selectMascot
 
   beforeEach(async () => {
-    const mod = await import("@/stores/overlayStore")
+    const mod = await import("@/features/overlay/store")
     useOverlayStore = mod.useOverlayStore
     selectLayout = mod.selectLayout
     selectMascot = mod.selectMascot

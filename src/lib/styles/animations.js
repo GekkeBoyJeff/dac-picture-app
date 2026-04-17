@@ -1,7 +1,8 @@
+// Staggered animation delays for camera view boot sequence
 export const ANIMATION_DELAYS = {
   cameraView: {
-    overlays: "0.1s",
-    captureButton: "0.25s",
-    controlBar: "0.4s",
+    overlays: "200ms",
+    captureButton: "350ms",
+    controlBar: "500ms",
   },
 }

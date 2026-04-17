@@ -1,6 +1,10 @@
-import { getMaxCanvasPixels, isLowPowerDevice } from "@/lib/deviceCapability"
-import { useUiStore } from "@/stores/uiStore"
-
+/**
+ * Compute the source crop rectangle so the video fills the container
+ * with object-fit: cover semantics.
+ * @param {HTMLVideoElement} video
+ * @param {DOMRect} containerRect
+ * @returns {{ srcX: number, srcY: number, srcW: number, srcH: number }}
+ */
 export function getVideoCrop(video, containerRect) {
   const containerAspect = containerRect.width / containerRect.height
   const vw = video.videoWidth || 1920
@@ -24,28 +28,36 @@ export function getVideoCrop(video, containerRect) {
 }
 
 /**
+ * Compute the output canvas dimensions, capped to a pixel budget.
  * @param {number} srcW
  * @param {number} srcH
- * @param {"single" | "strip"} [mode="single"]
+ * @param {number} maxPixels - pixel budget from getMaxCanvasPixels()
+ * @returns {{ canvasW: number, canvasH: number }}
  */
-export function getCanvasSize(srcW, srcH, mode = "single") {
-  const lowPower = useUiStore.getState().forceLowPower || isLowPowerDevice()
-  const maxPixels = getMaxCanvasPixels(mode, lowPower)
+export function getCanvasSize(srcW, srcH, maxPixels) {
   let canvasW = srcW
   let canvasH = srcH
 
   if (canvasW * canvasH > maxPixels) {
-    const s = Math.sqrt(maxPixels / (canvasW * canvasH))
-    canvasW = Math.round(canvasW * s)
-    canvasH = Math.round(canvasH * s)
+    const scale = Math.sqrt(maxPixels / (canvasW * canvasH))
+    canvasW = Math.round(canvasW * scale)
+    canvasH = Math.round(canvasH * scale)
   }
 
   return { canvasW, canvasH }
 }
 
-export function drawVideoFrame(ctx, video, crop, canvasSize, mirror) {
+/**
+ * Draw the video frame onto the canvas, optionally mirrored.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {HTMLVideoElement} video
+ * @param {{ srcX: number, srcY: number, srcW: number, srcH: number }} crop
+ * @param {{ canvasW: number, canvasH: number }} size
+ * @param {boolean} mirror
+ */
+export function drawVideoFrame(ctx, video, crop, size, mirror) {
   const { srcX, srcY, srcW, srcH } = crop
-  const { canvasW, canvasH } = canvasSize
+  const { canvasW, canvasH } = size
 
   if (mirror) {
     ctx.save()

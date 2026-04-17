@@ -9,6 +9,14 @@ import {
 import { logger } from "@/lib/logger"
 
 const MAX_ATTEMPTS = 10
+const BASE_DELAY_MS = 1200
+const MAX_DELAY_MS = 15000
+
+function getBackoffDelay(attempts) {
+  const delay = Math.min(BASE_DELAY_MS + attempts * BASE_DELAY_MS, MAX_DELAY_MS)
+  const jitter = Math.random() * BASE_DELAY_MS * 0.5
+  return delay + jitter
+}
 
 export const useSendQueueStore = create((set, get) => ({
   queue: [],
@@ -84,6 +92,16 @@ export const useSendQueueStore = create((set, get) => ({
     }
   },
 
+  /** Number of items pending send */
+  get pendingCount() {
+    return get().queue.filter((q) => !q.failed).length
+  },
+
+  /** Number of permanently failed items */
+  get failedCount() {
+    return get().queue.filter((q) => q.failed).length
+  },
+
   /**
    * Get the blob for a queue item
    * @param {string} id
@@ -92,9 +110,7 @@ export const useSendQueueStore = create((set, get) => ({
   getBlob: async (id) => {
     return getQueuedBlob(id)
   },
+
+  /** Get delay for next retry based on attempts */
+  getRetryDelay: (attempts) => getBackoffDelay(attempts),
 }))
-
-// Selectors
-export const selectPendingCount = (state) => state.queue.filter((q) => !q.failed).length
-
-export const selectFailedCount = (state) => state.queue.filter((q) => q.failed).length

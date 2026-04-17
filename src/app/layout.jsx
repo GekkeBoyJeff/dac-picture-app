@@ -1,11 +1,28 @@
-import { Geist } from "next/font/google"
-import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar"
+import { Geist, Geist_Mono, Space_Grotesk, DM_Sans } from "next/font/google"
+import { ServiceWorkerRegistrar } from "@/pwa/ServiceWorkerRegistrar"
 import { assetPath } from "@/lib/config/basePath"
 import "./globals.css"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+})
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+})
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+})
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 })
 
 /** @type {import('next').Viewport} */
@@ -20,7 +37,7 @@ export const viewport = {
 
 /** @type {import('next').Metadata} */
 export const metadata = {
-  metadataBase: new URL("https://github.com/GekkeBoyJeff/dac-picture-app"),
+  metadataBase: new URL("https://dutchanimecommunity.nl/dac-picture-app"),
   title: "DAC Fotobooth",
   description: "Maak foto's op anime conventies met de DAC Fotobooth",
   manifest: assetPath("/manifest.json"),
@@ -71,8 +88,11 @@ const jsonLd = {
 }
 
 const RootLayout = ({ children }) => (
-  <html lang="nl" className={`${geistSans.variable} h-full antialiased`}>
-    <body className="h-full bg-black text-white overflow-hidden">
+  <html
+    lang="nl"
+    className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${dmSans.variable} h-full antialiased`}
+  >
+    <body className="h-full overflow-hidden bg-black text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
