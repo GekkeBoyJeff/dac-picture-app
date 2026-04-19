@@ -3,9 +3,13 @@ export { CORNERS, LOGO, QR_CODE } from "./overlays"
 
 // Re-export presets (conventions, mascots, layouts)
 export {
-  CONVENTIONS, getActiveConvention,
-  MASCOTS, DEFAULT_MASCOT_ID,
-  LAYOUTS, DEFAULT_LAYOUT_ID,
+  CONVENTIONS,
+  getActiveConvention,
+  getConventionForDate,
+  MASCOTS,
+  DEFAULT_MASCOT_ID,
+  LAYOUTS,
+  DEFAULT_LAYOUT_ID,
 } from "./presets"
 
 // --- App settings ---

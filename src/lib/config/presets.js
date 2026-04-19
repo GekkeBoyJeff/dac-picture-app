@@ -63,6 +63,14 @@ export function getActiveConvention() {
   return CONVENTIONS.find((c) => today >= c.startDate && today <= c.endDate) ?? null
 }
 
+/**
+ * Find the convention covering a specific ISO date (YYYY-MM-DD).
+ * @param {string} isoDate
+ */
+export function getConventionForDate(isoDate) {
+  return CONVENTIONS.find((c) => isoDate >= c.startDate && isoDate <= c.endDate) ?? null
+}
+
 // --- Mascots ---
 // Each mascot can define `defaults` with intrinsic sizing preferences.
 // These are used unless overridden by a layout's `mascotOverrides`.
@@ -193,7 +201,12 @@ export const LAYOUTS = [
     mascotOverrides: {},
     convention: { position: "bottom-right", offset: { x: 0.25, y: 0.25 } },
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
-    qr: { opacity: 0.8, position: "top-left", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
+    qr: {
+      opacity: 0.8,
+      position: "top-left",
+      offset: { x: 1, y: 1 },
+      size: { sm: 5, md: 6.5, lg: 8 },
+    },
     date: {
       fontSize: { sm: 0.85, md: 1, lg: 1.1 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
@@ -228,7 +241,12 @@ export const LAYOUTS = [
     mascotOverrides: {},
     convention: { position: "bottom-left", offset: { x: 0.25, y: 0.25 } },
     title: { fontSize: { sm: 1.25, md: 1.25, lg: 1.5 } },
-    qr: { opacity: 0.8, position: "top-right", offset: { x: 1, y: 1 }, size: { sm: 5, md: 6.5, lg: 8 } },
+    qr: {
+      opacity: 0.8,
+      position: "top-right",
+      offset: { x: 1, y: 1 },
+      size: { sm: 5, md: 6.5, lg: 8 },
+    },
     date: {
       fontSize: { sm: 0.85, md: 1, lg: 1.1 },
       bottomPercent: { sm: 1.2, md: 1.5, lg: 1.5 },
