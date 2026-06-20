@@ -1,8 +1,10 @@
 "use client"
 
-import { BUTTON_STYLES } from "@/lib/styles/buttons"
+import { IconButton } from "@/components/ui/IconButton"
+import { cn } from "@/lib/styles/cn"
 
-const TOOLTIP_CLASS = "pointer-events-none absolute -left-38 top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-black/80 border border-white/10 text-white/70 text-xs opacity-0 translate-x-2 transition duration-150 group-hover:opacity-100 group-hover:translate-x-0 max-lg:hidden"
+const TOOLTIP_CLASS =
+  "pointer-events-none absolute -left-40 top-1/2 -translate-y-1/2 translate-x-2 whitespace-nowrap rounded-lg border border-hairline bg-raised px-3 py-1.5 text-xs text-ink-muted opacity-0 transition duration-150 group-hover:translate-x-0 group-hover:opacity-100 max-lg:hidden"
 
 /**
  * Shared tooltip for ControlBar items.
@@ -10,23 +12,32 @@ const TOOLTIP_CLASS = "pointer-events-none absolute -left-38 top-1/2 -translate-
  */
 export function ControlBarTooltip({ label, className = "" }) {
   if (!label) return null
-  return <span className={`${TOOLTIP_CLASS} ${className}`}>{label}</span>
+  return <span className={cn(TOOLTIP_CLASS, className)}>{label}</span>
 }
 
 /**
- * Reusable ControlBar item with icon button + hover tooltip.
- * Eliminates the repeated tooltip pattern across all ControlBar buttons.
+ * ControlBar item: a kiosk-sized icon button + hover tooltip.
+ * `active` lights the button up in gold (e.g. strip mode on).
  */
-export function ControlBarItem({ onClick, icon, label, ariaLabel, className = "", children }) {
+export function ControlBarItem({
+  onClick,
+  icon,
+  label,
+  ariaLabel,
+  active = false,
+  className = "",
+  children,
+}) {
   return (
-    <div className="relative group">
-      <button
+    <div className="group relative">
+      <IconButton
         onClick={onClick}
-        className={`${BUTTON_STYLES.icon} ${className}`}
-        aria-label={ariaLabel || label}
+        active={active}
+        ariaLabel={ariaLabel || label}
+        className={className}
       >
         {icon}
-      </button>
+      </IconButton>
       <ControlBarTooltip label={label} />
       {children}
     </div>

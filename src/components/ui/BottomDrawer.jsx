@@ -32,15 +32,21 @@ export function BottomDrawer({
   }, [onClose, closing])
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") handleClose() }
+    const handler = (e) => {
+      if (e.key === "Escape") handleClose()
+    }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [handleClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={handleClose} role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end"
+      onClick={handleClose}
+      role="presentation"
+    >
       <div
-        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-ground/70 backdrop-blur-[2px]"
         style={{ opacity: closing ? 0 : 1, transition: `opacity ${ANIM_MS}ms ease-out` }}
       />
 
@@ -56,8 +62,14 @@ export function BottomDrawer({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`mb-4 flex flex-col items-center gap-3 ${showHeaderDivider ? drawerHeaderClass : "border-0"} border-0 pb-0`}>
-          <button onClick={handleClose} className="shrink-0 cursor-pointer rounded-full px-2 py-1" aria-label="Close">
+        <div
+          className={`mb-4 flex flex-col items-center gap-3 ${showHeaderDivider ? drawerHeaderClass : "border-0"} border-0 pb-0`}
+        >
+          <button
+            onClick={handleClose}
+            className="shrink-0 cursor-pointer rounded-full px-2 py-1"
+            aria-label="Close"
+          >
             <div className="mx-auto h-1.5 w-12 rounded-full bg-white/25" />
           </button>
 
@@ -70,7 +82,11 @@ export function BottomDrawer({
         </div>
 
         <div
-          className={fullHeight ? "min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y -mx-1 px-1" : ""}
+          className={
+            fullHeight
+              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y -mx-1 px-1"
+              : ""
+          }
           onClick={closeOnSelect ? handleClose : undefined}
         >
           {children}

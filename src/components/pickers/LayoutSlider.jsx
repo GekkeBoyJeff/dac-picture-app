@@ -3,39 +3,50 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { LAYOUTS, GESTURE_SWIPE_SNAP_THRESHOLD } from "@/lib/config"
 import { useOverlayStore, selectLayout } from "@/stores/overlayStore"
-
-function Block({ position, className }) {
-  const pos = { position: "absolute" }
-  if (position.includes("top")) pos.top = 6
-  if (position.includes("bottom")) pos.bottom = 6
-  if (position.includes("left")) pos.left = 6
-  if (position.includes("right")) pos.right = 6
-  if (position === "middle-right") {
-    pos.right = 6
-    pos.top = "50%"
-    pos.transform = "translateY(-50%)"
-  }
-  return <div className={className} style={pos} />
-}
+import { cn } from "@/lib/styles/cn"
+import { LayoutPreview } from "./LayoutPreview"
 
 function LayoutCard({ layout, isSelected, onClick }) {
   return (
-    <button onClick={onClick} className="shrink-0 cursor-pointer outline-none" style={{ width: CARD_W, padding: "0 8px" }}>
+    <button
+      onClick={onClick}
+      className="shrink-0 cursor-pointer outline-none"
+      style={{ width: CARD_W, padding: "0 8px" }}
+    >
       <div
-        className={`relative w-full aspect-[4/3] rounded-2xl overflow-hidden transition-all duration-300 ${
+        className={cn(
+          "relative rounded-2xl p-1 transition-all duration-300",
           isSelected
-            ? "bg-white/10 border-2 border-white shadow-[0_0_20px_rgba(255,255,255,0.15)] scale-100"
-            : "bg-white/[0.03] border-2 border-white/[0.06] scale-[0.88] opacity-50"
-        }`}
+            ? "scale-100 ring-2 ring-gold shadow-[0_0_24px_rgba(230,193,137,0.3)]"
+            : "scale-[0.88] opacity-50 ring-1 ring-hairline",
+        )}
       >
-        <Block position={layout.logo.position} className="w-4 h-4 rounded bg-white/50" />
-        <Block position={layout.qr.position} className="w-5 h-5 rounded bg-white/20" />
-        <Block position={layout.mascot.position} className="w-7 h-10 rounded bg-[#e6c189]/40" />
-        <Block position={layout.convention.position} className="w-9 h-4 rounded bg-red-400/30" />
+        <LayoutPreview layout={layout} size="lg" />
+        {isSelected && (
+          <span
+            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-linear-to-b from-gold-strong via-gold to-gold-deep text-[#1b1407] shadow-[0_0_14px_rgba(230,193,137,0.45)]"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+        )}
       </div>
-      <p className={`text-center text-sm mt-2 font-medium transition-all duration-300 ${
-        isSelected ? "text-white" : "text-white/30"
-      }`}>
+      <p
+        className={cn(
+          "mt-2 text-center text-sm font-medium transition-all duration-300",
+          isSelected ? "text-ink" : "text-ink-dim",
+        )}
+      >
         {layout.name}
       </p>
     </button>
@@ -51,7 +62,10 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
   const setLayoutId = useOverlayStore((s) => s.setLayoutId)
 
   const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.max(0, LAYOUTS.findIndex((l) => l.id === layout.id)),
+    Math.max(
+      0,
+      LAYOUTS.findIndex((l) => l.id === layout.id),
+    ),
   )
   const [touchDelta, setTouchDelta] = useState(0)
   const [isSnapping, setIsSnapping] = useState(false)
@@ -64,26 +78,37 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentIndex(Math.max(0, LAYOUTS.findIndex((l) => l.id === layout.id)))
+      setCurrentIndex(
+        Math.max(
+          0,
+          LAYOUTS.findIndex((l) => l.id === layout.id),
+        ),
+      )
     }
   }, [isOpen, layout.id])
 
-  const snapTo = useCallback((newIndex) => {
-    const clamped = Math.max(0, Math.min(LAYOUTS.length - 1, newIndex))
-    setIsSnapping(true)
-    setCurrentIndex(clamped)
-    setTouchDelta(0)
-    setLayoutId(LAYOUTS[clamped].id)
-    setTimeout(() => setIsSnapping(false), 300)
-  }, [setLayoutId])
+  const snapTo = useCallback(
+    (newIndex) => {
+      const clamped = Math.max(0, Math.min(LAYOUTS.length - 1, newIndex))
+      setIsSnapping(true)
+      setCurrentIndex(clamped)
+      setTouchDelta(0)
+      setLayoutId(LAYOUTS[clamped].id)
+      setTimeout(() => setIsSnapping(false), 300)
+    },
+    [setLayoutId],
+  )
 
   // --- Touch ---
-  const onTouchStart = useCallback((e) => {
-    if (isSnapping) return
-    touchStartRef.current = e.touches[0].clientX
-    isTouchActiveRef.current = true
-    setIsSnapping(false)
-  }, [isSnapping])
+  const onTouchStart = useCallback(
+    (e) => {
+      if (isSnapping) return
+      touchStartRef.current = e.touches[0].clientX
+      isTouchActiveRef.current = true
+      setIsSnapping(false)
+    },
+    [isSnapping],
+  )
 
   const onTouchMove = useCallback((e) => {
     if (!isTouchActiveRef.current || touchStartRef.current == null) return
@@ -107,22 +132,29 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
   }, [touchDelta, currentIndex, snapTo])
 
   // --- Pointer (mouse) ---
-  const onPointerDown = useCallback((e) => {
-    if (isSnapping || e.pointerType === "touch") return
-    touchStartRef.current = e.clientX
-    isTouchActiveRef.current = true
-    setIsSnapping(false)
-  }, [isSnapping])
+  const onPointerDown = useCallback(
+    (e) => {
+      if (isSnapping || e.pointerType === "touch") return
+      touchStartRef.current = e.clientX
+      isTouchActiveRef.current = true
+      setIsSnapping(false)
+    },
+    [isSnapping],
+  )
 
   const onPointerMove = useCallback((e) => {
-    if (!isTouchActiveRef.current || touchStartRef.current == null || e.pointerType === "touch") return
+    if (!isTouchActiveRef.current || touchStartRef.current == null || e.pointerType === "touch")
+      return
     setTouchDelta(e.clientX - touchStartRef.current)
   }, [])
 
-  const onPointerUp = useCallback((e) => {
-    if (e.pointerType === "touch") return
-    finishSwipe()
-  }, [finishSwipe])
+  const onPointerUp = useCallback(
+    (e) => {
+      if (e.pointerType === "touch") return
+      finishSwipe()
+    },
+    [finishSwipe],
+  )
 
   // --- Gesture swipe rAF ---
   useEffect(() => {
@@ -165,7 +197,10 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
       rafRef.current = requestAnimationFrame(animate)
     }
     rafRef.current = requestAnimationFrame(animate)
-    return () => { running = false; cancelAnimationFrame(rafRef.current) }
+    return () => {
+      running = false
+      cancelAnimationFrame(rafRef.current)
+    }
   }, [isOpen, currentIndex, snapTo, gestureSwipe])
 
   // Force a re-render once the strip ref is measured so centering is correct
@@ -187,28 +222,37 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-40 animate-fade-in">
-      <div className="relative pt-2 pb-6 bg-black/80 backdrop-blur-md border-t border-white/[0.06]">
-        <button onClick={onClose} className="w-full py-2 mb-1 shrink-0 cursor-pointer" aria-label="Sluiten">
-          <div className="w-10 h-1 rounded-full bg-white/30 mx-auto" />
+      <div className="relative border-t border-hairline bg-ground/85 pt-2 pb-6 backdrop-blur-md">
+        <button
+          onClick={onClose}
+          className="mb-1 w-full shrink-0 cursor-pointer py-2"
+          aria-label="Sluiten"
+        >
+          <div className="mx-auto h-1 w-10 rounded-full bg-ink-muted/40" />
         </button>
 
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <p className="text-white/40 text-xs font-medium tracking-wide uppercase">
+        <div className="mb-3 flex items-center justify-center gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
             Swipe om layout te kiezen
           </p>
           {closeSequence && (
             <>
-              <span className="text-white/20">|</span>
+              <span className="text-ink-dim">|</span>
               <div className="flex items-center gap-1">
                 {closeSequence.sequence.map((step, i) => (
-                  <span key={i} className={`text-sm ${
-                    closeSequence.isActiveRef.current && i < closeSequence.currentStepRef.current
-                      ? "opacity-100" : "opacity-40"
-                  }`}>
+                  <span
+                    key={i}
+                    className={cn(
+                      "text-sm",
+                      closeSequence.isActiveRef.current && i < closeSequence.currentStepRef.current
+                        ? "opacity-100"
+                        : "opacity-40",
+                    )}
+                  >
                     {STEP_ICONS[step]}
                   </span>
                 ))}
-                <span className="text-white/40 text-xs font-medium tracking-wide uppercase ml-1">
+                <span className="ml-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
                   = sluiten
                 </span>
               </div>
@@ -250,9 +294,10 @@ export function LayoutSlider({ isOpen, onClose, gestureSwipe, closeSequence }) {
           {LAYOUTS.map((l, idx) => (
             <div
               key={l.id}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                idx === currentIndex ? "w-4 bg-white" : "w-1 bg-white/20"
-              }`}
+              className={cn(
+                "h-1 rounded-full transition-all duration-300",
+                idx === currentIndex ? "w-4 bg-gold" : "w-1 bg-ink-muted/30",
+              )}
             />
           ))}
         </div>

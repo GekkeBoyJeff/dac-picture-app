@@ -1,12 +1,23 @@
 import { IMAGE, STRIP_CANVAS } from "@/lib/config"
 import {
-  loadStripAssets, drawDoodles,
-  drawSparkles, drawBrandingZone, drawQrTopRight, drawMascot,
+  loadStripAssets,
+  drawDoodles,
+  drawSparkles,
+  drawBrandingZone,
+  drawQrTopRight,
+  drawMascot,
 } from "./stripBranding"
 
 const {
-  WIDTH, HEIGHT, MARGIN_X, BG_COLOR, ACCENT_COLOR,
-  PHOTO_TOP, PHOTO_HEIGHT, PHOTO_GAP, BORDER_RADIUS,
+  WIDTH,
+  HEIGHT,
+  MARGIN_X,
+  BG_COLOR,
+  ACCENT_COLOR,
+  PHOTO_TOP,
+  PHOTO_HEIGHT,
+  PHOTO_GAP,
+  BORDER_RADIUS,
 } = STRIP_CANVAS
 
 /**
@@ -54,7 +65,10 @@ export async function compositeStrip(photoBlobs) {
     // Object-cover crop
     const imgAspect = img.naturalWidth / img.naturalHeight
     const cellAspect = cellW / PHOTO_HEIGHT
-    let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight
+    let srcX = 0,
+      srcY = 0,
+      srcW = img.naturalWidth,
+      srcH = img.naturalHeight
     if (imgAspect > cellAspect) {
       srcW = Math.round(img.naturalHeight * cellAspect)
       srcX = Math.round((img.naturalWidth - srcW) / 2)
@@ -92,8 +106,8 @@ export async function compositeStrip(photoBlobs) {
   // --- Outer border ---
   ctx.save()
   ctx.strokeStyle = ACCENT_COLOR
-  ctx.globalAlpha = 0.12
-  ctx.lineWidth = 1
+  ctx.globalAlpha = 0.22
+  ctx.lineWidth = 1.5
   ctx.beginPath()
   ctx.roundRect(6, 6, WIDTH - 12, HEIGHT - 12, 10)
   ctx.stroke()

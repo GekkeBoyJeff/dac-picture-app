@@ -5,10 +5,19 @@ import { useOverlayStore } from "@/stores/overlayStore"
 import { loadImage } from "./imageLoader"
 
 const {
-  WIDTH, HEIGHT, MARGIN_X, ACCENT_COLOR,
-  PHOTO_TOP, BRANDING_Y, LOGO_SIZE, QR_SIZE,
-  BORDER_RADIUS, MASCOT_MAX_HEIGHT, MASCOT_MAX_WIDTH,
-  CONVENTION_BANNER_MAX_H, CONVENTION_BANNER_MAX_W,
+  WIDTH,
+  HEIGHT,
+  MARGIN_X,
+  ACCENT_COLOR,
+  PHOTO_TOP,
+  BRANDING_Y,
+  LOGO_SIZE,
+  QR_SIZE,
+  BORDER_RADIUS,
+  MASCOT_MAX_HEIGHT,
+  MASCOT_MAX_WIDTH,
+  CONVENTION_BANNER_MAX_H,
+  CONVENTION_BANNER_MAX_W,
 } = STRIP_CANVAS
 
 // ---------------------------------------------------------------------------
@@ -46,8 +55,22 @@ function drawStar(ctx, cx, cy, outerR, innerR, points) {
 function drawHeart(ctx, cx, cy, size) {
   ctx.beginPath()
   ctx.moveTo(cx, cy + size * 0.3)
-  ctx.bezierCurveTo(cx - size * 0.5, cy - size * 0.3, cx - size, cy + size * 0.1, cx, cy + size * 0.8)
-  ctx.bezierCurveTo(cx + size, cy + size * 0.1, cx + size * 0.5, cy - size * 0.3, cx, cy + size * 0.3)
+  ctx.bezierCurveTo(
+    cx - size * 0.5,
+    cy - size * 0.3,
+    cx - size,
+    cy + size * 0.1,
+    cx,
+    cy + size * 0.8,
+  )
+  ctx.bezierCurveTo(
+    cx + size,
+    cy + size * 0.1,
+    cx + size * 0.5,
+    cy - size * 0.3,
+    cx,
+    cy + size * 0.3,
+  )
   ctx.closePath()
 }
 
@@ -250,14 +273,17 @@ export function drawBrandingZone(ctx, logo, conventionBanner) {
 // ---------------------------------------------------------------------------
 
 export function drawMascot(ctx, mascotImg) {
-  const scale = Math.min(MASCOT_MAX_WIDTH / mascotImg.naturalWidth, MASCOT_MAX_HEIGHT / mascotImg.naturalHeight)
+  const scale = Math.min(
+    MASCOT_MAX_WIDTH / mascotImg.naturalWidth,
+    MASCOT_MAX_HEIGHT / mascotImg.naturalHeight,
+  )
   const mW = mascotImg.naturalWidth * scale
   const mH = mascotImg.naturalHeight * scale
   const mX = WIDTH - MARGIN_X - mW + 12
   const mY = HEIGHT - 12 - mH
 
   ctx.save()
-  ctx.globalAlpha = 0.92
+  ctx.globalAlpha = 1
   ctx.drawImage(mascotImg, mX, mY, mW, mH)
   ctx.restore()
 }

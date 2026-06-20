@@ -3,7 +3,12 @@
 /* eslint-disable @next/next/no-img-element -- Native img is required for precise overlay DOM measurement used by compositePhoto. */
 import { memo, useSyncExternalStore } from "react"
 import { CORNERS, LOGO, QR_CODE } from "@/lib/config"
-import { useOverlayStore, selectLayout, selectMascot, selectActiveConvention } from "@/stores/overlayStore"
+import {
+  useOverlayStore,
+  selectLayout,
+  selectMascot,
+  selectActiveConvention,
+} from "@/stores/overlayStore"
 
 // ---------------------------------------------------------------------------
 // Breakpoint system — orientation-aware
@@ -47,7 +52,8 @@ function resolveOffset(offset, tier, orientation) {
   if (!offset) return { x: 0, y: 0 }
   if ("x" in offset || "y" in offset) return { x: offset.x ?? 0, y: offset.y ?? 0 }
   const resolved = bp(offset, tier, orientation)
-  if (resolved && ("x" in resolved || "y" in resolved)) return { x: resolved.x ?? 0, y: resolved.y ?? 0 }
+  if (resolved && ("x" in resolved || "y" in resolved))
+    return { x: resolved.x ?? 0, y: resolved.y ?? 0 }
   return { x: 0, y: 0 }
 }
 
@@ -56,11 +62,7 @@ function resolveOffset(offset, tier, orientation) {
 // ---------------------------------------------------------------------------
 
 function resolveMascotProp(layout, mascot, prop, tier, orientation) {
-  const sources = [
-    layout.mascotOverrides?.[mascot.id],
-    mascot.defaults,
-    layout.mascot,
-  ]
+  const sources = [layout.mascotOverrides?.[mascot.id], mascot.defaults, layout.mascot]
 
   for (const source of sources) {
     if (!source || source[prop] === undefined) continue
@@ -164,10 +166,21 @@ export const Overlays = memo(function Overlays() {
   return (
     <>
       {/* Vignettes */}
-      <div data-overlay="vignette-radial" className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)" }} />
-      <div data-overlay="vignette-bottom" className="absolute bottom-0 left-0 right-0 h-[45%] pointer-events-none bg-linear-to-t from-black/50 via-black/20 to-transparent" />
-      <div data-overlay="vignette-top" className="absolute top-0 left-0 right-0 h-[20%] pointer-events-none bg-linear-to-b from-black/40 to-transparent" />
+      <div
+        data-overlay="vignette-radial"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)",
+        }}
+      />
+      <div
+        data-overlay="vignette-bottom"
+        className="absolute bottom-0 left-0 right-0 h-[45%] pointer-events-none bg-linear-to-t from-black/50 via-black/20 to-transparent"
+      />
+      <div
+        data-overlay="vignette-top"
+        className="absolute top-0 left-0 right-0 h-[20%] pointer-events-none bg-linear-to-b from-black/40 to-transparent"
+      />
 
       {/* Corners */}
       {CORNERS.map((c) => {
@@ -178,14 +191,26 @@ export const Overlays = memo(function Overlays() {
         if (c.position.includes("left")) style.left = rem(inset + cornerOffset.x)
         if (c.position.includes("right")) style.right = rem(inset + cornerOffset.x)
         return (
-          <img key={c.src} src={c.src} alt="" data-overlay="corner" data-image-type="corner" draggable={false}
-            className="absolute pointer-events-none" style={style} />
+          <img
+            key={c.src}
+            src={c.src}
+            alt=""
+            data-overlay="corner"
+            data-image-type="corner"
+            draggable={false}
+            className="absolute pointer-events-none"
+            style={style}
+          />
         )
       })}
 
       {/* Logo */}
       <img
-        src={LOGO.src} alt="" data-overlay="image" data-image-type="logo" draggable={false}
+        src={LOGO.src}
+        alt=""
+        data-overlay="image"
+        data-image-type="logo"
+        draggable={false}
         className="pointer-events-none"
         style={positionStyle({
           position: layout.logo.position,
@@ -198,7 +223,11 @@ export const Overlays = memo(function Overlays() {
 
       {/* Mascot */}
       <img
-        src={mascot.path} alt="" data-overlay="image" data-image-type="mascot" draggable={false}
+        src={mascot.path}
+        alt=""
+        data-overlay="image"
+        data-image-type="mascot"
+        draggable={false}
         className="pointer-events-none"
         style={positionStyle({
           position: mascotPosition,
@@ -213,13 +242,19 @@ export const Overlays = memo(function Overlays() {
       {/* Convention banner */}
       {activeConvention && (
         <img
-          src={activeConvention.bannerPath} alt="" data-overlay="image" data-image-type="convention" draggable={false}
+          src={activeConvention.bannerPath}
+          alt=""
+          data-overlay="image"
+          data-image-type="convention"
+          draggable={false}
           className="pointer-events-none"
           style={positionStyle({
             position: layout.convention.position,
             inset,
             size: bp(activeConvention.sizes, tier, orientation),
-            offset: resolveOffset(activeConvention.offset, tier, orientation) ?? resolveOffset(layout.convention.offset, tier, orientation),
+            offset:
+              resolveOffset(activeConvention.offset, tier, orientation) ??
+              resolveOffset(layout.convention.offset, tier, orientation),
             opacity: activeConvention.opacity,
           })}
         />
@@ -240,13 +275,19 @@ export const Overlays = memo(function Overlays() {
           className="text-white/90 font-semibold tracking-[0.15em] uppercase leading-tight"
           style={{ fontSize: rem(titleFontSize) }}
         >
-          Dutch Anime<br />Community
+          Dutch Anime
+          <br />
+          Community
         </span>
       </div>
 
       {/* QR code */}
       <img
-        src={QR_CODE.src} alt="" data-overlay="qr" data-image-type="qr" draggable={false}
+        src={QR_CODE.src}
+        alt=""
+        data-overlay="qr"
+        data-image-type="qr"
+        draggable={false}
         className="pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
         style={positionStyle({
           position: layout.qr.position,
@@ -261,8 +302,11 @@ export const Overlays = memo(function Overlays() {
       {/* Date stamp */}
       <span
         data-overlay="date"
-        className="absolute text-white/70 font-mono pointer-events-none z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] left-1/2 -translate-x-1/2"
-        style={{ bottom: `${bp(layout.date.bottomPercent, tier, orientation)}%`, fontSize: rem(bp(layout.date.fontSize, tier, orientation)) }}
+        className="absolute left-1/2 z-10 -translate-x-1/2 pointer-events-none font-medium tracking-wide text-white/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]"
+        style={{
+          bottom: `${bp(layout.date.bottomPercent, tier, orientation)}%`,
+          fontSize: rem(bp(layout.date.fontSize, tier, orientation)),
+        }}
       >
         {new Date().toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" })}
       </span>

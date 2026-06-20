@@ -45,20 +45,24 @@ export function GestureIndicator({ gesture, holdProgressRef }) {
   const { emoji, label } = GESTURE_CONFIG[gesture]
 
   return (
-    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
+    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-full bg-surface/90 backdrop-blur-md border border-gold/55">
       <div className="relative w-9 h-9 flex items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 36 36">
           <circle
-            cx="18" cy="18" r="15"
+            cx="18"
+            cy="18"
+            r="15"
             fill="none"
-            stroke="rgba(255,255,255,0.15)"
+            stroke="rgba(245,241,232,0.12)"
             strokeWidth="3"
           />
           <circle
             ref={circleRef}
-            cx="18" cy="18" r="15"
+            cx="18"
+            cy="18"
+            r="15"
             fill="none"
-            stroke="white"
+            stroke="#e6c189"
             strokeWidth="3"
             strokeLinecap="round"
             strokeDasharray={`0 ${CIRCUMFERENCE}`}
@@ -66,7 +70,7 @@ export function GestureIndicator({ gesture, holdProgressRef }) {
         </svg>
         <span className="text-xl">{emoji}</span>
       </div>
-      <span className="text-white text-sm font-medium">{label}</span>
+      <span className="text-ink text-sm font-medium">{label}</span>
     </div>
   )
 }

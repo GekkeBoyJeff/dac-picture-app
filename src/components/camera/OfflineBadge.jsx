@@ -16,13 +16,15 @@ export function OfflineBadge() {
 
   return (
     <div
-      className={`absolute top-4 left-4 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm ${
-        isOffline ? "bg-red-600/80" : "bg-amber-600/80"
+      className={`absolute left-4 top-4 z-30 flex items-center gap-2 rounded-full border px-3.5 py-2 backdrop-blur-md ${
+        isOffline ? "border-danger/40 bg-danger/15" : "border-warning/40 bg-warning/15"
       }`}
     >
-      <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-      <span className="text-white text-xs font-medium">
-        {isOffline ? "Geen internet" : `Sloom internet (${queueLength} in wachtrij)`}
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${isOffline ? "bg-danger" : "bg-warning"} animate-pulse`}
+      />
+      <span className="text-xs font-medium text-ink">
+        {isOffline ? "Geen internet" : `Traag internet (${queueLength} in wachtrij)`}
       </span>
     </div>
   )

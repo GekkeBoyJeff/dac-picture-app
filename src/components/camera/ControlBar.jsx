@@ -1,9 +1,18 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { FullscreenIcon, DownloadIcon, GridIcon, MascotIcon, LayoutIcon, CameraSwitchIcon, SettingsIcon, WifiOffIcon, StripIcon } from "@/components/ui/icons"
+import {
+  FullscreenIcon,
+  DownloadIcon,
+  GridIcon,
+  MascotIcon,
+  LayoutIcon,
+  CameraSwitchIcon,
+  SettingsIcon,
+  WifiOffIcon,
+  StripIcon,
+} from "@/components/ui/icons"
 import { ControlBarItem, ControlBarTooltip } from "@/components/ui/ControlBarItem"
-import { BUTTON_STYLES } from "@/lib/styles/buttons"
 import { useCameraStore } from "@/stores/cameraStore"
 import { useUiStore } from "@/stores/uiStore"
 import { useGalleryStore } from "@/stores/galleryStore"
@@ -31,24 +40,26 @@ export function ControlBar({ canInstall, onInstall, switchCamera }) {
   const toggleCameraMenu = useCallback(() => setCameraMenuOpen((v) => !v), [])
 
   return (
-    <div className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 max-lg:landscape:right-auto max-lg:landscape:top-auto max-lg:landscape:translate-y-0 max-lg:landscape:bottom-3 max-lg:landscape:left-1/2 max-lg:landscape:-translate-x-1/2 max-lg:landscape:flex-row z-10">
+    <div className="pointer-events-auto absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2.5 max-lg:landscape:bottom-3 max-lg:landscape:left-1/2 max-lg:landscape:right-auto max-lg:landscape:top-auto max-lg:landscape:-translate-x-1/2 max-lg:landscape:translate-y-0 max-lg:landscape:flex-row">
       {!isOnline && (
-        <div className="relative group">
-          <div className={`${BUTTON_STYLES.icon} border-amber-400/40 bg-amber-400/10`} aria-label="Offline">
-            <WifiOffIcon className="w-5 h-5 text-amber-400/80" />
+        <div className="group relative">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-warning/40 bg-warning/12 backdrop-blur-md"
+            aria-label="Offline"
+          >
+            <WifiOffIcon className="h-5 w-5 text-warning" />
           </div>
-          <ControlBarTooltip label="Geen verbinding" className="text-amber-400/80" />
+          <ControlBarTooltip label="Geen verbinding" className="text-warning" />
         </div>
       )}
 
       <ControlBarItem
         onClick={() => openModal("gallery")}
-        icon={<GridIcon className="w-5 h-5 text-white/70" />}
+        icon={<GridIcon className="h-5 w-5" />}
         label="Gallerij openen"
-        className="relative"
       >
         {galleryCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/30 backdrop-blur-sm text-white text-[0.625rem] flex items-center justify-center font-medium pointer-events-none">
+          <span className="pointer-events-none absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-[0.625rem] font-bold text-[#1b1407]">
             {galleryCount}
           </span>
         )}
@@ -56,46 +67,49 @@ export function ControlBar({ canInstall, onInstall, switchCamera }) {
 
       <ControlBarItem
         onClick={() => openModal("mascotPicker")}
-        icon={<MascotIcon className="w-5 h-5 text-white/70" />}
+        icon={<MascotIcon className="h-5 w-5" />}
         label="Mascotte kiezen"
       />
 
       <ControlBarItem
         onClick={() => openModal("layoutSlider")}
-        icon={<LayoutIcon className="w-5 h-5 text-white/70" />}
+        icon={<LayoutIcon className="h-5 w-5" />}
         label="Layout kiezen"
       />
 
       <ControlBarItem
         onClick={toggleStripMode}
-        icon={<StripIcon className={`w-5 h-5 ${stripModeEnabled ? "text-violet-400" : "text-white/70"}`} />}
+        active={stripModeEnabled}
+        icon={<StripIcon className="h-5 w-5" />}
         label={stripModeEnabled ? "Strip mode uit" : "Strip mode aan"}
-        className={stripModeEnabled ? "border-violet-400/50 bg-violet-400/15 shadow-[0_0_0_1px_rgba(139,92,246,0.25)]" : ""}
       />
 
       {devices.length > 0 && (
         <div className="relative">
           <ControlBarItem
             onClick={toggleCameraMenu}
-            icon={<CameraSwitchIcon className="w-6 h-6 text-white/70" />}
+            icon={<CameraSwitchIcon className="h-6 w-6" />}
             label="Camera wisselen"
           />
 
           <div
-            className={`absolute right-12 top-0 max-lg:landscape:right-auto max-lg:landscape:left-0 max-lg:landscape:top-auto max-lg:landscape:bottom-12 min-w-48 rounded-xl bg-black/90 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden transition-all duration-200 origin-right max-lg:landscape:origin-bottom ${
+            className={`absolute right-14 top-0 min-w-48 origin-right overflow-hidden rounded-2xl border border-hairline bg-raised shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all duration-200 max-lg:landscape:bottom-14 max-lg:landscape:left-0 max-lg:landscape:right-auto max-lg:landscape:top-auto max-lg:landscape:origin-bottom ${
               cameraMenuOpen
-                ? "opacity-100 scale-100 pointer-events-auto"
-                : "opacity-0 scale-95 pointer-events-none"
+                ? "scale-100 opacity-100 pointer-events-auto"
+                : "scale-95 opacity-0 pointer-events-none"
             }`}
           >
             {devices.map((device) => (
               <button
                 key={device.deviceId}
-                onClick={() => { switchCamera?.(device.deviceId); setCameraMenuOpen(false) }}
-                className={`w-full px-4 py-3 text-left text-sm transition-colors cursor-pointer ${
+                onClick={() => {
+                  switchCamera?.(device.deviceId)
+                  setCameraMenuOpen(false)
+                }}
+                className={`w-full cursor-pointer px-4 py-3 text-left text-sm transition-colors ${
                   device.deviceId === selectedDeviceId
-                    ? "bg-white/15 text-white font-medium"
-                    : "text-white/70 hover:bg-white/10"
+                    ? "bg-gold/15 font-medium text-gold-strong"
+                    : "text-ink-muted hover:bg-surface hover:text-ink"
                 }`}
               >
                 {device.label}
@@ -108,7 +122,7 @@ export function ControlBar({ canInstall, onInstall, switchCamera }) {
       {canInstall && (
         <ControlBarItem
           onClick={onInstall}
-          icon={<DownloadIcon className="w-5 h-5 text-white/70" />}
+          icon={<DownloadIcon className="h-5 w-5" />}
           label="App installeren"
         />
       )}
@@ -116,14 +130,14 @@ export function ControlBar({ canInstall, onInstall, switchCamera }) {
       <div className="hidden md:block">
         <ControlBarItem
           onClick={toggleFullscreen}
-          icon={<FullscreenIcon className="w-5 h-5 text-white/70" />}
+          icon={<FullscreenIcon className="h-5 w-5" />}
           label="Fullscreen"
         />
       </div>
 
       <ControlBarItem
         onClick={() => openModal("settings")}
-        icon={<SettingsIcon className="w-5 h-5 text-white/70" />}
+        icon={<SettingsIcon className="h-5 w-5" />}
         label="Instellingen"
       />
     </div>

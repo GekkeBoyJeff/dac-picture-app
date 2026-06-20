@@ -39,9 +39,10 @@ export function drawDate(ctx, el, containerRect, scaleX, scaleY) {
   const y = measured.y
 
   ctx.save()
-  ctx.globalAlpha = parseFloat(style.opacity) || 0.7
-  ctx.font = `${fontSize}px 'Courier New', monospace`
+  ctx.globalAlpha = parseFloat(style.opacity) || 0.8
+  ctx.font = `500 ${fontSize}px Arial, sans-serif`
   ctx.fillStyle = "white"
+  ctx.letterSpacing = `${parseFloat(style.letterSpacing || "0") * scaleX}px`
   ctx.shadowColor = "rgba(0,0,0,0.9)"
   ctx.shadowBlur = 4 * Math.min(scaleX, scaleY)
   ctx.fillText(text, x, y + fontSize)
