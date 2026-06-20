@@ -1,11 +1,21 @@
-import { Geist } from "next/font/google"
+import { Inter, Space_Grotesk } from "next/font/google"
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar"
 import { assetPath } from "@/lib/config/basePath"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body / UI — legible at distance for a kiosk.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+})
+
+// Display — characterful but premium; carries the personality.
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
 })
 
 /** @type {import('next').Viewport} */
@@ -50,8 +60,8 @@ export const metadata = {
 }
 
 const RootLayout = ({ children }) => (
-  <html lang="nl" className={`${geistSans.variable} h-full antialiased`}>
-    <body className="h-full bg-black text-white overflow-hidden">
+  <html lang="nl" className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+    <body className="h-full overflow-hidden bg-ground text-ink">
       <ServiceWorkerRegistrar />
       {children}
     </body>

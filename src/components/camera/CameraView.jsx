@@ -8,8 +8,10 @@ import { AttractOverlay } from "./AttractOverlay"
 import { StripFrameOverlay } from "@/components/capture/StripFrameOverlay"
 import { GestureIndicator } from "@/components/gestures/GestureIndicator"
 import { GestureSequenceHint } from "@/components/gestures/GestureSequenceHint"
+import { GestureCaptureHint } from "@/components/gestures/GestureCaptureHint"
 import { HandBox } from "@/components/gestures/HandBox"
 import { CameraIssueOverlay } from "./CameraIssueOverlay"
+import { TopNotice } from "./TopNotice"
 import { ANIMATION_DELAYS } from "@/lib/styles/animations"
 import { BOOT_STAGES, useBootStore } from "@/stores/bootStore"
 import { useCameraStore } from "@/stores/cameraStore"
@@ -29,13 +31,24 @@ const RECALIBRATE_MESSAGES = [
 ]
 
 export function CameraView({
-  videoRef, containerRef, onCapture, switchCamera,
-  canInstall, onInstall,
-  cameraError, cameraDeviceCount, onRetryCamera,
-  activeGesture, handBoxes, gestureBoxes, holdProgressRef,
-  gestureSequenceOpen, gestureSequenceClose,
+  videoRef,
+  containerRef,
+  onCapture,
+  switchCamera,
+  canInstall,
+  onInstall,
+  cameraError,
+  cameraDeviceCount,
+  onRetryCamera,
+  activeGesture,
+  handBoxes,
+  gestureBoxes,
+  holdProgressRef,
+  gestureSequenceOpen,
+  gestureSequenceClose,
   showAttract,
-  stripPhotos, stripIsActive,
+  stripPhotos,
+  stripIsActive,
 }) {
   const isReady = useCameraStore((s) => s.isReady)
   const isRecalibrating = useCameraStore((s) => s.isRecalibrating)
@@ -57,7 +70,7 @@ export function CameraView({
   }
 
   return (
-    <main className="flex items-center justify-center w-dvw h-dvh bg-black max-w-480 mx-auto">
+    <main className="mx-auto flex h-dvh w-dvw max-w-480 items-center justify-center bg-ground">
       <div
         ref={containerRef}
         className={`relative overflow-hidden w-dvw h-dvh transition-all duration-500 ease-in-out ${containerExtra}`}
@@ -75,9 +88,17 @@ export function CameraView({
 
         {(isReady || isSwitching || isRecalibrating) && (
           <>
-            <div className="absolute inset-0 animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.overlays }}>
+            <div
+              className="absolute inset-0 animate-pop-in"
+              style={{ animationDelay: ANIMATION_DELAYS.cameraView.overlays }}
+            >
               <Overlays />
             </div>
+
+            {/* Top island — Discord invite, morphs to a "come closer" nudge */}
+            {!showStripFrame && !showLayoutSlider && (
+              <TopNotice handsDetected={handBoxes?.length > 0} activeGesture={activeGesture} />
+            )}
 
             {/* Strip frame overlay — always mounted, transitions in/out */}
             <StripFrameOverlay
@@ -90,42 +111,77 @@ export function CameraView({
             />
 
             {/* Debug hand tracking boxes — hide in strip mode (coords are full-screen) */}
-            {debugEnabled && !showStripFrame && handBoxes?.map((box) => (
-              <HandBox key={`track-${box.index}-${box.x}-${box.y}`} box={box} videoRef={videoRef} containerRef={containerRef} />
-            ))}
-            {debugEnabled && !showLayoutSlider && !showStripFrame && gestureBoxes?.map((box) => (
-              <HandBox
-                key={`gesture-${box.index}-${box.x}-${box.y}`}
-                box={box}
-                videoRef={videoRef}
-                containerRef={containerRef}
-                borderColor="rgba(56,189,248,0.8)"
-                glowColor="rgba(56,189,248,0.45)"
-                outlineColor="rgba(56,189,248,0.35)"
-              />
-            ))}
+            {debugEnabled &&
+              !showStripFrame &&
+              handBoxes?.map((box) => (
+                <HandBox
+                  key={`track-${box.index}`}
+                  box={box}
+                  videoRef={videoRef}
+                  containerRef={containerRef}
+                />
+              ))}
+            {debugEnabled &&
+              !showLayoutSlider &&
+              !showStripFrame &&
+              gestureBoxes?.map((box) => (
+                <HandBox
+                  key={`gesture-${box.index}`}
+                  box={box}
+                  videoRef={videoRef}
+                  containerRef={containerRef}
+                  borderColor="rgba(56,189,248,0.8)"
+                  glowColor="rgba(56,189,248,0.45)"
+                  outlineColor="rgba(56,189,248,0.35)"
+                />
+              ))}
 
             {/* Gesture feedback — in strip mode this moves into the strip frame */}
             {!showStripFrame && (
               <GestureIndicator gesture={activeGesture} holdProgressRef={holdProgressRef} />
             )}
+            {!showStripFrame && !showLayoutSlider && <GestureCaptureHint active={!showAttract} />}
             <GestureSequenceHint
-              isActive={showLayoutSlider ? gestureSequenceClose?.isActiveRef?.current : gestureSequenceOpen?.isActiveRef?.current}
-              currentStep={showLayoutSlider ? gestureSequenceClose?.currentStepRef?.current : gestureSequenceOpen?.currentStepRef?.current}
-              sequence={showLayoutSlider ? gestureSequenceClose?.sequence : gestureSequenceOpen?.sequence}
+              isActive={
+                showLayoutSlider
+                  ? gestureSequenceClose?.isActiveRef?.current
+                  : gestureSequenceOpen?.isActiveRef?.current
+              }
+              currentStep={
+                showLayoutSlider
+                  ? gestureSequenceClose?.currentStepRef?.current
+                  : gestureSequenceOpen?.currentStepRef?.current
+              }
+              sequence={
+                showLayoutSlider ? gestureSequenceClose?.sequence : gestureSequenceOpen?.sequence
+              }
             />
 
-            <div className="absolute inset-0 pointer-events-none z-30 animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.captureButton }}>
+            <div
+              className="absolute inset-0 pointer-events-none z-30 animate-pop-in"
+              style={{ animationDelay: ANIMATION_DELAYS.cameraView.captureButton }}
+            >
               <CaptureButton onCapture={onCapture} />
             </div>
-            <div className="absolute inset-0 pointer-events-none z-30 animate-pop-in" style={{ animationDelay: ANIMATION_DELAYS.cameraView.controlBar }}>
-              <ControlBar switchCamera={switchCamera} canInstall={canInstall} onInstall={onInstall} />
+            <div
+              className="absolute inset-0 pointer-events-none z-30 animate-pop-in"
+              style={{ animationDelay: ANIMATION_DELAYS.cameraView.controlBar }}
+            >
+              <ControlBar
+                switchCamera={switchCamera}
+                canInstall={canInstall}
+                onInstall={onInstall}
+              />
             </div>
           </>
         )}
 
         {(bootStage === BOOT_STAGES.ERROR || cameraError) && cameraError && !isReady && (
-          <CameraIssueOverlay error={cameraError} deviceCount={cameraDeviceCount} onRetry={onRetryCamera} />
+          <CameraIssueOverlay
+            error={cameraError}
+            deviceCount={cameraDeviceCount}
+            onRetry={onRetryCamera}
+          />
         )}
         <StatusOverlay visible={isRecalibrating} messages={RECALIBRATE_MESSAGES} />
         <StatusOverlay visible={isSwitching} messages="Camera wisselen..." />

@@ -5,9 +5,9 @@ import { playShutter } from "@/lib/audio"
 
 const SAMPLE_SIZE = 8
 const BRIGHTNESS_JUMP = 0.12 // absolute luminance increase to detect flash
-const BRIGHT_BASELINE = 0.7  // above this, screen flash won't register — skip polling
-const MAX_WAIT_MS = 300       // safety fallback if detection fails
-const FIXED_DELAY_MS = 150    // delay when polling is skipped
+const BRIGHT_BASELINE = 0.7 // above this, screen flash won't register — skip polling
+const MAX_WAIT_MS = 300 // safety fallback if detection fails
+const FIXED_DELAY_MS = 150 // delay when polling is skipped
 
 function sampleBrightness(video, ctx) {
   ctx.drawImage(video, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE)
@@ -74,10 +74,16 @@ export function FlashEffect({ videoRef, onCapture, onComplete }) {
 
     const poll = () => {
       if (capturedRef.current) return
-      if (performance.now() - start > MAX_WAIT_MS) { fire(); return }
+      if (performance.now() - start > MAX_WAIT_MS) {
+        fire()
+        return
+      }
 
       const brightness = sampleBrightness(video, ctx)
-      if (brightness - baseline > BRIGHTNESS_JUMP) { fire(); return }
+      if (brightness - baseline > BRIGHTNESS_JUMP) {
+        fire()
+        return
+      }
 
       rafId = requestAnimationFrame(poll)
     }
@@ -102,6 +108,13 @@ export function FlashEffect({ videoRef, onCapture, onComplete }) {
   return (
     <div
       className={`fixed inset-0 z-50 bg-white pointer-events-none ${fading ? "animate-flash" : ""}`}
+      style={{
+        // Physically-correct white flash with a soft warm bloom from the centre.
+        backgroundImage:
+          "radial-gradient(circle at 50% 50%, #ffffff 0%, #ffffff 55%, rgba(255,250,238,0.92) 100%)",
+        transform: fading ? "scale(1)" : "scale(1.04)",
+        transition: "transform 0.4s ease-out",
+      }}
       onAnimationEnd={handleDone}
     />
   )

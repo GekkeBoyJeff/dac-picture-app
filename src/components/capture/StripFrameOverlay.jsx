@@ -8,15 +8,31 @@ import { GestureIndicator } from "@/components/gestures/GestureIndicator"
 const BG = "#0a0a0a"
 const FRAME_RATIO = `${STRIP_CANVAS.WIDTH - STRIP_CANVAS.MARGIN_X * 2} / ${STRIP_CANVAS.PHOTO_HEIGHT}`
 
-const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoURL, attachStream, isMirrored, activeGesture, holdProgressRef }) {
+const FrameContent = memo(function FrameContent({
+  isCaptured,
+  isCurrent,
+  photoURL,
+  attachStream,
+  isMirrored,
+  activeGesture,
+  holdProgressRef,
+}) {
   if (isCaptured && photoURL) {
-    // eslint-disable-next-line @next/next/no-img-element -- Blob URLs are rendered directly for captured strip frames.
-    return <img src={photoURL} className="w-full h-full object-cover animate-strip-photo-land" alt="" />
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- Blob URLs are rendered directly for captured strip frames.
+      <img src={photoURL} className="w-full h-full object-cover animate-strip-photo-land" alt="" />
+    )
   }
   if (isCurrent) {
     return (
       <>
-        <video ref={attachStream} autoPlay playsInline muted className={`w-full h-full object-cover ${isMirrored ? "-scale-x-100" : ""}`} />
+        <video
+          ref={attachStream}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-cover ${isMirrored ? "-scale-x-100" : ""}`}
+        />
         <div className="absolute inset-0 flex items-start justify-center pt-3 z-10">
           <GestureIndicator gesture={activeGesture} holdProgressRef={holdProgressRef} />
         </div>
@@ -31,7 +47,14 @@ const FrameContent = memo(function FrameContent({ isCaptured, isCurrent, photoUR
  * Portrait: 9:16 stacked frames.
  * Landscape: full-screen carousel, one frame at a time.
  */
-export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visible, activeGesture, holdProgressRef }) {
+export function StripFrameOverlay({
+  videoRef,
+  stripPhotos = [],
+  isActive,
+  visible,
+  activeGesture,
+  holdProgressRef,
+}) {
   const count = stripPhotos.length
   const isMirrored = useCameraStore((s) => s.isMirrored)
   const [isLandscape, setIsLandscape] = useState(() => {
@@ -49,12 +72,15 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
 
   // Attach camera stream to the live preview video element
   const liveVideoRef = useRef(null)
-  const attachStream = useCallback((el) => {
-    liveVideoRef.current = el
-    if (el && videoRef?.current?.srcObject) {
-      el.srcObject = videoRef.current.srcObject
-    }
-  }, [videoRef])
+  const attachStream = useCallback(
+    (el) => {
+      liveVideoRef.current = el
+      if (el && videoRef?.current?.srcObject) {
+        el.srcObject = videoRef.current.srcObject
+      }
+    },
+    [videoRef],
+  )
 
   // Update srcObject when camera switches (without re-rendering every frame)
   useEffect(() => {
@@ -97,18 +123,18 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
 
   // Progress dots
   const progressDots = (
-    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/6 border border-[#e6c189]/15">
+    <div className="flex items-center gap-2 rounded-full border border-gold/20 bg-surface/70 px-4 py-1.5 backdrop-blur-md">
       <div className="flex gap-1.5">
         {Array.from({ length: STRIP_PHOTO_COUNT }, (_, i) => (
           <div
             key={i}
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              i < count ? "bg-[#e6c189]" : "bg-white/20"
+            className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
+              i < count ? "bg-gold" : "bg-ink/20"
             }`}
           />
         ))}
       </div>
-      <span className="text-[#e6c189]/70 text-xs font-mono">
+      <span className="font-mono text-xs text-gold/80">
         {count}/{STRIP_PHOTO_COUNT}
       </span>
     </div>
@@ -140,11 +166,12 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
                   className="relative w-full max-h-full rounded-2xl overflow-hidden"
                   style={{
                     aspectRatio: "16 / 9",
-                    border: i === activeIndex
-                      ? "0.125rem solid rgba(230,193,137,0.25)"
-                      : i < count
-                        ? "0.09375rem solid rgba(230,193,137,0.15)"
-                        : "0.09375rem solid rgba(255,255,255,0.06)",
+                    border:
+                      i === activeIndex
+                        ? "0.125rem solid rgba(230,193,137,0.25)"
+                        : i < count
+                          ? "0.09375rem solid rgba(230,193,137,0.15)"
+                          : "0.09375rem solid rgba(255,255,255,0.06)",
                   }}
                 >
                   {renderFrame(i)}
@@ -154,9 +181,16 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
           </div>
 
           {/* Progress — bottom center */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 transition-opacity duration-500" style={{ opacity: visible ? 1 : 0 }}>
-            {isActive ? progressDots : (
-              <span className="text-white/20 text-[0.65rem] font-medium tracking-[0.15em] uppercase">Strip</span>
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 transition-opacity duration-500"
+            style={{ opacity: visible ? 1 : 0 }}
+          >
+            {isActive ? (
+              progressDots
+            ) : (
+              <span className="text-[0.65rem] font-medium uppercase tracking-[0.15em] text-ink-dim">
+                Strip
+              </span>
             )}
           </div>
         </div>
@@ -200,10 +234,18 @@ export function StripFrameOverlay({ videoRef, stripPhotos = [], isActive, visibl
           {/* Bottom status */}
           <div
             className="shrink-0 flex items-center justify-center py-1 transition-opacity duration-500 ease-in-out"
-            style={{ minHeight: "2.5rem", opacity: visible ? 1 : 0, transitionDelay: visible ? "0.3s" : "0s" }}
+            style={{
+              minHeight: "2.5rem",
+              opacity: visible ? 1 : 0,
+              transitionDelay: visible ? "0.3s" : "0s",
+            }}
           >
-            {isActive ? progressDots : (
-              <span className="text-white/20 text-[0.65rem] font-medium tracking-[0.15em] uppercase">Strip</span>
+            {isActive ? (
+              progressDots
+            ) : (
+              <span className="text-[0.65rem] font-medium uppercase tracking-[0.15em] text-ink-dim">
+                Strip
+              </span>
             )}
           </div>
         </div>

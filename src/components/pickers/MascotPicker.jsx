@@ -1,6 +1,7 @@
 import Image from "next/image"
 import { MASCOTS } from "@/lib/config"
 import { useOverlayStore, selectMascot } from "@/stores/overlayStore"
+import { cn } from "@/lib/styles/cn"
 import { PickerDrawer } from "./PickerDrawer"
 
 export function MascotPicker({ onClose }) {
@@ -19,24 +20,28 @@ export function MascotPicker({ onClose }) {
       getOptionKey={(item) => item.id}
       getOptionLabel={(item) => item.name}
       renderOption={(item, isSelected) => (
-        <div className={`relative w-full max-w-[9rem] overflow-hidden rounded-lg border ${isSelected ? "border-white/35 bg-white/[0.08]" : "border-white/10 bg-white/[0.03]"}`}>
-          <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(230,193,137,0.12),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)] p-4">
-            <Image
-              src={item.thumbnail}
-              alt={item.name}
-              width={80}
-              height={80}
-              sizes="80px"
-              loading="eager"
-              unoptimized
-              className={`h-20 w-20 object-contain transition-transform duration-300 ${isSelected ? "scale-105" : "scale-100"}`}
-              draggable={false}
-            />
-          </div>
-          <div className="border-t border-white/10 px-3 py-2 text-center">
-            <p className="text-[0.65rem] uppercase tracking-[0.18em] text-white/45">Overlay</p>
-            <p className="mt-1 text-xs font-medium text-white/80">{isSelected ? "Actief" : "Kies deze"}</p>
-          </div>
+        <div
+          className={cn(
+            "relative flex w-full max-w-40 items-center justify-center overflow-hidden rounded-2xl border p-5 transition-all duration-300",
+            isSelected
+              ? "border-gold/55 bg-[radial-gradient(circle_at_center,rgba(230,193,137,0.28),transparent_65%)]"
+              : "border-hairline bg-[radial-gradient(circle_at_top,rgba(230,193,137,0.1),transparent_60%)]",
+          )}
+        >
+          <Image
+            src={item.thumbnail}
+            alt={item.name}
+            width={104}
+            height={104}
+            sizes="104px"
+            loading="eager"
+            unoptimized
+            className={cn(
+              "h-24 w-24 object-contain transition-transform duration-300",
+              isSelected ? "scale-110" : "scale-100",
+            )}
+            draggable={false}
+          />
         </div>
       )}
     />

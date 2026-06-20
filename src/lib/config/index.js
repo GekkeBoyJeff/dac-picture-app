@@ -60,6 +60,9 @@ export const STRIP_CANVAS = {
 // --- Gesture sequences ---
 export const GESTURE_SEQUENCE_OPEN = ["Open_Palm", "Closed_Fist", "Open_Palm", "Closed_Fist"]
 export const GESTURE_SEQUENCE_CLOSE = ["Open_Palm", "Closed_Fist"]
+// Strip-mode toggle. Starts with Thumb_Up so it can never co-trigger the
+// Open_Palm-first slider sequence or the Victory capture gesture.
+export const GESTURE_SEQUENCE_STRIP = ["Thumb_Up", "Closed_Fist"]
 export const GESTURE_SEQUENCE_STEP_HOLD_MS = 200
 export const GESTURE_SEQUENCE_TIMEOUT_MS = 5000
 

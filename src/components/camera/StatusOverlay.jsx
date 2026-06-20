@@ -7,7 +7,11 @@ import { pickRandom } from "@/lib/random"
 /**
  * Lightweight status overlay shown during camera recalibration or switching.
  */
-export const StatusOverlay = memo(function StatusOverlay({ visible, messages, backdrop = "bg-black/60 backdrop-blur-sm" }) {
+export const StatusOverlay = memo(function StatusOverlay({
+  visible,
+  messages,
+  backdrop = "bg-black/60 backdrop-blur-sm",
+}) {
   const list = useMemo(() => (Array.isArray(messages) ? messages : [messages]), [messages])
   const cycles = list.length > 1
 
@@ -42,11 +46,11 @@ export const StatusOverlay = memo(function StatusOverlay({ visible, messages, ba
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/10">
+      <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-raised/90 px-5 py-3 backdrop-blur-xl">
         <Spinner />
         <p
           key={`${displayMessage}-${tick}`}
-          className="text-white/70 text-sm font-medium"
+          className="text-sm font-medium text-ink-muted"
           style={cycles ? { animation: "splash-text 0.3s ease-out" } : undefined}
         >
           {displayMessage}

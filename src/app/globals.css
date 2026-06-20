@@ -1,33 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #000000;
-  --foreground: #ffffff;
-}
+/* ============================================================
+   Design tokens — "Refined Midnight + Gold"
+   One source of truth. Tailwind v4 turns each token into a
+   utility: --color-gold => bg-gold / text-gold / border-gold.
+   ============================================================ */
+@theme {
+  /* Surfaces — warm near-black, never pure #000 */
+  --color-ground: #0c0b10;
+  --color-ground-2: #0f0d14;
+  --color-surface: #16141c;
+  --color-raised: #201d29;
+  --color-hairline: rgba(245, 241, 232, 0.09);
+  --color-hairline-strong: rgba(245, 241, 232, 0.16);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --animate-countdown: countdown 0.6s ease-out;
+  /* Text — porcelain, not stark white */
+  --color-ink: #f5f1e8;
+  --color-ink-muted: #a39c92;
+  --color-ink-dim: #6e685f;
+
+  /* Brand gold — the primary accent and "the light" */
+  --color-gold: #e6c189;
+  --color-gold-strong: #f2d6a4;
+  --color-gold-deep: #b8945a;
+
+  /* Semantic — muted so gold stays the star */
+  --color-success: #7fc8a0;
+  --color-warning: #e3a75c;
+  --color-danger: #e8836c;
+
+  /* Type — self-hosted via next/font (offline-proof PWA) */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", monospace;
+
+  /* Motion — one easing, a small set of durations */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --animate-countdown: countdown 0.6s var(--ease-standard);
   --animate-flash: flash 0.4s ease-out forwards;
-  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-fade-in: fade-in 0.3s var(--ease-standard);
   --animate-shutter-pulse: shutter-pulse 2s ease-in-out infinite;
-  --animate-slide-up: slide-up 0.4s ease-out;
-  --animate-pop-in: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  --animate-splash-logo: splash-logo 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-up: slide-up 0.4s var(--ease-standard);
+  --animate-pop-in: pop-in 0.4s var(--ease-standard) backwards;
+  --animate-splash-logo: splash-logo 0.8s var(--ease-standard) forwards;
   --animate-splash-text: splash-text 0.5s ease-out backwards;
   --animate-splash-dots: splash-dots 1.2s ease-in-out infinite;
   --animate-attract-cta: attract-fade-up 0.8s ease-out backwards;
   --animate-strip-photo-land: strip-photo-land 0.3s ease-out;
-
+  --animate-spotlight: spotlight-breathe 3.4s var(--ease-standard) infinite;
+  --animate-wave: hand-wave 1.8s var(--ease-standard) infinite;
+  --animate-hint-pop: hint-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  --animate-peace-bob: peace-bob 1.7s ease-in-out infinite;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   overflow: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -49,14 +79,14 @@ html, body, * {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(230, 193, 137, 0.42), rgba(255, 255, 255, 0.18));
+  background: linear-gradient(180deg, rgba(230, 193, 137, 0.42), rgba(245, 241, 232, 0.16));
   border: 0.14rem solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(230, 193, 137, 0.62), rgba(255, 255, 255, 0.28));
+  background: linear-gradient(180deg, rgba(230, 193, 137, 0.62), rgba(245, 241, 232, 0.26));
   border: 0.14rem solid transparent;
   background-clip: padding-box;
 }
@@ -65,14 +95,15 @@ html, body, * {
   background: transparent;
 }
 
-/* Global focus-visible ring for keyboard navigation */
+/* Focus ring — brand gold, with a soft glow for kiosk visibility */
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
 input:focus-visible {
-  outline: 2px solid rgba(56, 189, 248, 0.7);
+  outline: 2px solid var(--color-gold);
   outline-offset: 2px;
   border-radius: inherit;
+  box-shadow: 0 0 0 4px rgba(230, 193, 137, 0.18);
 }
 
 @keyframes countdown {
@@ -178,12 +209,13 @@ input:focus-visible {
   }
 }
 
+/* Capture affordance — a warm gold pulse instead of the old white ring */
 @keyframes shutter-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 0 rgba(230, 193, 137, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+    box-shadow: 0 0 0 14px rgba(230, 193, 137, 0);
   }
 }
 
@@ -206,5 +238,45 @@ input:focus-visible {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* The signature moment: gold "light" breathing behind the capture button */
+@keyframes spotlight-breathe {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.78;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes hand-wave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  30% { transform: rotate(-8deg); }
+}
+
+/* Lively spring "pop" for the gesture hint card */
+@keyframes hint-pop {
+  0% { opacity: 0; transform: scale(0.6) translateY(1rem); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Gentle bob + tilt for the peace-sign emoji */
+@keyframes peace-bob {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-0.5rem) rotate(5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

@@ -13,17 +13,27 @@ import {
   dateKey,
   formatClock,
 } from "@/lib/storage/analytics"
+import { Button } from "@/components/ui/Button"
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
+import { Spinner } from "@/components/ui/Spinner"
+import {
+  StatCard,
+  BarChart,
+  BreakdownCard,
+  discordSubtitle,
+  formatLongDate,
+  formatShortDate,
+} from "@/components/drawers/analyticsParts"
 
 const TABS = [
-  { id: "overview", label: "Overzicht" },
-  { id: "days", label: "Per dag" },
-  { id: "events", label: "Events" },
-  { id: "sessions", label: "Sessies" },
+  { value: "overview", label: "Overzicht" },
+  { value: "days", label: "Per dag" },
+  { value: "events", label: "Events" },
+  { value: "sessions", label: "Sessies" },
 ]
 
-const CARD = "rounded-xl border border-white/10 bg-white/[0.04]"
+const CARD = "rounded-xl border border-hairline bg-surface"
 const CARD_PAD = `${CARD} p-4`
-const DOW = ["zo", "ma", "di", "wo", "do", "vr", "za"]
 
 export default function AnalyticsPage() {
   const [summary, setSummary] = useState(null)
@@ -65,43 +75,31 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-black text-white">
+    <div className="fixed inset-0 overflow-y-auto bg-ground text-ink">
       <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
         <header className="mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/10"
+              className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-raised hover:text-ink"
             >
               ← Terug
             </Link>
             <div>
-              <h1 className="text-xl font-semibold md:text-2xl">Analytics</h1>
-              <p className="text-xs text-white/50">Volledig lokaal overzicht van de photobooth</p>
+              <h1 className="font-display text-xl font-semibold md:text-2xl">Analytics</h1>
+              <p className="text-xs text-ink-muted">Volledig lokaal overzicht van de photobooth</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/70 transition-colors hover:bg-white/10"
-            >
+            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
               Importeer CSV
-            </button>
-            <button
-              type="button"
-              onClick={downloadCsv}
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/70 transition-colors hover:bg-white/10"
-            >
+            </Button>
+            <Button variant="secondary" size="sm" onClick={downloadCsv}>
               Exporteer CSV
-            </button>
-            <button
-              type="button"
-              onClick={handleClear}
-              className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs text-red-300/70 transition-colors hover:bg-red-400/10"
-            >
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleClear}>
               Wissen
-            </button>
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
@@ -114,32 +112,28 @@ export default function AnalyticsPage() {
 
         {importStatus && (
           <p
-            className={`mb-4 text-xs ${
-              importStatus.kind === "ok" ? "text-emerald-300/80" : "text-red-300/80"
-            }`}
+            className={`mb-4 text-xs ${importStatus.kind === "ok" ? "text-success" : "text-danger"}`}
           >
             {importStatus.message}
           </p>
         )}
 
-        <nav className="mb-6 flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                tab === t.id ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <SegmentedControl
+          options={TABS}
+          value={tab}
+          onChange={setTab}
+          ariaLabel="Analytics weergave"
+          className="mb-6"
+        />
 
-        {!summary && <p className="text-white/50 text-sm">Laden…</p>}
+        {!summary && (
+          <div className="flex items-center gap-2 text-sm text-ink-muted">
+            <Spinner className="h-4 w-4" />
+            <span>Laden…</span>
+          </div>
+        )}
         {summary && summary.photoCount === 0 && events.length === 0 && (
-          <p className="text-white/50 text-sm">Nog geen data — neem wat foto&apos;s.</p>
+          <p className="text-sm text-ink-muted">Nog geen data — neem wat foto&apos;s.</p>
         )}
 
         {summary && tab === "overview" && <OverviewTab summary={summary} />}
@@ -160,28 +154,38 @@ function OverviewTab({ summary }) {
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <BigStat
+        <StatCard
+          size="lg"
           label="Foto's"
           value={summary.photoCount}
           sub={`${summary.singlePhotos} enkel · ${summary.stripPhotos} strip`}
         />
-        <BigStat label="Strips" value={summary.stripCount} sub={`${summary.sessions} sessies`} />
-        <BigStat
+        <StatCard
+          size="lg"
+          label="Strips"
+          value={summary.stripCount}
+          sub={`${summary.sessions} sessies`}
+        />
+        <StatCard
+          size="lg"
           label="Verzonden naar Discord"
           value={`${summary.discordSent}/${summary.discordSent + summary.discordFailed + summary.discordQueued}`}
           sub={discordSubtitle(summary)}
         />
-        <BigStat
+        <StatCard
+          size="lg"
           label="Trigger"
           value={`${summary.gestureCaptures}/${summary.gestureCaptures + summary.touchCaptures}`}
           sub={`gesture · rest (${summary.touchCaptures}) via touch`}
         />
-        <BigStat
+        <StatCard
+          size="lg"
           label="Top mascotte"
           value={topMascot?.[0] || "-"}
           sub={topMascot ? `${topMascot[1]} foto's` : undefined}
         />
-        <BigStat
+        <StatCard
+          size="lg"
           label="Top layout"
           value={topLayout?.[0] || "-"}
           sub={topLayout ? `${topLayout[1]} foto's` : undefined}
@@ -198,62 +202,6 @@ function OverviewTab({ summary }) {
   )
 }
 
-function BigStat({ label, value, sub }) {
-  return (
-    <div className={CARD_PAD}>
-      <p className="text-[0.65rem] uppercase tracking-[0.16em] text-white/45">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-white/50">{sub}</p>}
-    </div>
-  )
-}
-
-function BreakdownCard({ title, counts, total }) {
-  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1])
-  if (entries.length === 0) {
-    return (
-      <div className={CARD_PAD}>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/45">{title}</p>
-        <p className="mt-2 text-sm text-white/40">Geen data</p>
-      </div>
-    )
-  }
-  return (
-    <div className={CARD_PAD}>
-      <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/45">{title}</p>
-      <ul className="space-y-2">
-        {entries.map(([id, count]) => {
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0
-          return (
-            <li key={id}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="truncate text-white/85">{id}</span>
-                <span className="text-white/50 text-xs">
-                  {count} · {pct}%
-                </span>
-              </div>
-              <div className="mt-1 h-1 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-sky-300/60 to-amber-200/80"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
-}
-
-function discordSubtitle(s) {
-  const total = s.discordSent + s.discordFailed + s.discordQueued
-  if (total === 0) return "nog niets verzonden"
-  const parts = [`${s.discordFailed} mislukt`]
-  if (s.discordQueued > 0) parts.unshift(`${s.discordQueued} in wachtrij`)
-  return parts.join(" · ")
-}
-
 /**
  * Heatmap with rows = last N dates, cols = 24 hours + day totals.
  */
@@ -265,12 +213,12 @@ function HourHeatmap({ dailyBreakdown }) {
   return (
     <div className={CARD_PAD}>
       <div className="mb-3 flex items-baseline justify-between">
-        <p className="text-xs uppercase tracking-[0.16em] text-white/45">Activiteit per uur</p>
-        <p className="text-[0.65rem] text-white/35">laatste {rows.length} dagen</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-ink-dim">Activiteit per uur</p>
+        <p className="text-[0.65rem] text-ink-dim">laatste {rows.length} dagen</p>
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[32rem]">
-          <div className="grid grid-cols-[5rem_1fr_3rem] gap-2 text-[0.6rem] text-white/35 mb-1">
+          <div className="mb-1 grid grid-cols-[5rem_1fr_3rem] gap-2 text-[0.6rem] text-ink-dim">
             <div />
             <div
               className="grid gap-px"
@@ -285,8 +233,8 @@ function HourHeatmap({ dailyBreakdown }) {
             <span className="text-right">totaal</span>
           </div>
           {rows.map((day) => (
-            <div key={day.date} className="grid grid-cols-[5rem_1fr_3rem] gap-2 items-center mb-px">
-              <div className="text-[0.65rem] text-white/60 truncate">
+            <div key={day.date} className="mb-px grid grid-cols-[5rem_1fr_3rem] items-center gap-2">
+              <div className="truncate text-[0.65rem] text-ink-muted">
                 {formatShortDate(day.date)}
               </div>
               <div
@@ -300,14 +248,14 @@ function HourHeatmap({ dailyBreakdown }) {
                     style={{
                       backgroundColor:
                         c === 0
-                          ? "rgba(255,255,255,0.04)"
-                          : `rgba(251, 191, 36, ${0.2 + (c / max) * 0.8})`,
+                          ? "rgba(245,241,232,0.06)"
+                          : `rgba(230, 193, 137, ${0.2 + (c / max) * 0.8})`,
                     }}
                     title={`${day.date} ${h}:00 — ${c} foto's`}
                   />
                 ))}
               </div>
-              <span className="text-right text-xs font-medium text-white/80 tabular-nums">
+              <span className="text-right text-xs font-medium tabular-nums text-ink">
                 {day.photoCount}
               </span>
             </div>
@@ -322,7 +270,7 @@ function HourHeatmap({ dailyBreakdown }) {
 
 function DaysTab({ summary, events }) {
   if (summary.dailyBreakdown.length === 0)
-    return <p className="text-white/50 text-sm">Nog geen dagdata.</p>
+    return <p className="text-sm text-ink-muted">Nog geen dagdata.</p>
 
   return (
     <div className="space-y-3">
@@ -353,18 +301,16 @@ function DayDetail({ day, events }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-raised"
       >
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-ink">
             {formatLongDate(day.date)}
             {day.convention && (
-              <span className="ml-2 text-xs font-medium text-amber-200/85">
-                {day.convention.name}
-              </span>
+              <span className="ml-2 text-xs font-medium text-gold">{day.convention.name}</span>
             )}
           </p>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-ink-muted">
             {day.photoCount} foto&apos;s · {day.sessions} sessies
             {dayStart &&
               dayEnd &&
@@ -372,31 +318,35 @@ function DayDetail({ day, events }) {
               ` · ${formatClock(dayStart)}–${formatClock(dayEnd)}`}
           </p>
         </div>
-        <span className="text-white/40 text-lg leading-none" aria-hidden>
+        <span className="text-lg leading-none text-ink-dim" aria-hidden>
           {open ? "−" : "+"}
         </span>
       </button>
 
       {open && (
-        <div className="space-y-4 border-t border-white/5 px-4 py-4">
+        <div className="space-y-4 border-t border-hairline px-4 py-4">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <MiniStat label="Enkel" value={day.singlePhotos} />
-            <MiniStat
+            <StatCard size="sm" label="Enkel" value={day.singlePhotos} />
+            <StatCard
+              size="sm"
               label="Strip"
               value={`${day.stripPhotos}`}
               sub={`${day.stripCount} compleet`}
             />
-            <MiniStat
+            <StatCard
+              size="sm"
               label="Verzonden"
               value={`${day.discordSent}/${day.discordSent + day.discordFailed + day.discordQueued}`}
               sub={`${day.discordFailed} mislukt${day.discordQueued ? ` · ${day.discordQueued} wachtrij` : ""}`}
             />
-            <MiniStat
+            <StatCard
+              size="sm"
               label="Trigger"
               value={`${day.gestureCaptures}/${day.photoCount}`}
               sub={`gesture · ${day.touchCaptures} touch`}
             />
-            <MiniStat
+            <StatCard
+              size="sm"
               label="Start"
               value={dayStart ? formatClock(dayStart) : "-"}
               sub={
@@ -405,7 +355,8 @@ function DayDetail({ day, events }) {
                   : undefined
               }
             />
-            <MiniStat
+            <StatCard
+              size="sm"
               label="Einde"
               value={dayEnd ? formatClock(dayEnd) : "-"}
               sub={
@@ -414,8 +365,13 @@ function DayDetail({ day, events }) {
                   : undefined
               }
             />
-            <MiniStat label="Piekuur" value={day.peakHour !== null ? `${day.peakHour}:00` : "-"} />
-            <MiniStat
+            <StatCard
+              size="sm"
+              label="Piekuur"
+              value={day.peakHour !== null ? `${day.peakHour}:00` : "-"}
+            />
+            <StatCard
+              size="sm"
               label="Duur"
               value={dayStart && dayEnd ? formatDuration(dayEnd - dayStart) : "-"}
             />
@@ -434,30 +390,15 @@ function DayDetail({ day, events }) {
 }
 
 function HourBars({ data }) {
-  const max = Math.max(...data, 1)
   return (
     <div>
-      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">Uurverdeling</p>
-      <div className="flex h-16 items-end gap-px">
-        {data.map((count, hour) => (
-          <div
-            key={hour}
-            className="flex-1 rounded-t-sm bg-gradient-to-t from-sky-300/40 to-amber-200/80"
-            style={{
-              height: `${(count / max) * 100}%`,
-              opacity: count > 0 ? 0.5 + (count / max) * 0.5 : 0.08,
-            }}
-            title={`${hour}:00 — ${count} foto's`}
-          />
-        ))}
-      </div>
-      <div className="mt-1 flex justify-between text-[0.6rem] text-white/30">
-        <span>0:00</span>
-        <span>6:00</span>
-        <span>12:00</span>
-        <span>18:00</span>
-        <span>23:59</span>
-      </div>
+      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-dim">Uurverdeling</p>
+      <BarChart
+        data={data}
+        size="lg"
+        labels={["0:00", "6:00", "12:00", "18:00", "23:59"]}
+        barTitle={(count, hour) => `${hour}:00 — ${count} foto's`}
+      />
     </div>
   )
 }
@@ -467,16 +408,16 @@ function TimeDots({ timestamps, dayIso }) {
   const DAY_MS = 24 * 60 * 60 * 1000
   return (
     <div>
-      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-dim">
         Fototijden ({timestamps.length})
       </p>
-      <div className="relative h-6 rounded-md bg-white/[0.03] border border-white/5">
+      <div className="relative h-6 rounded-md border border-hairline bg-surface">
         {timestamps.map((t, i) => {
           const pct = Math.max(0, Math.min(1, (t - dayStart) / DAY_MS)) * 100
           return (
             <div
               key={i}
-              className="absolute top-1/2 -translate-y-1/2 h-3 w-0.5 bg-amber-200/80"
+              className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-gold"
               style={{ left: `${pct}%` }}
               title={formatClock(t)}
             />
@@ -487,22 +428,12 @@ function TimeDots({ timestamps, dayIso }) {
   )
 }
 
-function MiniStat({ label, value, sub }) {
-  return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-      <p className="text-[0.6rem] uppercase tracking-[0.14em] text-white/40">{label}</p>
-      <p className="mt-0.5 text-base font-semibold text-white">{value}</p>
-      {sub && <p className="text-[0.65rem] text-white/45">{sub}</p>}
-    </div>
-  )
-}
-
 /* ------------------------------ EVENTS ------------------------------ */
 
 function EventsTab({ summary, events }) {
   if (summary.eventBreakdown.length === 0)
     return (
-      <p className="text-white/50 text-sm">
+      <p className="text-sm text-ink-muted">
         Nog geen foto&apos;s tijdens een conventie. Zodra datums overeenkomen met een geregistreerd
         event verschijnt dat hier automatisch.
       </p>
@@ -524,8 +455,8 @@ function EventDetail({ event, events }) {
 
   return (
     <article className={`${CARD} overflow-hidden`}>
-      <header className="flex items-center gap-4 border-b border-white/5 bg-white/[0.02] px-5 py-4">
-        <div className="relative h-16 w-28 shrink-0 rounded-lg bg-white/5 overflow-hidden">
+      <header className="flex items-center gap-4 border-b border-hairline bg-raised px-5 py-4">
+        <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-surface">
           <Image
             src={convention.bannerPath}
             alt={convention.name}
@@ -535,39 +466,48 @@ function EventDetail({ event, events }) {
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-white truncate">{convention.name}</h2>
-          <p className="text-xs text-white/45">
+          <h2 className="truncate text-lg font-semibold text-ink">{convention.name}</h2>
+          <p className="text-xs text-ink-muted">
             {formatLongDate(convention.startDate)} – {formatLongDate(convention.endDate)}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-semibold text-white">{event.photoCount}</p>
-          <p className="text-[0.65rem] uppercase tracking-[0.16em] text-white/40">foto&apos;s</p>
+          <p className="font-display text-2xl font-semibold text-ink">{event.photoCount}</p>
+          <p className="text-[0.65rem] uppercase tracking-[0.16em] text-ink-dim">foto&apos;s</p>
         </div>
       </header>
 
       <div className="space-y-5 p-5">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <MiniStat label="Enkel" value={event.singlePhotos} />
-          <MiniStat label="Strip" value={event.stripPhotos} sub={`${event.stripCount} compleet`} />
-          <MiniStat
+          <StatCard size="sm" label="Enkel" value={event.singlePhotos} />
+          <StatCard
+            size="sm"
+            label="Strip"
+            value={event.stripPhotos}
+            sub={`${event.stripCount} compleet`}
+          />
+          <StatCard
+            size="sm"
             label="Verzonden"
             value={`${event.discordSent}/${event.discordSent + event.discordFailed}`}
             sub={`${event.discordFailed} mislukt`}
           />
-          <MiniStat
+          <StatCard
+            size="sm"
             label="Trigger"
             value={`${event.gestureCaptures}/${event.photoCount}`}
             sub={`gesture · ${event.touchCaptures} touch`}
           />
-          <MiniStat label="Sessies" value={event.sessions} />
-          <MiniStat label="Dagen" value={days.length} />
-          <MiniStat
+          <StatCard size="sm" label="Sessies" value={event.sessions} />
+          <StatCard size="sm" label="Dagen" value={days.length} />
+          <StatCard
+            size="sm"
             label="Top mascotte"
             value={topMascot?.[0] || "-"}
             sub={topMascot ? `${topMascot[1]}×` : undefined}
           />
-          <MiniStat
+          <StatCard
+            size="sm"
             label="Top layout"
             value={topLayout?.[0] || "-"}
             sub={topLayout ? `${topLayout[1]}×` : undefined}
@@ -588,11 +528,11 @@ function EventDetail({ event, events }) {
 
 function SessionsTab({ events }) {
   const sessions = useMemo(() => buildSessions(events), [events])
-  if (sessions.length === 0) return <p className="text-white/50 text-sm">Nog geen sessies.</p>
+  if (sessions.length === 0) return <p className="text-sm text-ink-muted">Nog geen sessies.</p>
 
   return (
     <div className={`${CARD} overflow-hidden`}>
-      <div className="grid grid-cols-[7rem_5rem_5rem_1fr] gap-2 border-b border-white/10 px-4 py-2 text-[0.65rem] uppercase tracking-[0.14em] text-white/45">
+      <div className="grid grid-cols-[7rem_5rem_5rem_1fr] gap-2 border-b border-hairline px-4 py-2 text-[0.65rem] uppercase tracking-[0.14em] text-ink-dim">
         <span>Start</span>
         <span>Duur</span>
         <span>Foto&apos;s</span>
@@ -602,12 +542,12 @@ function SessionsTab({ events }) {
         {sessions.map((s) => (
           <li
             key={s.start}
-            className="grid grid-cols-[7rem_5rem_5rem_1fr] gap-2 border-b border-white/5 px-4 py-2 text-sm last:border-b-0"
+            className="grid grid-cols-[7rem_5rem_5rem_1fr] gap-2 border-b border-hairline px-4 py-2 text-sm last:border-b-0"
           >
-            <span className="text-white/80">{formatShortDateTime(s.start)}</span>
-            <span className="text-white/60">{formatDuration(s.duration)}</span>
-            <span className="text-white/80">{s.photoCount}</span>
-            <span className="text-xs text-white/50">
+            <span className="text-ink">{formatShortDateTime(s.start)}</span>
+            <span className="text-ink-muted">{formatDuration(s.duration)}</span>
+            <span className="text-ink">{s.photoCount}</span>
+            <span className="text-xs text-ink-muted">
               {s.singlePhotos} enkel · {s.stripPhotos} strip · {s.discordSent} discord
             </span>
           </li>
@@ -650,25 +590,6 @@ function buildSessions(events) {
 }
 
 /* ------------------------------ FORMATTERS ------------------------------ */
-
-function parseIsoDate(iso) {
-  const [y, m, d] = iso.split("-").map(Number)
-  return new Date(y, m - 1, d)
-}
-
-function formatLongDate(iso) {
-  return parseIsoDate(iso).toLocaleDateString("nl-NL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
-}
-
-function formatShortDate(iso) {
-  const d = parseIsoDate(iso)
-  return `${DOW[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`
-}
 
 function formatShortDateTime(ts) {
   const d = new Date(ts)

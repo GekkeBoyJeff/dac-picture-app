@@ -1,5 +1,35 @@
 import { BottomDrawer } from "@/components/ui/BottomDrawer"
-import { drawerCardClass, drawerButtonBaseClass, drawerOptionCardClass, drawerSectionHelpClass, drawerSectionLabelClass } from "@/components/ui/drawerStyles"
+import { StatusPill } from "@/components/ui/StatusPill"
+import { cn } from "@/lib/styles/cn"
+import {
+  drawerCardClass,
+  drawerButtonBaseClass,
+  drawerOptionCardClass,
+  drawerSectionHelpClass,
+  drawerSectionLabelClass,
+  drawerFocusRingClass,
+} from "@/components/ui/drawerStyles"
+
+function CheckPin() {
+  return (
+    <span
+      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-linear-to-b from-gold-strong via-gold to-gold-deep text-[#1b1407] shadow-[0_0_14px_rgba(230,193,137,0.45)]"
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-3.5 w-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </span>
+  )
+}
 
 export function PickerDrawer({
   title,
@@ -23,13 +53,11 @@ export function PickerDrawer({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className={drawerSectionLabelClass}>{title}</p>
-                <p className={`mt-1 ${drawerSectionHelpClass}`}>{subtitle || "Kies een optie uit de vaste selectie hieronder."}</p>
+                <p className={`mt-1 ${drawerSectionHelpClass}`}>
+                  {subtitle || "Kies een optie uit de vaste selectie hieronder."}
+                </p>
               </div>
-              {selectedOption && (
-                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
-                  Geselecteerd
-                </div>
-              )}
+              {selectedOption && <StatusPill tone="gold">Geselecteerd</StatusPill>}
             </div>
           </div>
         )}
@@ -43,20 +71,33 @@ export function PickerDrawer({
               <button
                 key={optionKey}
                 onClick={() => onSelect(optionKey)}
-                className={`${drawerButtonBaseClass} ${drawerOptionCardClass} group flex min-h-[13rem] flex-col items-stretch gap-3 p-3 text-left ${
+                aria-pressed={isSelected}
+                className={cn(
+                  drawerButtonBaseClass,
+                  drawerOptionCardClass,
+                  drawerFocusRingClass,
+                  "group relative flex min-h-[13rem] flex-col items-stretch gap-3 p-3 text-left",
                   isSelected
-                    ? "border-white/30 bg-white/[0.09] shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-                    : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.06]"
-                }`}
+                    ? "border-gold/55 bg-gold/[0.08] shadow-[0_0_0_1px_var(--color-gold),0_0_28px_rgba(230,193,137,0.22)]"
+                    : "hover:border-hairline-strong hover:bg-raised",
+                )}
               >
+                {isSelected && <CheckPin />}
+
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/35">{isSelected ? "Actief" : "Optie"}</p>
-                    <span className="mt-1 block text-sm font-semibold text-white">{getOptionLabel(option)}</span>
+                    <p
+                      className={cn(
+                        "text-[0.65rem] uppercase tracking-[0.2em]",
+                        isSelected ? "text-gold" : "text-ink-dim",
+                      )}
+                    >
+                      {isSelected ? "Actief" : "Optie"}
+                    </p>
+                    <span className="mt-1 block text-sm font-semibold text-ink">
+                      {getOptionLabel(option)}
+                    </span>
                   </div>
-                  <span className={`rounded-full border px-2 py-1 text-[0.65rem] font-medium ${isSelected ? "border-white/20 bg-white/10 text-white" : "border-white/10 bg-white/5 text-white/45"}`}>
-                    {isSelected ? "Gekozen" : "Kies"}
-                  </span>
                 </div>
 
                 <div className="flex flex-1 items-center justify-center px-1">
