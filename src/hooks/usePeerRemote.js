@@ -54,8 +54,10 @@ export function usePeerRemote({ code, authToken, onState }) {
           connRef.current = conn
 
           conn.on("open", () => {
-            // Auth token must be sent first — host won't accept any other messages until verified
-            if (token) conn.send({ t: "auth", token })
+            // Always send the auth handshake first (token from the QR link if we
+            // have one; null for manual code entry). The host requires this
+            // message before accepting any commands.
+            conn.send({ t: "auth", token: token || null })
           })
 
           conn.on("data", (msg) => {

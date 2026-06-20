@@ -36,6 +36,9 @@ jobs:
           GITHUB_ACTIONS: true
           NEXT_PUBLIC_BASE_PATH: /dac-picture-app
           NEXT_PUBLIC_DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # NEXT_PUBLIC_* is inlined at build time, so the remote password must be
+          # passed here from the repo secret (Settings → Secrets and variables → Actions).
+          NEXT_PUBLIC_REMOTE_PASSWORD: ${{ secrets.NEXT_PUBLIC_REMOTE_PASSWORD }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

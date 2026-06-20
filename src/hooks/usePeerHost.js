@@ -157,8 +157,10 @@ export function usePeerHost({ streamRef, enabled }) {
 
       conn.on("data", (msg) => {
         if (!authenticated) {
-          // First message must be { t: "auth", token: <expected> }
-          if (msg?.t === "auth" && tokenMatch(msg.token, authToken)) {
+          // First message must be an auth handshake. A token (from the QR link)
+          // is verified when present; manual code entry has no token, and the
+          // 4-char room code + password gate are the barrier there.
+          if (msg?.t === "auth" && (!msg.token || tokenMatch(msg.token, authToken))) {
             authenticated = true
             clearTimeout(authTimeout)
             setStatus("connected")
