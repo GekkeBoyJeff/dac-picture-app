@@ -17,6 +17,7 @@ const nextConfig = {
   },
   env: {
     APP_VERSION: version,
+    NEXT_PUBLIC_BASE_PATH: basePath,
   },
 }
 

@@ -42,11 +42,14 @@ import {
 } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
+import { usePeerHost } from "@/hooks/usePeerHost"
+import { RemoteConnectModal } from "./camera/RemoteConnectModal"
 
 export function PhotoBooth() {
   const containerRef = useRef(null)
   const {
     videoRef,
+    streamRef,
     startCamera,
     switchCamera,
     isReady,
@@ -55,6 +58,7 @@ export function PhotoBooth() {
     selectedDeviceId,
     devices,
   } = useCamera()
+
   const toast = useToast()
   const install = useInstallPrompt()
   const isIdle = useIdleTimer(60_000)
@@ -66,6 +70,15 @@ export function PhotoBooth() {
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
   const modals = useUiStore((s) => s.modals)
+
+  const {
+    roomCode,
+    authToken: remoteAuthToken,
+    status: remoteStatus,
+  } = usePeerHost({
+    streamRef,
+    enabled: modals.remote,
+  })
   const openModal = useUiStore((s) => s.openModal)
   const closeModal = useUiStore((s) => s.closeModal)
   const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
@@ -285,6 +298,13 @@ export function PhotoBooth() {
     setAppState("countdown")
   }, [appState, isReady, setAppState, stripModeEnabled])
 
+  // Remote trigger: phone sends { t: "trigger" } → dispatches this custom event
+  useEffect(() => {
+    const handler = () => handleCapture()
+    window.addEventListener("remote:trigger", handler)
+    return () => window.removeEventListener("remote:trigger", handler)
+  }, [handleCapture])
+
   const flashEnabled = useUiStore((s) => s.flashEnabled)
 
   // The actual capture — called by flash (at peak brightness) or directly if flash is off
@@ -442,6 +462,7 @@ export function PhotoBooth() {
           switchCamera={switchCamera}
           canInstall={install.canInstall}
           onInstall={install.promptInstall}
+          onRemote={() => openModal("remote")}
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
@@ -495,6 +516,14 @@ export function PhotoBooth() {
         )}
 
         <UploadStatus entries={displayUploadEntries} onDismiss={dismissEntry} />
+
+        <RemoteConnectModal
+          isOpen={modals.remote}
+          onClose={() => closeModal("remote")}
+          roomCode={roomCode}
+          authToken={remoteAuthToken}
+          status={remoteStatus}
+        />
 
         {toast.message && (
           <div

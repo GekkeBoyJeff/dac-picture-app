@@ -16,7 +16,11 @@ export const useUiStore = create(
         layoutSlider: false,
         about: false,
         settings: false,
+        remote: false,
       },
+
+      // --- Remote connection state (not persisted) ---
+      remoteConnected: false,
 
       // --- Settings (persisted) ---
       debugEnabled: false,
@@ -55,9 +59,11 @@ export const useUiStore = create(
             layoutSlider: false,
             about: false,
             settings: false,
+            remote: false,
           },
         }),
 
+      setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
       toggleDebug: () => set((state) => ({ debugEnabled: !state.debugEnabled })),
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),
       toggleStripMode: () => set((state) => ({ stripModeEnabled: !state.stripModeEnabled })),

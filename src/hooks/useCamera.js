@@ -12,10 +12,20 @@ export function useCamera() {
   const requestSeqRef = useRef(0)
 
   const {
-    isReady, isRecalibrating, isSwitching, isMirrored, error,
-    devices, selectedDeviceId,
-    setReady, setRecalibrating, setSwitching, setMirrored,
-    setError, setDevices, setSelectedDevice,
+    isReady,
+    isRecalibrating,
+    isSwitching,
+    isMirrored,
+    error,
+    devices,
+    selectedDeviceId,
+    setReady,
+    setRecalibrating,
+    setSwitching,
+    setMirrored,
+    setError,
+    setDevices,
+    setSelectedDevice,
   } = useCameraStore()
 
   const stopCamera = useCallback(() => {
@@ -141,7 +151,16 @@ export function useCamera() {
         await enumerateDevices()
       }
     },
-    [stopCamera, enumerateDevices, setError, setSelectedDevice, setMirrored, setReady, setRecalibrating, setSwitching],
+    [
+      stopCamera,
+      enumerateDevices,
+      setError,
+      setSelectedDevice,
+      setMirrored,
+      setReady,
+      setRecalibrating,
+      setSwitching,
+    ],
   )
 
   const switchCamera = useCallback(
@@ -184,6 +203,7 @@ export function useCamera() {
 
   return {
     videoRef,
+    streamRef,
     isReady,
     isRecalibrating,
     isSwitching,
