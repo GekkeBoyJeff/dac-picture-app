@@ -20,6 +20,9 @@ export const useUiStore = create(
       },
 
       // --- Remote connection state (not persisted) ---
+      // remoteActive keeps the peer host alive independently of the QR modal,
+      // so closing the popup does NOT drop a connected phone.
+      remoteActive: false,
       remoteConnected: false,
 
       // --- Settings (persisted) ---
@@ -63,6 +66,7 @@ export const useUiStore = create(
           },
         }),
 
+      setRemoteActive: (remoteActive) => set({ remoteActive }),
       setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
       toggleDebug: () => set((state) => ({ debugEnabled: !state.debugEnabled })),
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),

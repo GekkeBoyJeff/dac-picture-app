@@ -12,13 +12,12 @@ export default function RemotePage() {
   const [manualCode, setManualCode] = useState("")
   const [remoteState, setRemoteState] = useState({})
 
-  // Check sessionStorage on client mount
+  // Client-only mount reads (sessionStorage + URL params). State is set after
+  // mount on purpose, to avoid an SSR/hydration mismatch on the static export.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isRemoteAuthenticated()) setAuthenticated(true)
-  }, [])
 
-  // Read ?r= and ?k= params on client mount
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const r = (params.get("r") || "")
       .toUpperCase()
@@ -28,6 +27,7 @@ export default function RemotePage() {
     const k = params.get("k")
     if (k) setAuthToken(k)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleState = useCallback((payload) => {
     setRemoteState((prev) => ({ ...prev, ...payload }))

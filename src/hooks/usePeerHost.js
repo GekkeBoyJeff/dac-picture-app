@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useUiStore } from "@/stores/uiStore"
 import { scenePresets } from "@/components/drawers/settings/settingsPresets"
+import { PEER_CONFIG } from "@/lib/webrtc/iceServers"
 
 const PEER_PREFIX = "dac-photobooth-"
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -58,6 +59,7 @@ export function usePeerHost({ streamRef, enabled }) {
   const peerRef = useRef(null)
   const connRef = useRef(null)
   const callRef = useRef(null)
+  const startingRef = useRef(false)
 
   const pushState = useCallback(() => {
     if (!connRef.current?.open) return
@@ -117,12 +119,28 @@ export function usePeerHost({ streamRef, enabled }) {
   )
 
   const startPeer = useCallback(async () => {
-    if (peerRef.current) return
+    if (peerRef.current || startingRef.current) return
+    startingRef.current = true
     const { Peer } = await import("peerjs")
-    const peer = new Peer(PEER_PREFIX + roomCode)
+    // Guard the async gap: if remote was disabled during the import (or a
+    // StrictMode double-invoke already created the peer), bail out so we never
+    // create two peers with the same ID ("ID is taken").
+    if (!startingRef.current || peerRef.current) return
+    const peer = new Peer(PEER_PREFIX + roomCode, PEER_CONFIG)
     peerRef.current = peer
+    startingRef.current = false
 
     peer.on("open", () => setStatus("waiting"))
+
+    // The broker socket can drop while peer-to-peer links stay up; reconnect so
+    // new phones can still pair and the session recovers on flaky Wi-Fi.
+    peer.on("disconnected", () => {
+      if (peerRef.current === peer && !peer.destroyed) {
+        try {
+          peer.reconnect()
+        } catch {}
+      }
+    })
 
     peer.on("connection", (conn) => {
       // Replace any previous connection
@@ -175,6 +193,7 @@ export function usePeerHost({ streamRef, enabled }) {
   }, [roomCode, authToken, pushState, applyCommand, streamRef])
 
   const stopPeer = useCallback(() => {
+    startingRef.current = false
     callRef.current?.close()
     connRef.current?.close()
     peerRef.current?.destroy()

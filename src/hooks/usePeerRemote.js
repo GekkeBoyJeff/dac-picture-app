@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback, useState } from "react"
+import { PEER_CONFIG } from "@/lib/webrtc/iceServers"
 
 const PEER_PREFIX = "dac-photobooth-"
 
@@ -37,8 +38,16 @@ export function usePeerRemote({ code, authToken, onState }) {
           peerRef.current = null
         }
 
-        const peer = new Peer()
+        const peer = new Peer(undefined, PEER_CONFIG)
         peerRef.current = peer
+
+        peer.on("disconnected", () => {
+          if (peerRef.current === peer && !peer.destroyed) {
+            try {
+              peer.reconnect()
+            } catch {}
+          }
+        })
 
         peer.on("open", () => {
           const conn = peer.connect(PEER_PREFIX + normalized, { reliable: true })

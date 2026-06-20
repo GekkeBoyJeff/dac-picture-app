@@ -70,6 +70,8 @@ export function PhotoBooth() {
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
   const modals = useUiStore((s) => s.modals)
+  const remoteActive = useUiStore((s) => s.remoteActive)
+  const setRemoteActive = useUiStore((s) => s.setRemoteActive)
 
   const {
     roomCode,
@@ -77,7 +79,9 @@ export function PhotoBooth() {
     status: remoteStatus,
   } = usePeerHost({
     streamRef,
-    enabled: modals.remote,
+    // Tied to remoteActive, NOT the modal — closing the QR popup must not drop
+    // a connected phone. Stopping remote is an explicit action in the modal.
+    enabled: remoteActive,
   })
   const openModal = useUiStore((s) => s.openModal)
   const closeModal = useUiStore((s) => s.closeModal)
@@ -462,7 +466,10 @@ export function PhotoBooth() {
           switchCamera={switchCamera}
           canInstall={install.canInstall}
           onInstall={install.promptInstall}
-          onRemote={() => openModal("remote")}
+          onRemote={() => {
+            setRemoteActive(true)
+            openModal("remote")
+          }}
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
@@ -520,6 +527,10 @@ export function PhotoBooth() {
         <RemoteConnectModal
           isOpen={modals.remote}
           onClose={() => closeModal("remote")}
+          onStop={() => {
+            setRemoteActive(false)
+            closeModal("remote")
+          }}
           roomCode={roomCode}
           authToken={remoteAuthToken}
           status={remoteStatus}

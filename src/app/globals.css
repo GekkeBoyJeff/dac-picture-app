@@ -18,6 +18,10 @@
   --color-ink: #f5f1e8;
   --color-ink-muted: #a39c92;
   --color-ink-dim: #6e685f;
+  --color-ink-subtle: #5e584f;
+
+  /* Alias of the app background, used by the remote-control screens */
+  --color-base: #0c0b10;
 
   /* Brand gold — the primary accent and "the light" */
   --color-gold: #e6c189;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useMemo } from "react"
 import { BASE_PATH } from "@/lib/config/basePath"
 
-export function RemoteConnectModal({ isOpen, onClose, roomCode, authToken, status }) {
+export function RemoteConnectModal({ isOpen, onClose, onStop, roomCode, authToken, status }) {
   const canvasRef = useRef(null)
 
   const remoteUrl = useMemo(() => {
@@ -64,12 +64,24 @@ export function RemoteConnectModal({ isOpen, onClose, roomCode, authToken, statu
           </span>
         </div>
 
-        <button
-          onClick={onClose}
-          className="text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
-        >
-          Sluiten
-        </button>
+        <p className="text-center text-xs text-ink-dim">
+          De verbinding blijft actief op de achtergrond als je dit venster sluit.
+        </p>
+
+        <div className="flex w-full items-center gap-3">
+          <button
+            onClick={onStop}
+            className="flex-1 cursor-pointer rounded-2xl border border-danger/40 px-4 py-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10"
+          >
+            Stop remote
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 cursor-pointer rounded-2xl bg-gold px-4 py-2.5 text-sm font-semibold text-[#1b1407] transition-opacity hover:opacity-90"
+          >
+            {isConnected ? "Verbergen" : "Sluiten"}
+          </button>
+        </div>
       </div>
     </div>
   )
