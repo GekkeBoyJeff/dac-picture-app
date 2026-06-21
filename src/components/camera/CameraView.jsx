@@ -102,9 +102,10 @@ export function CameraView({
               <Overlays />
             </div>
 
-            {gestureHealthEnabled && (gesturesEnabled || debugEnabled) && !showStripFrame && !showLayoutSlider && (
-              <GestureDebugOverlay health={gestureHealth} />
-            )}
+            {gestureHealthEnabled &&
+              (gesturesEnabled || debugEnabled) &&
+              !showStripFrame &&
+              !showLayoutSlider && <GestureDebugOverlay health={gestureHealth} />}
 
             {/* Top island — Discord invite, morphs to a "come closer" nudge */}
             {!showStripFrame && !showLayoutSlider && (
