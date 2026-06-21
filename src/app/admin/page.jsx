@@ -25,7 +25,7 @@ export default function AdminPage() {
 
   if (!isRemoteConfigured()) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-base px-4 text-center">
+      <div className="flex h-dvh items-center justify-center overflow-y-auto bg-base px-4 py-8 text-center">
         <p className="max-w-sm text-sm text-ink-muted">
           Admin is niet geconfigureerd op deze build (Supabase-omgevingsvariabelen ontbreken).
         </p>
@@ -44,7 +44,7 @@ export default function AdminPage() {
       }
     }
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-base px-4">
+      <div className="flex h-dvh items-center justify-center overflow-y-auto bg-base px-4 py-8">
         <div className="w-full max-w-sm space-y-6 text-center">
           <h1 className="text-2xl font-bold text-gold">DAC Admin</h1>
           <p className="text-sm text-ink-muted">Voer het wachtwoord in om de booth te bedienen</p>

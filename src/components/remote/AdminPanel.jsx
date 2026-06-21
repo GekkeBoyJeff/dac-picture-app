@@ -26,16 +26,32 @@ const CONN_LABEL = {
 const NEEDS_RETRY = new Set(["reconnecting", "error-timeout"])
 const BOOTH_STATE_LABEL = { camera: "Klaar", countdown: "Aftellen…", capturing: "Vastleggen…" }
 
+// Haptic tick where the browser supports it (Android/Chrome; iOS Safari has no
+// web vibration — there it leans on the visual feedback below).
+const vibrate = (ms) => {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(ms)
+  }
+}
+
 export function AdminPanel({ remoteState, send, status, retry }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [shutter, setShutter] = useState(false)
   const s = remoteState ?? {}
   const isConnected = status === "connected"
+  const connecting = status === "connecting" || status === "reconnecting"
   const boothBusy = s.appState === "countdown" || s.appState === "capturing"
   const canCapture = isConnected && s.appState === "camera"
   const galleryIndex = s.galleryIndex ?? 0
   const galleryCount = s.galleryCount ?? 0
 
-  const toggle = useCallback((key) => send({ t: "toggle", key }), [send])
+  const toggle = useCallback(
+    (key) => {
+      vibrate(8)
+      send({ t: "toggle", key })
+    },
+    [send],
+  )
   const debounceRef = useRef(null)
   useEffect(() => () => clearTimeout(debounceRef.current), [])
   const setValue = useCallback(
@@ -46,14 +62,40 @@ export function AdminPanel({ remoteState, send, status, retry }) {
     [send],
   )
 
+  // "Foto nemen": instant feedback — haptic + a camera-shutter flash — then the
+  // command goes out; the booth's countdown echoes back as the busy label.
+  const shutterTimer = useRef(null)
+  useEffect(() => () => clearTimeout(shutterTimer.current), [])
+  const fireTrigger = useCallback(() => {
+    vibrate(15)
+    setShutter(true)
+    clearTimeout(shutterTimer.current)
+    shutterTimer.current = setTimeout(() => setShutter(false), 380)
+    send({ t: "trigger" })
+  }, [send])
+
   return (
-    <div className="min-h-dvh bg-base text-ink">
+    // h-dvh + overflow-y-auto: the app body is overflow-hidden (kiosk lock), so
+    // /admin must be its own scroll container or its content is unreachable.
+    <div className="h-dvh overflow-y-auto overscroll-contain bg-base text-ink">
+      {/* Camera-shutter flash on capture (in-app; the native iOS camera animation
+          can't be invoked from a web app). */}
+      <div
+        aria-hidden
+        className={`pointer-events-none fixed inset-0 z-60 bg-white transition-opacity ${
+          shutter ? "opacity-70 duration-0" : "opacity-0 duration-500"
+        }`}
+      />
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-base/90 px-4 py-3 backdrop-blur-xl">
         <h1 className="text-base font-semibold text-gold">DAC Admin</h1>
         <div className="flex items-center gap-2">
-          <span
-            className={`h-2 w-2 rounded-full ${isConnected ? "animate-pulse bg-green-400" : "bg-ink-subtle"}`}
-          />
+          {connecting ? (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-subtle border-t-gold" />
+          ) : (
+            <span
+              className={`h-2 w-2 rounded-full ${isConnected ? "animate-pulse bg-green-400" : "bg-ink-subtle"}`}
+            />
+          )}
           <span
             className={`text-xs font-medium ${isConnected ? "text-green-400" : "text-ink-muted"}`}
           >
@@ -80,9 +122,9 @@ export function AdminPanel({ remoteState, send, status, retry }) {
             }
           />
           <button
-            onClick={() => send({ t: "trigger" })}
+            onClick={fireTrigger}
             disabled={!canCapture}
-            className="w-full cursor-pointer rounded-2xl bg-gold py-4 text-base font-semibold text-[#1b1407] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full cursor-pointer rounded-2xl bg-gold py-4 text-base font-semibold text-[#1b1407] transition-[opacity,transform] duration-100 hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
           >
             {boothBusy
               ? s.appState === "countdown"
@@ -331,9 +373,12 @@ export function AdminPanel({ remoteState, send, status, retry }) {
 function AdminButton({ onClick, disabled, active, full, className = "", children }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        vibrate(6)
+        onClick?.()
+      }}
       disabled={disabled}
-      className={`${full ? "w-full " : ""}${className} cursor-pointer rounded-xl border px-3 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`${full ? "w-full " : ""}${className} cursor-pointer rounded-xl border px-3 py-3.5 text-sm font-medium transition-[color,background-color,border-color,transform] duration-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${
         active
           ? "border-gold/50 bg-gold/15 text-gold-strong"
           : "border-hairline bg-raised text-ink hover:border-hairline-strong hover:bg-surface"

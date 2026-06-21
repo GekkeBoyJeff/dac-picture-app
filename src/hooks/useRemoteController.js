@@ -18,7 +18,15 @@ export function useRemoteController({ enabled = true } = {}) {
   const timeoutRef = useRef(null)
 
   const send = useCallback((cmd) => {
-    if (cmd?.t === "set" || cmd?.t === "toggle") localEditsRef.current[cmd.key] = Date.now()
+    // Optimistic UI: reflect toggles/sets locally at once so the panel feels
+    // instant; the localEdits window keeps the booth's echo from snapping it back.
+    if (cmd?.t === "set" || cmd?.t === "toggle") {
+      localEditsRef.current[cmd.key] = Date.now()
+      setRemoteState((prev) => ({
+        ...prev,
+        [cmd.key]: cmd.t === "toggle" ? !prev[cmd.key] : cmd.value,
+      }))
+    }
     channelRef.current?.send({
       type: "broadcast",
       event: "cmd",
