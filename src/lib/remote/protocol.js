@@ -1,35 +1,10 @@
-export const PROTOCOL_VERSION = 1
-export const CHANNEL_PREFIX = "dac-remote-"
-export const CODE_LEN = 6
+export const PROTOCOL_VERSION = 2
 
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-const NON_CODE_CHARS = new RegExp(`[^${CODE_CHARS}]`, "g")
+// Single fixed channel: one booth, one /admin. No room codes — the password is
+// the gate. Both the booth and /admin join this exact channel name.
+export const FIXED_CHANNEL = "dac-photobooth-remote-v1"
 
-export const channelName = (code) => `${CHANNEL_PREFIX}${code}`
-
-export function generateRoomCode() {
-  const buf = new Uint32Array(CODE_LEN)
-  crypto.getRandomValues(buf)
-  return Array.from(buf, (n) => CODE_CHARS[n % CODE_CHARS.length]).join("")
-}
-
-// Per-client id so the booth can address grant/deny/occupied to one controller.
-export function generateClientId() {
-  const buf = new Uint8Array(18)
-  crypto.getRandomValues(buf)
-  return btoa(String.fromCharCode(...buf))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "")
-}
-
-export function normalizeCode(raw) {
-  // Keep only chars that can actually appear in a code. The alphabet excludes
-  // the ambiguous I/O/0/1, so a mistyped one is stripped (not remapped —
-  // remapping could turn a typo into a different valid-looking code).
-  return (raw || "").toUpperCase().replace(NON_CODE_CHARS, "").slice(0, CODE_LEN)
-}
-
+// Constant-time string compare (used for the password check).
 export function tokenMatch(a, b) {
   if (!a || !b || a.length !== b.length) return false
   let diff = 0
@@ -37,6 +12,8 @@ export function tokenMatch(a, b) {
   return diff === 0
 }
 
+// uiStore fields broadcast to /admin. Gallery fields are added by the host
+// (they come from modals + galleryStore), see useRemoteHost.
 const STATE_KEYS = [
   "appState",
   "stripModeEnabled",
@@ -74,18 +51,24 @@ const CONF_KEYS = new Set([
 const HAND_OPTIONS = new Set([2, 4, 6, 8, 10, 12])
 const SCENE_IDS = new Set(["convention", "booth", "mobile", "lowpower"])
 const HOLD_VALUES = new Set([500, 1000, 1500, 2000, 3000])
-const MODAL_NAMES = new Set(["gallery"])
+const NO_PARAM = new Set([
+  "trigger",
+  "preset:highPower",
+  "preset:lowPower",
+  "gallery:open",
+  "gallery:next",
+  "gallery:prev",
+  "gallery:close",
+])
 
 const isNum = (v) => typeof v === "number" && Number.isFinite(v)
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 
+// Validates + sanitizes an inbound command. Returns a trusted command or null.
 export function validateCommand(msg) {
   if (!msg || typeof msg.t !== "string") return null
+  if (NO_PARAM.has(msg.t)) return { t: msg.t }
   switch (msg.t) {
-    case "trigger":
-    case "preset:highPower":
-    case "preset:lowPower":
-      return { t: msg.t }
     case "toggle":
       return TOGGLE_KEYS.has(msg.key) ? { t: "toggle", key: msg.key } : null
     case "set":
@@ -106,8 +89,6 @@ export function validateCommand(msg) {
         : null
     case "preset:hold":
       return HOLD_VALUES.has(msg.ms) ? { t: "preset:hold", ms: msg.ms } : null
-    case "modal":
-      return MODAL_NAMES.has(msg.name) ? { t: "modal", name: msg.name } : null
     default:
       return null
   }

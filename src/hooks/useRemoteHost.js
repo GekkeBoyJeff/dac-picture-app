@@ -1,14 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useUiStore } from "@/stores/uiStore"
-import { getSupabaseClient } from "@/lib/remote/supabase"
+import { useGalleryStore } from "@/stores/galleryStore"
+import { getSupabaseClient, getRemotePassword } from "@/lib/remote/supabase"
 import { applyCommand } from "@/lib/remote/commands"
 import {
   PROTOCOL_VERSION,
-  channelName,
-  generateRoomCode,
-  generateClientId,
+  FIXED_CHANNEL,
   pickStatePayload,
   tokenMatch,
   validateCommand,
@@ -24,135 +23,66 @@ function shallowEqual(a, b) {
   return ak.every((k) => a[k] === b[k])
 }
 
-export function useRemoteHost({ enabled }) {
-  const [roomCode] = useState(generateRoomCode)
-  const [token] = useState(generateClientId) // 24-byte secret used as the QR token
-  const [status, setStatus] = useState("idle")
-  const [pendingApproval, setPendingApproval] = useState(false)
+function buildPayload() {
+  const ui = useUiStore.getState()
+  return {
+    ...pickStatePayload(ui),
+    galleryOpen: ui.modals.gallery,
+    galleryIndex: ui.galleryLightboxIndex,
+    galleryCount: useGalleryStore.getState().photos.length,
+  }
+}
 
+// Booth side: always listening on the fixed channel whenever the app runs. No
+// owner-lock and no approval — the password gates command execution. Broadcasts
+// booth state (settings + gallery) to /admin, debounced + diffed.
+export function useRemoteHost() {
   const channelRef = useRef(null)
-  const ownerRef = useRef(null) // clientId of the active controller
-  const pendingRef = useRef(null) // clientId awaiting manual approval
-  const approvedRef = useRef(new Set()) // clientIds already approved (seamless reconnect)
   const lastSentRef = useRef(null)
   const debounceRef = useRef(null)
 
-  const send = useCallback((event, payload) => {
-    channelRef.current?.send({ type: "broadcast", event, payload })
-  }, [])
-
-  const pushState = useCallback(() => {
-    if (!ownerRef.current) return
-    const payload = pickStatePayload(useUiStore.getState())
-    if (shallowEqual(payload, lastSentRef.current)) return
-    lastSentRef.current = payload
-    send("state", { payload, v: PROTOCOL_VERSION })
-  }, [send])
-
-  const schedulePush = useCallback(() => {
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(pushState, STATE_DEBOUNCE_MS)
-  }, [pushState])
-
-  const grant = useCallback(
-    (to) => {
-      ownerRef.current = to
-      approvedRef.current.add(to)
-      pendingRef.current = null
-      setPendingApproval(false)
-      setStatus("connected")
-      useUiStore.getState().setRemoteConnected(true)
-      send("granted", { to })
-      lastSentRef.current = null
-      pushState()
-    },
-    [send, pushState],
-  )
-
-  const approve = useCallback(() => {
-    if (pendingRef.current) grant(pendingRef.current)
-  }, [grant])
-  const deny = useCallback(() => {
-    if (pendingRef.current) send("denied", { to: pendingRef.current })
-    pendingRef.current = null
-    setPendingApproval(false)
-    if (!ownerRef.current) setStatus("waiting")
-  }, [send])
-
   useEffect(() => {
-    if (!enabled) return
     const supabase = getSupabaseClient()
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (!supabase) {
-      setStatus("error")
-      return
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
+    if (!supabase) return // remote not configured — booth just runs without it
+    const password = getRemotePassword()
+    const authed = (payload) => !password || tokenMatch(payload?.pw, password)
 
-    const channel = supabase.channel(channelName(roomCode), {
-      config: { broadcast: { self: false }, presence: { key: "booth" } },
-    })
+    const channel = supabase.channel(FIXED_CHANNEL, { config: { broadcast: { self: false } } })
     channelRef.current = channel
 
-    channel.on("broadcast", { event: "hello" }, ({ payload }) => {
-      const from = payload?.from
-      if (!from) return
-      if (ownerRef.current && ownerRef.current !== from) {
-        send("occupied", { to: from })
-        return
-      }
-      // Already-approved clients (incl. token holders) reconnect seamlessly.
-      if (approvedRef.current.has(from) || (payload.token && tokenMatch(payload.token, token))) {
-        grant(from)
-        return
-      }
-      // No/invalid token, first time => manual entry => require operator approval.
-      pendingRef.current = from
-      setPendingApproval(true)
-      setStatus("awaiting-approval")
-      send("awaiting", { to: from })
-    })
+    const pushState = (force) => {
+      const payload = buildPayload()
+      if (!force && shallowEqual(payload, lastSentRef.current)) return
+      lastSentRef.current = payload
+      channel.send({ type: "broadcast", event: "state", payload: { payload, v: PROTOCOL_VERSION } })
+    }
+    const schedulePush = () => {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => pushState(false), STATE_DEBOUNCE_MS)
+    }
 
+    channel.on("broadcast", { event: "hello" }, ({ payload }) => {
+      if (!authed(payload)) return
+      lastSentRef.current = null
+      pushState(true) // full snapshot so a (re)connecting admin gets current state
+    })
     channel.on("broadcast", { event: "cmd" }, ({ payload }) => {
-      if (!payload || payload.from !== ownerRef.current) return
-      const cmd = validateCommand(payload.cmd)
+      if (!authed(payload)) return
+      const cmd = validateCommand(payload?.cmd)
       if (cmd) applyCommand(useUiStore.getState(), cmd)
     })
+    channel.subscribe()
 
-    channel.on("presence", { event: "leave" }, ({ key }) => {
-      // The controller tracks presence with key = its clientId. When the owner
-      // leaves (tab closed / dropped past reconnect), free ownership so a new
-      // phone can pair instead of getting a stuck "occupied".
-      if (key === ownerRef.current) {
-        ownerRef.current = null
-        lastSentRef.current = null
-        setStatus("waiting")
-        useUiStore.getState().setRemoteConnected(false)
-      }
-    })
-
-    channel.subscribe((s) => {
-      if (s === "SUBSCRIBED") {
-        setStatus(ownerRef.current ? "connected" : "waiting")
-        channel.track({ role: "booth" })
-      } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error")
-    })
-
-    const unsub = useUiStore.subscribe(schedulePush)
+    const unsubUi = useUiStore.subscribe(schedulePush)
+    const unsubGallery = useGalleryStore.subscribe(schedulePush)
 
     return () => {
-      unsub()
+      unsubUi()
+      unsubGallery()
       clearTimeout(debounceRef.current)
       supabase.removeChannel(channel)
       channelRef.current = null
-      ownerRef.current = null
-      pendingRef.current = null
       lastSentRef.current = null
-      setPendingApproval(false)
-      setStatus("idle")
-      useUiStore.getState().setRemoteConnected(false)
     }
-  }, [enabled, roomCode, token, grant, send, schedulePush])
-
-  return { roomCode, token, status, pendingApproval, approve, deny }
+  }, [])
 }

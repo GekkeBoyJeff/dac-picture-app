@@ -5,6 +5,11 @@ import { createClient } from "@supabase/supabase-js"
 export const isRemoteConfigured = () =>
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
 
+// The /admin password (operator-only). Public/inlined by design — it gates
+// casual access and is echoed in commands so the booth ignores unauthenticated
+// traffic on the shared channel. Empty string when unset.
+export const getRemotePassword = () => process.env.NEXT_PUBLIC_REMOTE_PASSWORD || ""
+
 let client = null
 export function getSupabaseClient() {
   if (!isRemoteConfigured()) return null

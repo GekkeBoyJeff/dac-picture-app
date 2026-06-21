@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   scenePresets,
   gesturePresets,
@@ -16,22 +16,24 @@ import {
   RangeControl,
 } from "@/components/drawers/settings/settingsControls"
 
-const STATUS_LABEL = {
+const CONN_LABEL = {
   connecting: "Verbinden…",
-  "awaiting-approval": "Wacht op goedkeuring…",
   connected: "Verbonden",
   reconnecting: "Herverbinden…",
-  denied: "Geweigerd",
-  occupied: "Booth is al in gebruik",
   "error-config": "Niet geconfigureerd",
   "error-timeout": "Booth niet gevonden",
 }
-const NEEDS_RETRY = new Set(["reconnecting", "denied", "occupied", "error-timeout"])
+const NEEDS_RETRY = new Set(["reconnecting", "error-timeout"])
+const BOOTH_STATE_LABEL = { camera: "Klaar", countdown: "Aftellen…", capturing: "Vastleggen…" }
 
-export function RemotePanel({ remoteState, send, status, retry }) {
+export function AdminPanel({ remoteState, send, status, retry }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const s = remoteState ?? {}
   const isConnected = status === "connected"
+  const boothBusy = s.appState === "countdown" || s.appState === "capturing"
+  const canCapture = isConnected && s.appState === "camera"
+  const galleryIndex = s.galleryIndex ?? 0
+  const galleryCount = s.galleryCount ?? 0
 
   const toggle = useCallback((key) => send({ t: "toggle", key }), [send])
   const debounceRef = useRef(null)
@@ -46,9 +48,8 @@ export function RemotePanel({ remoteState, send, status, retry }) {
 
   return (
     <div className="min-h-dvh bg-base text-ink">
-      {/* Sticky header */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-base/90 px-4 py-3 backdrop-blur-xl">
-        <h1 className="text-base font-semibold text-gold">DAC Remote</h1>
+        <h1 className="text-base font-semibold text-gold">DAC Admin</h1>
         <div className="flex items-center gap-2">
           <span
             className={`h-2 w-2 rounded-full ${isConnected ? "animate-pulse bg-green-400" : "bg-ink-subtle"}`}
@@ -56,7 +57,7 @@ export function RemotePanel({ remoteState, send, status, retry }) {
           <span
             className={`text-xs font-medium ${isConnected ? "text-green-400" : "text-ink-muted"}`}
           >
-            {STATUS_LABEL[status] ?? "Verbroken"}
+            {CONN_LABEL[status] ?? "Verbroken"}
           </span>
           {NEEDS_RETRY.has(status) && (
             <button
@@ -70,41 +71,88 @@ export function RemotePanel({ remoteState, send, status, retry }) {
       </header>
 
       <div className="mx-auto max-w-2xl space-y-4 p-4 pb-20">
-        {/* Quick actions */}
-        <div className="rounded-2xl border border-hairline bg-surface p-4 space-y-3">
-          <SectionLabel title="Snelle acties" description="Directe bediening van de booth" />
-          <div className="grid grid-cols-2 gap-2">
-            <RemoteButton
-              onClick={() => send({ t: "trigger" })}
-              disabled={!isConnected || s.appState !== "camera"}
-            >
-              📸 Foto nemen
-            </RemoteButton>
-            <RemoteButton
-              onClick={() => send({ t: "modal", name: "gallery" })}
-              disabled={!isConnected}
-            >
-              🖼 Gallerij
-            </RemoteButton>
-            <RemoteButton
-              onClick={() => toggle("stripModeEnabled")}
-              active={!!s.stripModeEnabled}
-              disabled={!isConnected}
-            >
-              {s.stripModeEnabled ? "📋 Strip: aan" : "📋 Strip: uit"}
-            </RemoteButton>
-            <RemoteButton
-              onClick={() => toggle("flashEnabled")}
-              active={!!s.flashEnabled}
-              disabled={!isConnected}
-            >
-              {s.flashEnabled ? "⚡ Flits: aan" : "⚡ Flits: uit"}
-            </RemoteButton>
-          </div>
+        {/* Primary: take a photo, reflecting the live booth state */}
+        <div className="space-y-2 rounded-2xl border border-hairline bg-surface p-4">
+          <SectionLabel
+            title="Foto"
+            description={isConnected ? `Booth: ${BOOTH_STATE_LABEL[s.appState] ?? "—"}` : "Niet verbonden"}
+          />
+          <button
+            onClick={() => send({ t: "trigger" })}
+            disabled={!canCapture}
+            className="w-full cursor-pointer rounded-2xl bg-gold py-4 text-base font-semibold text-[#1b1407] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {boothBusy
+              ? s.appState === "countdown"
+                ? "⏳ Aftellen…"
+                : "📸 Vastleggen…"
+              : "📸 Foto nemen"}
+          </button>
+        </div>
+
+        {/* Gallery — controls the lightbox shown on the booth screen */}
+        <div className="space-y-3 rounded-2xl border border-hairline bg-surface p-4">
+          <SectionLabel title="Gallerij" description="Bedien de gallerij op het booth-scherm" />
+          {!s.galleryOpen ? (
+            <AdminButton full onClick={() => send({ t: "gallery:open" })} disabled={!isConnected}>
+              🖼 Gallerij openen
+            </AdminButton>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <AdminButton
+                  onClick={() => send({ t: "gallery:prev" })}
+                  disabled={!isConnected || galleryIndex <= 0}
+                  className="flex-1"
+                >
+                  ‹ Vorige
+                </AdminButton>
+                <span className="shrink-0 px-1 text-sm text-ink-muted">
+                  {galleryCount > 0 ? `Foto ${galleryIndex + 1} / ${galleryCount}` : "Geen foto's"}
+                </span>
+                <AdminButton
+                  onClick={() => send({ t: "gallery:next" })}
+                  disabled={!isConnected || galleryCount === 0 || galleryIndex >= galleryCount - 1}
+                  className="flex-1"
+                >
+                  Volgende ›
+                </AdminButton>
+              </div>
+              <AdminButton full onClick={() => send({ t: "gallery:close" })} disabled={!isConnected}>
+                ✕ Gallerij sluiten
+              </AdminButton>
+            </div>
+          )}
+        </div>
+
+        {/* Quick toggles */}
+        <div className="space-y-3 rounded-2xl border border-hairline bg-surface p-4">
+          <SectionLabel title="Snelle instellingen" description="" />
+          <ToggleRow
+            title="Flits"
+            description="Schermflits bij vastleggen"
+            checked={!!s.flashEnabled}
+            disabled={!isConnected}
+            onClick={() => toggle("flashEnabled")}
+          />
+          <ToggleRow
+            title="Strip mode"
+            description="Meerdere foto's in een strip"
+            checked={!!s.stripModeEnabled}
+            disabled={!isConnected}
+            onClick={() => toggle("stripModeEnabled")}
+          />
+          <ToggleRow
+            title="Handgebaren"
+            description="Automatisch afdrukken via gebaar"
+            checked={!!s.gesturesEnabled}
+            disabled={!isConnected}
+            onClick={() => toggle("gesturesEnabled")}
+          />
         </div>
 
         {/* Scene presets */}
-        <div className="rounded-2xl border border-hairline bg-surface p-4 space-y-3">
+        <div className="space-y-3 rounded-2xl border border-hairline bg-surface p-4">
           <SectionLabel
             title="Scène preset"
             description="Past detectie-instellingen aan voor de omgeving"
@@ -128,72 +176,44 @@ export function RemotePanel({ remoteState, send, status, retry }) {
           </div>
         </div>
 
-        {/* Toggles */}
-        <div className="rounded-2xl border border-hairline bg-surface p-4 space-y-3">
-          <SectionLabel title="Instellingen" description="" />
-          <ToggleRow
-            title="Handgebaren"
-            description="Automatisch afdrukken via gebaar"
-            checked={!!s.gesturesEnabled}
-            disabled={!isConnected}
-            onClick={() => toggle("gesturesEnabled")}
-          />
-          <ToggleRow
-            title="Strip mode"
-            description="Meerdere foto's in een strip"
-            checked={!!s.stripModeEnabled}
-            disabled={!isConnected}
-            onClick={() => toggle("stripModeEnabled")}
-          />
-          <ToggleRow
-            title="Flits"
-            description="Schermflits bij vastleggen"
-            checked={!!s.flashEnabled}
-            disabled={!isConnected}
-            onClick={() => toggle("flashEnabled")}
-          />
-          <ToggleRow
-            title="Debug"
-            description="Toon handherkenning overlay"
-            checked={!!s.debugEnabled}
-            disabled={!isConnected}
-            onClick={() => toggle("debugEnabled")}
-          />
-          <ToggleRow
-            title="Low-power modus"
-            description="Zuiniger voor laptop / Raspberry Pi"
-            checked={!!s.forceLowPower}
-            disabled={!isConnected}
-            onClick={() => toggle("forceLowPower")}
-          />
-        </div>
-
         {/* Power presets */}
-        <div className="rounded-2xl border border-hairline bg-surface p-4 space-y-3">
+        <div className="space-y-3 rounded-2xl border border-hairline bg-surface p-4">
           <SectionLabel title="Energiepresets" description="Pas alle instellingen tegelijk aan" />
           <div className="grid grid-cols-2 gap-2">
-            <RemoteButton onClick={() => send({ t: "preset:highPower" })} disabled={!isConnected}>
+            <AdminButton onClick={() => send({ t: "preset:highPower" })} disabled={!isConnected}>
               ⚡ High power
-            </RemoteButton>
-            <RemoteButton onClick={() => send({ t: "preset:lowPower" })} disabled={!isConnected}>
+            </AdminButton>
+            <AdminButton onClick={() => send({ t: "preset:lowPower" })} disabled={!isConnected}>
               🔋 Low power
-            </RemoteButton>
+            </AdminButton>
           </div>
         </div>
 
-        {/* Advanced (collapsible) */}
-        <div className="rounded-2xl border border-hairline bg-surface overflow-hidden">
+        {/* Advanced */}
+        <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
           <button
             onClick={() => setAdvancedOpen((v) => !v)}
             className="flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-raised"
           >
             <span>Geavanceerd</span>
-            <span className="text-ink-muted text-xs">{advancedOpen ? "▲" : "▼"}</span>
+            <span className="text-xs text-ink-muted">{advancedOpen ? "▲" : "▼"}</span>
           </button>
-
           {advancedOpen && (
-            <div className="border-t border-hairline p-4 space-y-5">
-              {/* Gesture preset */}
+            <div className="space-y-5 border-t border-hairline p-4">
+              <ToggleRow
+                title="Debug"
+                description="Toon handherkenning overlay"
+                checked={!!s.debugEnabled}
+                disabled={!isConnected}
+                onClick={() => toggle("debugEnabled")}
+              />
+              <ToggleRow
+                title="Low-power modus"
+                description="Zuiniger voor laptop / Raspberry Pi"
+                checked={!!s.forceLowPower}
+                disabled={!isConnected}
+                onClick={() => toggle("forceLowPower")}
+              />
               <div className="space-y-2">
                 <p className="text-[0.65rem] uppercase tracking-[0.2em] text-ink-dim">
                   Gesture preset
@@ -220,8 +240,6 @@ export function RemotePanel({ remoteState, send, status, retry }) {
                   ))}
                 </div>
               </div>
-
-              {/* Hold tijd */}
               <div className="space-y-2">
                 <p className="text-[0.65rem] uppercase tracking-[0.2em] text-ink-dim">
                   Vasthouden voor trigger
@@ -239,8 +257,6 @@ export function RemotePanel({ remoteState, send, status, retry }) {
                   ))}
                 </div>
               </div>
-
-              {/* Handen */}
               <div className="space-y-2">
                 <p className="text-[0.65rem] uppercase tracking-[0.2em] text-ink-dim">
                   Max handen detecteren
@@ -258,8 +274,6 @@ export function RemotePanel({ remoteState, send, status, retry }) {
                   ))}
                 </div>
               </div>
-
-              {/* Confidence sliders */}
               <RangeControl
                 label="Detectie confidence"
                 value={s.minDetectionConfidence ?? 0.4}
@@ -308,12 +322,12 @@ export function RemotePanel({ remoteState, send, status, retry }) {
   )
 }
 
-function RemoteButton({ onClick, disabled, active, children }) {
+function AdminButton({ onClick, disabled, active, full, className = "", children }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`cursor-pointer rounded-xl border px-3 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`${full ? "w-full " : ""}${className} cursor-pointer rounded-xl border px-3 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         active
           ? "border-gold/50 bg-gold/15 text-gold-strong"
           : "border-hairline bg-raised text-ink hover:border-hairline-strong hover:bg-surface"

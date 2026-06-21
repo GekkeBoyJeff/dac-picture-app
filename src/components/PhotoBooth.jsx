@@ -43,7 +43,6 @@ import {
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
 import { useRemoteHost } from "@/hooks/useRemoteHost"
-import { RemoteConnectModal } from "./camera/RemoteConnectModal"
 
 export function PhotoBooth() {
   const containerRef = useRef(null)
@@ -70,17 +69,10 @@ export function PhotoBooth() {
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
   const modals = useUiStore((s) => s.modals)
-  const remoteActive = useUiStore((s) => s.remoteActive)
-  const setRemoteActive = useUiStore((s) => s.setRemoteActive)
+  const closeGalleryLightbox = useUiStore((s) => s.closeGalleryLightbox)
 
-  const {
-    roomCode,
-    token: remoteToken,
-    status: remoteStatus,
-    pendingApproval,
-    approve,
-    deny,
-  } = useRemoteHost({ enabled: remoteActive })
+  // Booth always listens for /admin over Supabase Realtime (no UI, no toggle).
+  useRemoteHost()
   const openModal = useUiStore((s) => s.openModal)
   const closeModal = useUiStore((s) => s.closeModal)
   const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
@@ -464,10 +456,6 @@ export function PhotoBooth() {
           switchCamera={switchCamera}
           canInstall={install.canInstall}
           onInstall={install.promptInstall}
-          onRemote={() => {
-            setRemoteActive(true)
-            openModal("remote")
-          }}
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
@@ -498,7 +486,14 @@ export function PhotoBooth() {
           <FlashEffect videoRef={videoRef} onCapture={doCapture} onComplete={handleFlashComplete} />
         )}
 
-        <Gallery isOpen={modals.gallery} onClose={() => closeModal("gallery")} toast={toast} />
+        <Gallery
+          isOpen={modals.gallery}
+          onClose={() => {
+            closeModal("gallery")
+            closeGalleryLightbox()
+          }}
+          toast={toast}
+        />
 
         {modals.mascotPicker && <MascotPicker onClose={() => closeModal("mascotPicker")} />}
 
@@ -521,41 +516,6 @@ export function PhotoBooth() {
         )}
 
         <UploadStatus entries={displayUploadEntries} onDismiss={dismissEntry} />
-
-        <RemoteConnectModal
-          isOpen={modals.remote}
-          onClose={() => closeModal("remote")}
-          onStop={() => {
-            setRemoteActive(false)
-            closeModal("remote")
-          }}
-          roomCode={roomCode}
-          token={remoteToken}
-          status={remoteStatus}
-          pendingApproval={pendingApproval}
-          approve={approve}
-          deny={deny}
-        />
-
-        {pendingApproval && !modals.remote && (
-          <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[min(92vw,28rem)] space-y-3 rounded-2xl border border-gold/40 bg-base/95 p-4 text-center shadow-2xl backdrop-blur-xl">
-            <p className="text-sm text-ink">Een telefoon wil de booth bedienen. Toestaan?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={deny}
-                className="flex-1 cursor-pointer rounded-xl border border-hairline px-4 py-2 text-sm text-ink-muted hover:bg-surface"
-              >
-                Weigeren
-              </button>
-              <button
-                onClick={approve}
-                className="flex-1 cursor-pointer rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-[#1b1407] hover:opacity-90"
-              >
-                Toestaan
-              </button>
-            </div>
-          </div>
-        )}
 
         {toast.message && (
           <div

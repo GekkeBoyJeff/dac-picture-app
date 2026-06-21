@@ -1,4 +1,5 @@
 import { scenePresets } from "@/components/drawers/settings/settingsPresets"
+import { useGalleryStore } from "@/stores/galleryStore"
 
 // cmd MUST be the output of validateCommand (trusted shape + clamped values).
 export function applyCommand(state, cmd) {
@@ -46,8 +47,19 @@ export function applyCommand(state, cmd) {
     case "preset:lowPower":
       state.applyLowPowerPreset()
       return
-    case "modal":
-      state.openModal(cmd.name)
+    case "gallery:open":
+      state.openModal("gallery")
+      state.openGalleryLightbox(0)
+      return
+    case "gallery:next":
+      state.galleryNext(useGalleryStore.getState().photos.length)
+      return
+    case "gallery:prev":
+      state.galleryPrev()
+      return
+    case "gallery:close":
+      state.closeGalleryLightbox()
+      state.closeModal("gallery")
       return
   }
 }

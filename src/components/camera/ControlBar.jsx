@@ -11,7 +11,6 @@ import {
   SettingsIcon,
   WifiOffIcon,
   StripIcon,
-  RemoteIcon,
 } from "@/components/ui/icons"
 import { ControlBarItem, ControlBarTooltip } from "@/components/ui/ControlBarItem"
 import { useCameraStore } from "@/stores/cameraStore"
@@ -27,7 +26,7 @@ function toggleFullscreen() {
   }
 }
 
-export function ControlBar({ canInstall, onInstall, switchCamera, onRemote }) {
+export function ControlBar({ canInstall, onInstall, switchCamera }) {
   const devices = useCameraStore((s) => s.devices)
   const selectedDeviceId = useCameraStore((s) => s.selectedDeviceId)
   const openModal = useUiStore((s) => s.openModal)
@@ -135,12 +134,6 @@ export function ControlBar({ canInstall, onInstall, switchCamera, onRemote }) {
           label="Fullscreen"
         />
       </div>
-
-      <ControlBarItem
-        onClick={onRemote}
-        icon={<RemoteIcon className="h-5 w-5" />}
-        label="Remote panel"
-      />
 
       <ControlBarItem
         onClick={() => openModal("settings")}

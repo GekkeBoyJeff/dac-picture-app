@@ -37,7 +37,6 @@ export function CameraView({
   switchCamera,
   canInstall,
   onInstall,
-  onRemote,
   cameraError,
   cameraDeviceCount,
   onRetryCamera,
@@ -172,7 +171,6 @@ export function CameraView({
                 switchCamera={switchCamera}
                 canInstall={canInstall}
                 onInstall={onInstall}
-                onRemote={onRemote}
               />
             </div>
           </>
