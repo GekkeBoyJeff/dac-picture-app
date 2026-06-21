@@ -64,8 +64,14 @@ export function PhotoResultOverlay({ photo, onDismiss }) {
     const guard = (fn) => () => {
       if (alive) fn()
     }
-    after(REVEAL_MS, guard(() => setPhase("sending")))
-    after(REVEAL_MS + SENDING_MS, guard(() => setPhase("outcome")))
+    after(
+      REVEAL_MS,
+      guard(() => setPhase("sending")),
+    )
+    after(
+      REVEAL_MS + SENDING_MS,
+      guard(() => setPhase("outcome")),
+    )
     after(
       REVEAL_MS + SENDING_MS + OUTCOME_MS,
       guard(() => {
@@ -144,9 +150,7 @@ export function PhotoResultOverlay({ photo, onDismiss }) {
             </p>
           )}
 
-          {phase === "outcome" && (
-            <p className="text-xl font-semibold text-gold">Verzonden! ✓</p>
-          )}
+          {phase === "outcome" && <p className="text-xl font-semibold text-gold">Verzonden! ✓</p>}
         </div>
       )}
 
