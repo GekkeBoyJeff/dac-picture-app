@@ -12,6 +12,8 @@ export function HandBox({
   box,
   videoRef,
   containerRef,
+  isPrimary = false,
+  label = null,
   borderColor = "rgba(230,193,137,0.95)",
   glowColor = "rgba(230,193,137,0.35)",
   outlineColor = "rgba(230,193,137,0.45)",
@@ -80,7 +82,9 @@ export function HandBox({
         className="absolute rounded-2xl"
         style={{
           opacity: 0,
-          boxShadow: `0 0 28px ${glowColor}, inset 0 0 0 1px ${outlineColor}`,
+          boxShadow: isPrimary
+            ? `0 0 36px ${glowColor}, inset 0 0 0 2px ${outlineColor}`
+            : `0 0 28px ${glowColor}, inset 0 0 0 1px ${outlineColor}`,
           // A short positional ease smooths jitter without feeling like it lags.
           transition:
             "left 0.07s linear, top 0.07s linear, width 0.07s linear, height 0.07s linear, opacity 0.2s ease",
@@ -102,6 +106,17 @@ export function HandBox({
           className={`${bracket} bottom-0 right-0 rounded-br-xl border-b-2 border-r-2`}
           style={bracketStyle}
         />
+        {label && (
+          <span
+            className="absolute -top-6 left-0 px-2 py-0.5 rounded-md text-[10px] font-mono whitespace-nowrap"
+            style={{
+              background: isPrimary ? "rgba(56,189,248,0.85)" : "rgba(0,0,0,0.55)",
+              color: "#fff",
+            }}
+          >
+            {label}
+          </span>
+        )}
       </div>
     </div>
   )

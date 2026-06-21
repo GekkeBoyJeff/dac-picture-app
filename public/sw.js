@@ -47,10 +47,7 @@ self.addEventListener("install", (event) => {
       cacheName = CACHE_PREFIX + version
       const prefix = basePath || ""
       const cache = await caches.open(cacheName)
-      return cache.addAll([
-        prefix + "/",
-        ...OVERLAY_ASSETS.map((p) => prefix + p),
-      ])
+      return cache.addAll([prefix + "/", ...OVERLAY_ASSETS.map((p) => prefix + p)])
     }),
   )
   self.skipWaiting()
@@ -59,13 +56,15 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     getCacheName().then((current) =>
-      caches.keys().then((names) =>
-        Promise.all(
-          names
-            .filter((name) => name.startsWith(CACHE_PREFIX) && name !== current)
-            .map((name) => caches.delete(name)),
+      caches
+        .keys()
+        .then((names) =>
+          Promise.all(
+            names
+              .filter((name) => name.startsWith(CACHE_PREFIX) && name !== current)
+              .map((name) => caches.delete(name)),
+          ),
         ),
-      ),
     ),
   )
   self.clients.claim()
@@ -81,12 +80,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Skip non-GET, API requests, and the gesture worker (always fetch fresh)
-  if (event.request.method !== "GET" || url.pathname.includes("/api/") || url.pathname.endsWith("/gesture-worker.js")) {
+  if (
+    event.request.method !== "GET" ||
+    url.pathname.includes("/api/") ||
+    url.pathname.endsWith("/gesture-worker.js")
+  ) {
     return
   }
 
-  // Cache-first for MediaPipe WASM/model files (immutable)
-  if (url.hostname === "cdn.jsdelivr.net" || url.hostname === "storage.googleapis.com") {
+  // Cache-first for self-hosted MediaPipe WASM/model/bundle (immutable)
+  if (url.pathname.includes("/mediapipe/")) {
     event.respondWith(
       getCacheName().then((name) =>
         caches.match(event.request).then((cached) => {
@@ -152,7 +155,5 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Default: network-first
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request)),
-  )
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)))
 })

@@ -3,6 +3,9 @@
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useUiStore } from "@/stores/uiStore"
 import { logger } from "@/lib/logger"
+import { selectTriggerHand } from "@/lib/gesture/selectTriggerHand"
+import { selectPrimaryHand } from "@/lib/gesture/selectPrimaryHand"
+import { shouldReinitNumHands } from "@/lib/gesture/shouldReinitNumHands"
 
 const DEFAULT_DETECTION_INTERVAL_MS = 0
 const MIN_INTERVAL_MS = 0
@@ -14,7 +17,8 @@ const BOX_HOLD_MS = 700
 const MIN_DRAW_INTERVAL_MS = 33
 const GESTURE_GRACE_MS = 300
 
-const clampInterval = (value) => Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, value ?? DEFAULT_DETECTION_INTERVAL_MS))
+const clampInterval = (value) =>
+  Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, value ?? DEFAULT_DETECTION_INTERVAL_MS))
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ""
 
@@ -47,7 +51,8 @@ const isTwoFingerVictory = (landmarks) => {
   if (!landmarks?.length) return false
   const wrist = landmarks[0]
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0))
-  const isExtended = (pipIdx, tipIdx) => distance(landmarks[tipIdx], wrist) - distance(landmarks[pipIdx], wrist) > 0.1
+  const isExtended = (pipIdx, tipIdx) =>
+    distance(landmarks[tipIdx], wrist) - distance(landmarks[pipIdx], wrist) > 0.1
   return isExtended(5, 8) && isExtended(9, 12) && !isExtended(13, 16) && !isExtended(17, 20)
 }
 
@@ -81,6 +86,15 @@ export function useHandGesture(
   const [gestureLoading, setGestureLoading] = useState(false)
   const gestureLoadingRef = useRef(false)
   const pendingResultRef = useRef(null)
+  const lastNumHandsRef = useRef(null)
+  const [gestureHealth, setGestureHealth] = useState({
+    ready: false,
+    delegate: null,
+    modelLoaded: false,
+    activeNumHands: null,
+    handCount: 0,
+    error: null,
+  })
 
   // Config refs — read inside the animation loop without restarting it
   const isMirroredRef = useRef(isMirrored)
@@ -91,13 +105,27 @@ export function useHandGesture(
   const callbacksRef = useRef(callbacks)
   const onFrameTickRef = useRef(onFrameTick)
 
-  useEffect(() => { isMirroredRef.current = isMirrored }, [isMirrored])
-  useEffect(() => { intervalRef.current = clampInterval(detectionIntervalMs) }, [detectionIntervalMs])
-  useEffect(() => { triggerMinScoreRef.current = triggerMinScore }, [triggerMinScore])
-  useEffect(() => { gestureActionsRef.current = gestureActionsEnabled }, [gestureActionsEnabled])
-  useEffect(() => { holdDurationRef.current = holdDurationMs }, [holdDurationMs])
-  useEffect(() => { callbacksRef.current = callbacks }, [callbacks])
-  useEffect(() => { onFrameTickRef.current = onFrameTick }, [onFrameTick])
+  useEffect(() => {
+    isMirroredRef.current = isMirrored
+  }, [isMirrored])
+  useEffect(() => {
+    intervalRef.current = clampInterval(detectionIntervalMs)
+  }, [detectionIntervalMs])
+  useEffect(() => {
+    triggerMinScoreRef.current = triggerMinScore
+  }, [triggerMinScore])
+  useEffect(() => {
+    gestureActionsRef.current = gestureActionsEnabled
+  }, [gestureActionsEnabled])
+  useEffect(() => {
+    holdDurationRef.current = holdDurationMs
+  }, [holdDurationMs])
+  useEffect(() => {
+    callbacksRef.current = callbacks
+  }, [callbacks])
+  useEffect(() => {
+    onFrameTickRef.current = onFrameTick
+  }, [onFrameTick])
 
   useEffect(() => {
     victoryFiredRef.current = false
@@ -141,6 +169,14 @@ export function useHandGesture(
       const { type } = e.data
       if (type === "ready") {
         logger.info("gesture", `MediaPipe initialized in worker (${e.data.delegate})`)
+        setGestureHealth((h) => ({
+          ...h,
+          ready: true,
+          delegate: e.data.delegate ?? null,
+          modelLoaded: true,
+          activeNumHands: e.data.numHands ?? h.activeNumHands,
+          error: null,
+        }))
         if (gestureLoadingRef.current) {
           gestureLoadingRef.current = false
           setGestureLoading(false)
@@ -149,13 +185,19 @@ export function useHandGesture(
         pendingResultRef.current = e.data
         busyRef.current = false
       } else if (type === "error") {
-        logger.warn("gesture", "Worker error:", e.data.message)
+        logger.warn("gesture", `Worker error (${e.data.phase}):`, e.data.message)
+        setGestureHealth((h) => ({
+          ...h,
+          ready: e.data.phase === "init" ? false : h.ready,
+          error: `${e.data.phase}: ${e.data.message}`,
+        }))
         busyRef.current = false
       }
     })
 
     worker.addEventListener("error", (e) => {
       logger.warn("gesture", "Worker crashed:", e.message)
+      setGestureHealth((h) => ({ ...h, ready: false, error: `crash: ${e.message}` }))
     })
 
     const {
@@ -166,11 +208,13 @@ export function useHandGesture(
     } = useUiStore.getState()
     worker.postMessage({
       type: "init",
+      basePath: BASE_PATH,
       numHands: nh,
       minHandDetectionConfidence: mdc,
       minHandPresenceConfidence: mpc,
       minTrackingConfidence: mtc,
     })
+    lastNumHandsRef.current = nh
   }, [])
 
   // Sync recognizer options to running worker without reloading the model
@@ -179,15 +223,27 @@ export function useHandGesture(
   const minPresenceConfidence = useUiStore((s) => s.minPresenceConfidence)
   const minTrackingConfidence = useUiStore((s) => s.minTrackingConfidence)
   useEffect(() => {
-    workerRef.current?.postMessage({
-      type: "setOptions",
-      options: {
+    const worker = workerRef.current
+    if (!worker) return
+    if (shouldReinitNumHands(lastNumHandsRef.current, numHands)) {
+      lastNumHandsRef.current = numHands
+      worker.postMessage({
+        type: "reinit",
         numHands,
         minHandDetectionConfidence: minDetectionConfidence,
         minHandPresenceConfidence: minPresenceConfidence,
         minTrackingConfidence,
-      },
-    })
+      })
+    } else {
+      worker.postMessage({
+        type: "setOptions",
+        options: {
+          minHandDetectionConfidence: minDetectionConfidence,
+          minHandPresenceConfidence: minPresenceConfidence,
+          minTrackingConfidence,
+        },
+      })
+    }
   }, [numHands, minDetectionConfidence, minPresenceConfidence, minTrackingConfidence])
 
   useEffect(() => {
@@ -230,28 +286,12 @@ export function useHandGesture(
 
         const gestures = result.gestures || []
         const allLandmarks = result.landmarks || []
+        const liveHandCount = allLandmarks.filter((lm) => lm && lm.length > 0).length
+        setGestureHealth((h) =>
+          h.handCount === liveHandCount ? h : { ...h, handCount: liveHandCount },
+        )
 
-        let triggerHandIndex = -1
-        let triggerScore = 0
         const boxes = []
-
-        const effectiveTriggerMin = Math.max(CONFIDENCE_THRESHOLD, triggerMinScoreRef.current ?? TRIGGER_MIN_SCORE)
-
-        if (actionsEnabled) {
-          gestures.forEach((gestureList, idx) => {
-            gestureList.forEach((g) => {
-              if (TRIGGER_GESTURES.has(g.categoryName) && g.score >= effectiveTriggerMin && g.score > triggerScore) {
-                triggerScore = g.score
-                triggerHandIndex = idx
-              }
-            })
-          })
-        }
-
-        const topGesture = gestures[0]?.[0]
-        rawGestureNameRef.current = topGesture?.categoryName ?? "None"
-        primaryHandLandmarksRef.current = allLandmarks[0] ?? null
-
         allLandmarks.forEach((landmarks, idx) => {
           if (!landmarks || landmarks.length === 0) return
           const box = computeBox(landmarks, mirrored)
@@ -259,9 +299,42 @@ export function useHandGesture(
             boxes.push({ ...box, index: idx })
             lastSeenRef.current.set(idx, now)
           }
-          if (actionsEnabled && triggerHandIndex < 0 && isTwoFingerVictory(landmarks)) {
-            triggerHandIndex = idx
+        })
+
+        const effectiveTriggerMin = Math.max(
+          CONFIDENCE_THRESHOLD,
+          triggerMinScoreRef.current ?? TRIGGER_MIN_SCORE,
+        )
+
+        // Largest-box arbitration: the closest person (biggest box) wins.
+        const primaryIndex = selectPrimaryHand(boxes)
+        let triggerHandIndex = -1
+        if (actionsEnabled) {
+          triggerHandIndex = selectTriggerHand({
+            gestures,
+            boxes,
+            triggerGestures: TRIGGER_GESTURES,
+            minScore: effectiveTriggerMin,
+          })
+          // Fallback: geometric two-finger Victory on the primary hand if the
+          // model did not label a trigger gesture.
+          if (triggerHandIndex < 0 && primaryIndex >= 0) {
+            const primaryLandmarks = allLandmarks[primaryIndex]
+            if (isTwoFingerVictory(primaryLandmarks)) triggerHandIndex = primaryIndex
           }
+        }
+
+        // Primary hand (largest box) feeds sequences + swipe, NOT hand[0].
+        const primaryGesture = primaryIndex >= 0 ? gestures[primaryIndex]?.[0] : null
+        rawGestureNameRef.current = primaryGesture?.categoryName ?? "None"
+        primaryHandLandmarksRef.current =
+          primaryIndex >= 0 ? (allLandmarks[primaryIndex] ?? null) : null
+
+        // Tag boxes for the overlay: primary highlight + gesture/score label.
+        boxes.forEach((b) => {
+          b.isPrimary = b.index === (triggerHandIndex >= 0 ? triggerHandIndex : primaryIndex)
+          const top = gestures[b.index]?.[0]
+          b.label = top ? `${top.categoryName} ${(top.score * 100).toFixed(0)}%` : null
         })
 
         if (boxes.length === 0 && prevBoxesRef.current.length > 0) {
@@ -273,11 +346,19 @@ export function useHandGesture(
         }
 
         const sameLength = boxes.length === prevBoxesRef.current.length
-        const unchanged = sameLength && boxes.every((b, idx) => {
-          const p = prevBoxesRef.current[idx]
-          return p && Math.abs(b.x - p.x) < 0.003 && Math.abs(b.y - p.y) < 0.003 &&
-            Math.abs(b.width - p.width) < 0.003 && Math.abs(b.height - p.height) < 0.003 && b.index === p.index
-        })
+        const unchanged =
+          sameLength &&
+          boxes.every((b, idx) => {
+            const p = prevBoxesRef.current[idx]
+            return (
+              p &&
+              Math.abs(b.x - p.x) < 0.003 &&
+              Math.abs(b.y - p.y) < 0.003 &&
+              Math.abs(b.width - p.width) < 0.003 &&
+              Math.abs(b.height - p.height) < 0.003 &&
+              b.index === p.index
+            )
+          })
 
         if (!unchanged && now - lastDrawRef.current >= MIN_DRAW_INTERVAL_MS) {
           prevBoxesRef.current = boxes
@@ -329,10 +410,17 @@ export function useHandGesture(
         if (interval <= 0 || timeSinceLast >= interval) {
           lastDetectRef.current = now
           busyRef.current = true
-          createImageBitmap(video).then((bitmap) => {
-            if (stopped) { bitmap.close(); return }
-            worker.postMessage({ type: "detect", bitmap, timestamp: now }, [bitmap])
-          }).catch(() => { busyRef.current = false })
+          createImageBitmap(video)
+            .then((bitmap) => {
+              if (stopped) {
+                bitmap.close()
+                return
+              }
+              worker.postMessage({ type: "detect", bitmap, timestamp: now }, [bitmap])
+            })
+            .catch(() => {
+              busyRef.current = false
+            })
         }
       }
 
@@ -356,5 +444,14 @@ export function useHandGesture(
     }
   }, [])
 
-  return { activeGesture, handBoxes, gestureBoxes, holdProgressRef, gestureLoading, rawGestureNameRef, primaryHandLandmarksRef }
+  return {
+    activeGesture,
+    handBoxes,
+    gestureBoxes,
+    holdProgressRef,
+    gestureLoading,
+    rawGestureNameRef,
+    primaryHandLandmarksRef,
+    gestureHealth,
+  }
 }

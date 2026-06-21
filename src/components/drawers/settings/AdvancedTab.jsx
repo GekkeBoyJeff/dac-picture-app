@@ -32,6 +32,10 @@ export function AdvancedTab() {
   const lowPowerOverride = useUiStore((s) => s.lowPowerOverride)
   const forceLowPower = useUiStore((s) => s.forceLowPower)
   const toggleDebug = useUiStore((s) => s.toggleDebug)
+  const forceCaptureButton = useUiStore((s) => s.forceCaptureButton)
+  const toggleForceCaptureButton = useUiStore((s) => s.toggleForceCaptureButton)
+  const gestureHealthEnabled = useUiStore((s) => s.gestureHealthEnabled)
+  const toggleGestureHealth = useUiStore((s) => s.toggleGestureHealth)
   const setNumHands = useUiStore((s) => s.setNumHands)
   const setMinDetectionConfidence = useUiStore((s) => s.setMinDetectionConfidence)
   const setMinPresenceConfidence = useUiStore((s) => s.setMinPresenceConfidence)
@@ -108,8 +112,20 @@ export function AdvancedTab() {
         )}
 
         <ToggleRow
+          title="Fotoknop tonen"
+          description="Toon de fotoknop op het grote scherm (handmatige fallback)"
+          checked={forceCaptureButton}
+          onClick={toggleForceCaptureButton}
+        />
+        <ToggleRow
+          title="Handdetectie-info"
+          description="Toon de detectie-status linksboven (diagnostiek)"
+          checked={gestureHealthEnabled}
+          onClick={toggleGestureHealth}
+        />
+        <ToggleRow
           title="Debug"
-          description="Toon tracking-kaders + gesture status"
+          description="Forceer handdetectie aan + extra diagnostiek"
           checked={debugEnabled}
           onClick={toggleDebug}
         />

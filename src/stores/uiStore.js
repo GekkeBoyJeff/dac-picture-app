@@ -6,7 +6,12 @@ export const useUiStore = create(
   persist(
     (set) => ({
       // --- App phase (not persisted) ---
-      appState: "camera", // "camera" | "countdown" | "capturing"
+      appState: "camera", // "camera" | "countdown" | "capturing" | "result"
+
+      // --- Transient captured photo for the result overlay (not persisted).
+      // { url: objectURL, isStrip: boolean } | null. The object URL is created
+      // and revoked by PhotoBooth/PhotoResultOverlay, never persisted.
+      capturedPhoto: null,
 
       // --- Modal state (not persisted) ---
       modals: {
@@ -27,6 +32,14 @@ export const useUiStore = create(
       gesturesEnabled: false,
       stripModeEnabled: false,
       flashEnabled: true,
+      // On the big kiosk (>=1200px) the on-screen capture button is hidden in
+      // favour of gestures. Operators can force it back on (manual fallback when
+      // gestures misbehave) via Settings → Advanced. Persisted so it sticks.
+      forceCaptureButton: false,
+      // Diagnostic: show the gesture-detection health panel (top-left). Off by
+      // default; flipped in Settings → Advanced. The hand boxes are always-on
+      // and independent of this flag.
+      gestureHealthEnabled: false,
       forceLowPower: false,
       lowPowerOverride: false,
       detectionIntervalMs: 0,
@@ -39,6 +52,7 @@ export const useUiStore = create(
 
       // --- Actions ---
       setAppState: (appState) => set({ appState }),
+      setCapturedPhoto: (capturedPhoto) => set({ capturedPhoto }),
 
       openModal: (name) =>
         set((state) => ({
@@ -83,6 +97,10 @@ export const useUiStore = create(
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),
       toggleStripMode: () => set((state) => ({ stripModeEnabled: !state.stripModeEnabled })),
       toggleFlash: () => set((state) => ({ flashEnabled: !state.flashEnabled })),
+      toggleForceCaptureButton: () =>
+        set((state) => ({ forceCaptureButton: !state.forceCaptureButton })),
+      toggleGestureHealth: () =>
+        set((state) => ({ gestureHealthEnabled: !state.gestureHealthEnabled })),
       applyLowPowerPreset: () =>
         set({
           debugEnabled: false,
@@ -156,12 +174,22 @@ export const useUiStore = create(
       setGestureHold: (gestureHoldMs) => set({ gestureHoldMs }),
     }),
     {
+      onRehydrateStorage: () => (state) => {
+        // appState/capturedPhoto are never persisted; force transient defaults
+        // after any rehydrate so a reload can never resurrect a "result" frame.
+        if (state) {
+          state.appState = "camera"
+          state.capturedPhoto = null
+        }
+      },
       name: "ui-settings",
       partialize: (state) => ({
         debugEnabled: state.debugEnabled,
         gesturesEnabled: state.gesturesEnabled,
         stripModeEnabled: state.stripModeEnabled,
         flashEnabled: state.flashEnabled,
+        forceCaptureButton: state.forceCaptureButton,
+        gestureHealthEnabled: state.gestureHealthEnabled,
         forceLowPower: state.forceLowPower,
         lowPowerOverride: state.lowPowerOverride,
         detectionIntervalMs: state.detectionIntervalMs,

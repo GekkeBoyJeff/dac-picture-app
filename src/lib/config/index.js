@@ -84,3 +84,10 @@ export const STRIP_BRANDING = {
 
 export const DISCORD_MESSAGE =
   "📸 Nieuwe foto uit de photobooth! Welkom bij Dutch Anime Community! 🎉\nGa naar <#684064008827174930> om je te laten verifiëren en praat mee met de grootste anime community van de Benelux! 🚀"
+
+// --- Join-Discord-to-download hint (shown in the post-capture result overlay) ---
+export const JOIN_HINT = {
+  TITLE: "download je foto in Discord",
+  SUBTITLE: "(kanaal met foto heet #dcc-fotobooth)",
+  COMMUNITY: "Dutch Anime Community",
+}
