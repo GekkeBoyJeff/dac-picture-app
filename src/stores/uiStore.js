@@ -16,14 +16,11 @@ export const useUiStore = create(
         layoutSlider: false,
         about: false,
         settings: false,
-        remote: false,
       },
 
-      // --- Remote connection state (not persisted) ---
-      // remoteActive keeps the peer host alive independently of the QR modal,
-      // so closing the popup does NOT drop a connected phone.
-      remoteActive: false,
-      remoteConnected: false,
+      // --- Gallery lightbox (not persisted) — null = grid/closed, number = photo
+      // index. Drives the on-booth lightbox; also remote-controllable from /admin.
+      galleryLightboxIndex: null,
 
       // --- Settings (persisted) ---
       debugEnabled: false,
@@ -62,12 +59,26 @@ export const useUiStore = create(
             layoutSlider: false,
             about: false,
             settings: false,
-            remote: false,
           },
         }),
 
-      setRemoteActive: (remoteActive) => set({ remoteActive }),
-      setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
+      openGalleryLightbox: (i = 0) => set({ galleryLightboxIndex: i }),
+      setGalleryLightboxIndex: (galleryLightboxIndex) => set({ galleryLightboxIndex }),
+      galleryNext: (count) =>
+        set((state) => ({
+          galleryLightboxIndex:
+            state.galleryLightboxIndex == null
+              ? count > 0
+                ? 0
+                : null
+              : Math.min(state.galleryLightboxIndex + 1, count - 1),
+        })),
+      galleryPrev: () =>
+        set((state) => ({
+          galleryLightboxIndex:
+            state.galleryLightboxIndex == null ? null : Math.max(0, state.galleryLightboxIndex - 1),
+        })),
+      closeGalleryLightbox: () => set({ galleryLightboxIndex: null }),
       toggleDebug: () => set((state) => ({ debugEnabled: !state.debugEnabled })),
       toggleGestures: () => set((state) => ({ gesturesEnabled: !state.gesturesEnabled })),
       toggleStripMode: () => set((state) => ({ stripModeEnabled: !state.stripModeEnabled })),

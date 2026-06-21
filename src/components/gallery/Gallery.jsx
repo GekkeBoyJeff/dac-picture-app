@@ -6,6 +6,7 @@ import { BottomDrawer } from "@/components/ui/BottomDrawer"
 import { IconButton } from "@/components/ui/IconButton"
 import { cn } from "@/lib/styles/cn"
 import { useGalleryStore } from "@/stores/galleryStore"
+import { useUiStore } from "@/stores/uiStore"
 
 const UNDO_DURATION_MS = 5000
 
@@ -14,17 +15,27 @@ export function Gallery({ isOpen, onClose, toast }) {
   const removePhoto = useGalleryStore((s) => s.removePhoto)
   const getPhotoBlob = useGalleryStore((s) => s.getPhotoBlob)
 
-  const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  // Lightbox index lives in the store so /admin can drive it (open/next/prev/close).
+  const lightboxIndex = useUiStore((s) => s.galleryLightboxIndex)
+  const setLightboxIndex = useUiStore((s) => s.setGalleryLightboxIndex)
+  const galleryNext = useUiStore((s) => s.galleryNext)
+  const galleryPrev = useUiStore((s) => s.galleryPrev)
+  const closeLightbox = useUiStore((s) => s.closeGalleryLightbox)
+
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [thumbnails, setThumbnails] = useState({})
   const [pendingDelete, setPendingDelete] = useState(null)
   const undoTimerRef = useRef(null)
 
+  const lightboxPhoto =
+    lightboxIndex != null && lightboxIndex >= 0 && lightboxIndex < photos.length
+      ? photos[lightboxIndex]
+      : null
+
   // Generate object URLs for thumbnails
   useEffect(() => {
     let active = true
     const urls = {}
-
     const loadThumbnails = async () => {
       for (const photo of photos) {
         if (thumbnails[photo.id]) continue
@@ -34,7 +45,6 @@ export function Gallery({ isOpen, onClose, toast }) {
       }
       if (active) setThumbnails((prev) => ({ ...prev, ...urls }))
     }
-
     loadThumbnails()
     return () => {
       active = false
@@ -42,22 +52,24 @@ export function Gallery({ isOpen, onClose, toast }) {
     }
   }, [photos, getPhotoBlob]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openLightbox = useCallback(
-    async (photo) => {
-      const blob = await getPhotoBlob(photo.id)
-      if (!blob) return
-      const url = URL.createObjectURL(blob)
-      setLightboxPhoto(photo)
-      setLightboxUrl(url)
-    },
-    [getPhotoBlob],
-  )
-
-  const closeLightbox = useCallback(() => {
-    if (lightboxUrl) URL.revokeObjectURL(lightboxUrl)
-    setLightboxPhoto(null)
-    setLightboxUrl(null)
-  }, [lightboxUrl])
+  // Load the full-size blob for the current lightbox photo (re-runs as the index changes).
+  useEffect(() => {
+    let active = true
+    let url = null
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLightboxUrl(null) // clear first so we never show a stale/revoked image while loading
+    if (lightboxPhoto) {
+      getPhotoBlob(lightboxPhoto.id).then((blob) => {
+        if (!active || !blob) return
+        url = URL.createObjectURL(blob)
+        setLightboxUrl(url)
+      })
+    }
+    return () => {
+      active = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [lightboxPhoto?.id, getPhotoBlob]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUndo = useCallback(() => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
@@ -70,23 +82,18 @@ export function Gallery({ isOpen, onClose, toast }) {
       const id = lightboxPhoto?.id
       closeLightbox()
       if (!id) return
-
-      // Commit any previous pending delete immediately
       if (pendingDelete) removePhoto(pendingDelete)
-
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
       setPendingDelete(id)
       undoTimerRef.current = setTimeout(() => {
         removePhoto(id)
         setPendingDelete(null)
       }, UNDO_DURATION_MS)
-
       toast.show("Foto verwijderd", { label: "Ongedaan maken", onClick: handleUndo })
     },
     [lightboxPhoto, closeLightbox, removePhoto, pendingDelete, toast, handleUndo],
   )
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
@@ -126,7 +133,7 @@ export function Gallery({ isOpen, onClose, toast }) {
               .map((photo) => (
                 <button
                   key={photo.id}
-                  onClick={() => openLightbox(photo)}
+                  onClick={() => setLightboxIndex(photos.findIndex((p) => p.id === photo.id))}
                   className="group relative cursor-pointer overflow-hidden rounded-3xl border border-hairline bg-surface text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/55 hover:shadow-[0_0_0_1px_rgba(230,193,137,0.2),0_8px_24px_rgba(0,0,0,0.35)]"
                 >
                   <div className="aspect-4/3 overflow-hidden bg-ground">
@@ -156,7 +163,7 @@ export function Gallery({ isOpen, onClose, toast }) {
         )}
       </BottomDrawer>
 
-      {/* Lightbox */}
+      {/* Lightbox — index-driven so /admin can browse it remotely */}
       {lightboxPhoto && lightboxUrl && (
         <div
           role="dialog"
@@ -179,6 +186,36 @@ export function Gallery({ isOpen, onClose, toast }) {
             <IconButton onClick={closeLightbox} ariaLabel="Sluiten">
               <CloseIcon className="w-5 h-5" />
             </IconButton>
+          </div>
+
+          {/* Prev / next (touch on booth; mirrors remote next/prev) */}
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                galleryPrev()
+              }}
+              aria-label="Vorige foto"
+              className="absolute left-4 top-1/2 -translate-y-1/2 cursor-pointer rounded-full border border-hairline bg-base/70 px-4 py-3 text-2xl text-ink hover:bg-surface"
+            >
+              ‹
+            </button>
+          )}
+          {lightboxIndex < photos.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                galleryNext(photos.length)
+              }}
+              aria-label="Volgende foto"
+              className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer rounded-full border border-hairline bg-base/70 px-4 py-3 text-2xl text-ink hover:bg-surface"
+            >
+              ›
+            </button>
+          )}
+
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-hairline bg-base/70 px-3 py-1 text-xs text-ink-muted">
+            Foto {lightboxIndex + 1} / {photos.length}
           </div>
 
           <img // eslint-disable-line @next/next/no-img-element

@@ -42,8 +42,7 @@ import {
 } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
-import { usePeerHost } from "@/hooks/usePeerHost"
-import { RemoteConnectModal } from "./camera/RemoteConnectModal"
+import { useRemoteHost } from "@/hooks/useRemoteHost"
 
 export function PhotoBooth() {
   const containerRef = useRef(null)
@@ -70,19 +69,10 @@ export function PhotoBooth() {
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
   const modals = useUiStore((s) => s.modals)
-  const remoteActive = useUiStore((s) => s.remoteActive)
-  const setRemoteActive = useUiStore((s) => s.setRemoteActive)
+  const closeGalleryLightbox = useUiStore((s) => s.closeGalleryLightbox)
 
-  const {
-    roomCode,
-    authToken: remoteAuthToken,
-    status: remoteStatus,
-  } = usePeerHost({
-    streamRef,
-    // Tied to remoteActive, NOT the modal — closing the QR popup must not drop
-    // a connected phone. Stopping remote is an explicit action in the modal.
-    enabled: remoteActive,
-  })
+  // Booth always listens for /admin over Supabase Realtime (no UI, no toggle).
+  useRemoteHost()
   const openModal = useUiStore((s) => s.openModal)
   const closeModal = useUiStore((s) => s.closeModal)
   const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
@@ -466,10 +456,6 @@ export function PhotoBooth() {
           switchCamera={switchCamera}
           canInstall={install.canInstall}
           onInstall={install.promptInstall}
-          onRemote={() => {
-            setRemoteActive(true)
-            openModal("remote")
-          }}
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
@@ -500,7 +486,14 @@ export function PhotoBooth() {
           <FlashEffect videoRef={videoRef} onCapture={doCapture} onComplete={handleFlashComplete} />
         )}
 
-        <Gallery isOpen={modals.gallery} onClose={() => closeModal("gallery")} toast={toast} />
+        <Gallery
+          isOpen={modals.gallery}
+          onClose={() => {
+            closeModal("gallery")
+            closeGalleryLightbox()
+          }}
+          toast={toast}
+        />
 
         {modals.mascotPicker && <MascotPicker onClose={() => closeModal("mascotPicker")} />}
 
@@ -523,18 +516,6 @@ export function PhotoBooth() {
         )}
 
         <UploadStatus entries={displayUploadEntries} onDismiss={dismissEntry} />
-
-        <RemoteConnectModal
-          isOpen={modals.remote}
-          onClose={() => closeModal("remote")}
-          onStop={() => {
-            setRemoteActive(false)
-            closeModal("remote")
-          }}
-          roomCode={roomCode}
-          authToken={remoteAuthToken}
-          status={remoteStatus}
-        />
 
         {toast.message && (
           <div

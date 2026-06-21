@@ -36,9 +36,12 @@ jobs:
           GITHUB_ACTIONS: true
           NEXT_PUBLIC_BASE_PATH: /dac-picture-app
           NEXT_PUBLIC_DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          # NEXT_PUBLIC_* is inlined at build time, so the remote password must be
-          # passed here from the repo secret (Settings → Secrets and variables → Actions).
-          NEXT_PUBLIC_REMOTE_PASSWORD: ${{ secrets.NEXT_PUBLIC_REMOTE_PASSWORD }}
+          # Supabase Realtime transport for /admin + the /admin password. These are
+          # PUBLIC values (inlined into the client bundle), so store them as repo
+          # Variables — not Secrets (Settings → Secrets and variables → Actions → Variables).
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_REMOTE_PASSWORD: ${{ vars.NEXT_PUBLIC_REMOTE_PASSWORD }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
