@@ -13,6 +13,7 @@ import { AboutDrawer } from "./drawers/AboutDrawer"
 import { InstallBanner } from "./pwa/InstallBanner"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { UploadStatus, createUploadEntry } from "./ui/UploadStatus"
+import { PhotoResultOverlay } from "./capture/PhotoResultOverlay"
 import { useCamera } from "@/hooks/useCamera"
 import { useToast } from "@/hooks/useToast"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
@@ -68,6 +69,8 @@ export function PhotoBooth() {
 
   const appState = useUiStore((s) => s.appState)
   const setAppState = useUiStore((s) => s.setAppState)
+  const capturedPhoto = useUiStore((s) => s.capturedPhoto)
+  const setCapturedPhoto = useUiStore((s) => s.setCapturedPhoto)
   const modals = useUiStore((s) => s.modals)
   const closeGalleryLightbox = useUiStore((s) => s.closeGalleryLightbox)
 
@@ -167,7 +170,7 @@ export function PhotoBooth() {
       } catch {
         update("error")
         trackEvent("discord_failed", { isStrip })
-        return
+        return { success: false, queued: false }
       }
 
       if (result.success) {
@@ -186,9 +189,61 @@ export function PhotoBooth() {
         queued: result.queued,
         isStrip,
       })
+
+      return result
     },
     [addPhoto],
   )
+
+  // Send used by the result overlay: saves to gallery + sends, returns the
+  // honest sendOrQueue result, and creates NO UploadStatus pill (the overlay
+  // is the feedback; the corner pill is reserved for background queue drains).
+  const sendForResult = useCallback(
+    async (blob, { isStrip = false } = {}) => {
+      await addPhoto(blob)
+      let result
+      try {
+        result = await sendOrQueue(blob)
+      } catch {
+        trackEvent("discord_failed", { isStrip })
+        return { success: false, queued: false }
+      }
+      if (result.success) trackEvent("discord_sent", { isStrip })
+      else if (result.queued) trackEvent("discord_queued", { isStrip })
+      else trackEvent("discord_failed", { isStrip })
+      logger.info("capture", "Photo captured", {
+        sent: result.success,
+        queued: result.queued,
+        isStrip,
+      })
+      return result
+    },
+    [addPhoto],
+  )
+
+  // Holds the in-flight send promise for the active result overlay.
+  const [resultSendPromise, setResultSendPromise] = useState(null)
+
+  // Park the captured blob as an object URL, start the send, enter "result".
+  const parkAndSend = useCallback(
+    (blob, { isStrip = false } = {}) => {
+      const url = URL.createObjectURL(blob)
+      const promise = sendForResult(blob, { isStrip })
+      setResultSendPromise(promise)
+      setCapturedPhoto({ url, isStrip })
+      setAppState("result")
+    },
+    [sendForResult, setCapturedPhoto, setAppState],
+  )
+
+  // Overlay dismiss: revoke the object URL, clear it, return to camera.
+  const handleResultDismiss = useCallback(() => {
+    const current = useUiStore.getState().capturedPhoto
+    if (current?.url) URL.revokeObjectURL(current.url)
+    setResultSendPromise(null)
+    setCapturedPhoto(null)
+    setAppState("camera")
+  }, [setCapturedPhoto, setAppState])
 
   // --- Strip capture (hook manages its own state + refs) ---
   const handleStripComplete = useCallback(
@@ -200,10 +255,9 @@ export function PhotoBooth() {
         mascotId: overlayState.mascotId,
         layoutId: overlayState.layoutId,
       })
-      sendAndTrack(blob, { isStrip: true })
-      setAppState("camera")
+      parkAndSend(blob, { isStrip: true })
     },
-    [sendAndTrack, setAppState],
+    [parkAndSend],
   )
 
   const strip = useStripCapture({
@@ -318,15 +372,14 @@ export function PhotoBooth() {
       if (isStrip) {
         await stripRef.current.addPhoto(blob)
       } else {
-        setAppState("camera")
-        sendAndTrack(blob)
+        parkAndSend(blob)
       }
     } catch (err) {
       logger.error("capture", "Capture failed", err)
       stripRef.current.reset()
       setAppState("camera")
     }
-  }, [captureOnePhoto, sendAndTrack, setAppState])
+  }, [captureOnePhoto, parkAndSend, setAppState])
 
   const handleCountdownComplete = useCallback(() => {
     setAppState("capturing")
@@ -374,6 +427,7 @@ export function PhotoBooth() {
     gestureLoading,
     rawGestureNameRef,
     primaryHandLandmarksRef,
+    gestureHealth,
   } = useHandGesture(
     videoRef,
     gestureEnabled || debugEnabled,
@@ -459,6 +513,7 @@ export function PhotoBooth() {
           activeGesture={activeGesture}
           handBoxes={handBoxes}
           gestureBoxes={gestureBoxes}
+          gestureHealth={gestureHealth}
           holdProgressRef={holdProgressRef}
           gestureSequenceOpen={gestureSequenceOpen}
           gestureSequenceClose={gestureSequenceClose}
@@ -512,6 +567,14 @@ export function PhotoBooth() {
             isIOS={install.isIOS}
             onInstall={install.promptInstall}
             onDismiss={install.dismissBanner}
+          />
+        )}
+
+        {appState === "result" && capturedPhoto && resultSendPromise && (
+          <PhotoResultOverlay
+            photo={capturedPhoto}
+            sendPromise={resultSendPromise}
+            onDismiss={handleResultDismiss}
           />
         )}
 

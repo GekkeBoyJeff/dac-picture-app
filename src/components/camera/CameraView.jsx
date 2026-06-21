@@ -10,6 +10,7 @@ import { GestureIndicator } from "@/components/gestures/GestureIndicator"
 import { GestureSequenceHint } from "@/components/gestures/GestureSequenceHint"
 import { GestureCaptureHint } from "@/components/gestures/GestureCaptureHint"
 import { HandBox } from "@/components/gestures/HandBox"
+import { GestureDebugOverlay } from "@/components/gestures/GestureDebugOverlay"
 import { CameraIssueOverlay } from "./CameraIssueOverlay"
 import { TopNotice } from "./TopNotice"
 import { ANIMATION_DELAYS } from "@/lib/styles/animations"
@@ -43,6 +44,7 @@ export function CameraView({
   activeGesture,
   handBoxes,
   gestureBoxes,
+  gestureHealth,
   holdProgressRef,
   gestureSequenceOpen,
   gestureSequenceClose,
@@ -55,10 +57,15 @@ export function CameraView({
   const isSwitching = useCameraStore((s) => s.isSwitching)
   const isMirrored = useCameraStore((s) => s.isMirrored)
   const bootStage = useBootStore((s) => s.bootStage)
-  const debugEnabled = useUiStore((s) => s.debugEnabled)
   const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
   const showLayoutSlider = useUiStore((s) => s.modals.layoutSlider)
   const closeLayoutSlider = useUiStore((s) => s.closeModal)
+  // The gesture health popup (top-left) is a diagnostic on its own flag, off by
+  // default, flipped in Settings → Advanced. Shown only while the detection loop
+  // is actually running, so it never sticks on a "Laden…" state.
+  const gestureHealthEnabled = useUiStore((s) => s.gestureHealthEnabled)
+  const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
+  const debugEnabled = useUiStore((s) => s.debugEnabled)
 
   const showStripFrame = stripModeEnabled && !showLayoutSlider
 
@@ -95,6 +102,10 @@ export function CameraView({
               <Overlays />
             </div>
 
+            {gestureHealthEnabled && (gesturesEnabled || debugEnabled) && !showStripFrame && !showLayoutSlider && (
+              <GestureDebugOverlay health={gestureHealth} />
+            )}
+
             {/* Top island — Discord invite, morphs to a "come closer" nudge */}
             {!showStripFrame && !showLayoutSlider && (
               <TopNotice handsDetected={handBoxes?.length > 0} activeGesture={activeGesture} />
@@ -110,19 +121,19 @@ export function CameraView({
               holdProgressRef={holdProgressRef}
             />
 
-            {/* Debug hand tracking boxes — hide in strip mode (coords are full-screen) */}
-            {debugEnabled &&
-              !showStripFrame &&
+            {/* Always-on hand tracking boxes — hide in strip mode (coords are full-screen) */}
+            {!showStripFrame &&
               handBoxes?.map((box) => (
                 <HandBox
                   key={`track-${box.index}`}
                   box={box}
                   videoRef={videoRef}
                   containerRef={containerRef}
+                  isPrimary={box.isPrimary === true}
+                  label={box.label ?? null}
                 />
               ))}
-            {debugEnabled &&
-              !showLayoutSlider &&
+            {!showLayoutSlider &&
               !showStripFrame &&
               gestureBoxes?.map((box) => (
                 <HandBox
@@ -130,6 +141,8 @@ export function CameraView({
                   box={box}
                   videoRef={videoRef}
                   containerRef={containerRef}
+                  isPrimary={box.isPrimary === true}
+                  label={box.label ?? null}
                   borderColor="rgba(56,189,248,0.8)"
                   glowColor="rgba(56,189,248,0.45)"
                   outlineColor="rgba(56,189,248,0.35)"
@@ -163,6 +176,7 @@ export function CameraView({
             >
               <CaptureButton onCapture={onCapture} />
             </div>
+
             <div
               className="absolute inset-0 pointer-events-none z-30 animate-pop-in"
               style={{ animationDelay: ANIMATION_DELAYS.cameraView.controlBar }}

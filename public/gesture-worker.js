@@ -11,21 +11,36 @@ self.import = async (url) => {
 }
 
 let recognizer = null
+let vision = null
+// Remember the resolved base + options so we can re-create the recognizer
+// (e.g. on a numHands change) without re-fetching the WASM fileset.
+let basePath = ""
+let currentOptions = {}
+let currentDelegate = null
 
-async function initRecognizer(opts = {}) {
+function modelUrl() {
+  return `${basePath}/mediapipe/gesture_recognizer.task`
+}
+
+async function loadVision() {
+  if (vision) return vision
   const { GestureRecognizer, FilesetResolver } = await import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/vision_bundle.mjs"
+    `${basePath}/mediapipe/vision_bundle.mjs`
   )
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/wasm",
-  )
+  vision = await FilesetResolver.forVisionTasks(`${basePath}/mediapipe/wasm`)
+  self.__GestureRecognizer = GestureRecognizer
+  return vision
+}
 
-  const modelOptions = {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-      delegate: "GPU",
-    },
+async function createRecognizer(opts) {
+  // loadVision() must run FIRST — it imports the bundle and assigns
+  // self.__GestureRecognizer. Reading it before awaiting loadVision() captures
+  // `undefined` on the first init and throws "...reading 'createFromOptions'".
+  const v = await loadVision()
+  const GestureRecognizer = self.__GestureRecognizer
+
+  const baseModelOptions = {
+    baseOptions: { modelAssetPath: modelUrl(), delegate: "GPU" },
     runningMode: "VIDEO",
     numHands: opts.numHands ?? 6,
     minHandDetectionConfidence: opts.minHandDetectionConfidence ?? 0.5,
@@ -34,19 +49,34 @@ async function initRecognizer(opts = {}) {
   }
 
   try {
-    recognizer = await GestureRecognizer.createFromOptions(vision, modelOptions)
-    self.postMessage({ type: "ready", delegate: "GPU" })
-  } catch {
-    try {
-      recognizer = await GestureRecognizer.createFromOptions(vision, {
-        ...modelOptions,
-        baseOptions: { ...modelOptions.baseOptions, delegate: "CPU" },
-      })
-      self.postMessage({ type: "ready", delegate: "CPU" })
-    } catch (err) {
-      self.postMessage({ type: "error", message: err?.message || "Failed to init" })
-    }
+    const r = await GestureRecognizer.createFromOptions(v, baseModelOptions)
+    currentDelegate = "GPU"
+    return r
+  } catch (gpuErr) {
+    const r = await GestureRecognizer.createFromOptions(v, {
+      ...baseModelOptions,
+      baseOptions: { ...baseModelOptions.baseOptions, delegate: "CPU" },
+    })
+    currentDelegate = "CPU"
+    return r
   }
+}
+
+async function initRecognizer(opts = {}) {
+  basePath = opts.basePath ?? ""
+  currentOptions = {
+    numHands: opts.numHands ?? 6,
+    minHandDetectionConfidence: opts.minHandDetectionConfidence ?? 0.5,
+    minHandPresenceConfidence: opts.minHandPresenceConfidence ?? 0.5,
+    minTrackingConfidence: opts.minTrackingConfidence ?? 0.5,
+  }
+  recognizer = await createRecognizer(currentOptions)
+  self.postMessage({
+    type: "ready",
+    delegate: currentDelegate,
+    numHands: currentOptions.numHands,
+    modelUrl: modelUrl(),
+  })
 }
 
 self.addEventListener("message", async (e) => {
@@ -56,7 +86,11 @@ self.addEventListener("message", async (e) => {
     try {
       await initRecognizer(e.data)
     } catch (err) {
-      self.postMessage({ type: "error", message: err?.message || "Init crashed" })
+      self.postMessage({
+        type: "error",
+        phase: "init",
+        message: err?.message || "Init crashed",
+      })
     }
     return
   }
@@ -86,12 +120,47 @@ self.addEventListener("message", async (e) => {
   }
 
   if (type === "setOptions") {
-    if (recognizer) {
-      try {
-        recognizer.setOptions(e.data.options)
-      } catch {
-        // Unsupported option — silently ignore
+    if (!recognizer) return
+    try {
+      recognizer.setOptions(e.data.options)
+      Object.assign(currentOptions, e.data.options)
+    } catch (err) {
+      self.postMessage({
+        type: "error",
+        phase: "setOptions",
+        message: err?.message || "setOptions failed",
+      })
+    }
+    return
+  }
+
+  if (type === "reinit") {
+    try {
+      currentOptions = {
+        numHands: e.data.numHands ?? currentOptions.numHands ?? 6,
+        minHandDetectionConfidence:
+          e.data.minHandDetectionConfidence ?? currentOptions.minHandDetectionConfidence ?? 0.5,
+        minHandPresenceConfidence:
+          e.data.minHandPresenceConfidence ?? currentOptions.minHandPresenceConfidence ?? 0.5,
+        minTrackingConfidence:
+          e.data.minTrackingConfidence ?? currentOptions.minTrackingConfidence ?? 0.5,
       }
+      const old = recognizer
+      recognizer = null
+      old?.close()
+      recognizer = await createRecognizer(currentOptions)
+      self.postMessage({
+        type: "ready",
+        delegate: currentDelegate,
+        numHands: currentOptions.numHands,
+        modelUrl: modelUrl(),
+      })
+    } catch (err) {
+      self.postMessage({
+        type: "error",
+        phase: "reinit",
+        message: err?.message || "Re-init failed",
+      })
     }
     return
   }

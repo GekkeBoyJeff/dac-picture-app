@@ -24,7 +24,12 @@ const CONN_LABEL = {
   "error-timeout": "Booth niet gevonden",
 }
 const NEEDS_RETRY = new Set(["reconnecting", "error-timeout"])
-const BOOTH_STATE_LABEL = { camera: "Klaar", countdown: "Aftellen…", capturing: "Vastleggen…" }
+const BOOTH_STATE_LABEL = {
+  camera: "Klaar",
+  countdown: "Aftellen…",
+  capturing: "Vastleggen…",
+  result: "Verzenden…",
+}
 
 // Haptic tick where the browser supports it (Android/Chrome; iOS Safari has no
 // web vibration — there it leans on the visual feedback below).
@@ -40,7 +45,8 @@ export function AdminPanel({ remoteState, send, status, retry }) {
   const s = remoteState ?? {}
   const isConnected = status === "connected"
   const connecting = status === "connecting" || status === "reconnecting"
-  const boothBusy = s.appState === "countdown" || s.appState === "capturing"
+  const boothBusy =
+    s.appState === "countdown" || s.appState === "capturing" || s.appState === "result"
   const canCapture = isConnected && s.appState === "camera"
   const galleryIndex = s.galleryIndex ?? 0
   const galleryCount = s.galleryCount ?? 0

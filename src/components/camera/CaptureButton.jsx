@@ -3,11 +3,13 @@
 import { useUiStore } from "@/stores/uiStore"
 import { useCameraStore } from "@/stores/cameraStore"
 import { STRIP_PHOTO_COUNT } from "@/lib/config"
+import { cn } from "@/lib/styles/cn"
 
 export function CaptureButton({ onCapture }) {
   const appState = useUiStore((s) => s.appState)
   const isReady = useCameraStore((s) => s.isReady)
   const stripModeEnabled = useUiStore((s) => s.stripModeEnabled)
+  const forceCaptureButton = useUiStore((s) => s.forceCaptureButton)
   const isCounting = appState === "countdown"
   const disabled = !isReady || appState === "capturing"
   const live = !isCounting && !disabled
@@ -16,7 +18,12 @@ export function CaptureButton({ onCapture }) {
     <button
       onClick={onCapture}
       disabled={disabled}
-      className="group pointer-events-auto absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 cursor-pointer disabled:cursor-not-allowed min-[1200px]:hidden max-lg:landscape:bottom-auto max-lg:landscape:left-auto max-lg:landscape:right-[8%] max-lg:landscape:top-1/2 max-lg:landscape:translate-x-0 max-lg:landscape:-translate-y-1/2"
+      className={cn(
+        "group pointer-events-auto absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 cursor-pointer disabled:cursor-not-allowed max-lg:landscape:bottom-auto max-lg:landscape:left-auto max-lg:landscape:right-[8%] max-lg:landscape:top-1/2 max-lg:landscape:translate-x-0 max-lg:landscape:-translate-y-1/2",
+        // Hidden on the big kiosk by default (gesture-driven); the on-screen
+        // toggle flips `forceCaptureButton` to bring it back as a manual fallback.
+        !forceCaptureButton && "min-[1200px]:hidden",
+      )}
       aria-label={
         isCounting
           ? "Annuleren"
