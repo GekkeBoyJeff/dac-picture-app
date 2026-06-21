@@ -76,9 +76,7 @@ export const useUiStore = create(
       galleryPrev: () =>
         set((state) => ({
           galleryLightboxIndex:
-            state.galleryLightboxIndex == null
-              ? null
-              : Math.max(0, state.galleryLightboxIndex - 1),
+            state.galleryLightboxIndex == null ? null : Math.max(0, state.galleryLightboxIndex - 1),
         })),
       closeGalleryLightbox: () => set({ galleryLightboxIndex: null }),
       toggleDebug: () => set((state) => ({ debugEnabled: !state.debugEnabled })),

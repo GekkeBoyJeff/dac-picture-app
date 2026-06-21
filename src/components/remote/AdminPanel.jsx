@@ -75,7 +75,9 @@ export function AdminPanel({ remoteState, send, status, retry }) {
         <div className="space-y-2 rounded-2xl border border-hairline bg-surface p-4">
           <SectionLabel
             title="Foto"
-            description={isConnected ? `Booth: ${BOOTH_STATE_LABEL[s.appState] ?? "—"}` : "Niet verbonden"}
+            description={
+              isConnected ? `Booth: ${BOOTH_STATE_LABEL[s.appState] ?? "—"}` : "Niet verbonden"
+            }
           />
           <button
             onClick={() => send({ t: "trigger" })}
@@ -118,7 +120,11 @@ export function AdminPanel({ remoteState, send, status, retry }) {
                   Volgende ›
                 </AdminButton>
               </div>
-              <AdminButton full onClick={() => send({ t: "gallery:close" })} disabled={!isConnected}>
+              <AdminButton
+                full
+                onClick={() => send({ t: "gallery:close" })}
+                disabled={!isConnected}
+              >
                 ✕ Gallerij sluiten
               </AdminButton>
             </div>
