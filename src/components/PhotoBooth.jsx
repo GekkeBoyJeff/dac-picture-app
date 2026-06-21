@@ -42,7 +42,7 @@ import {
 } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { trackEvent } from "@/lib/storage/analytics"
-import { usePeerHost } from "@/hooks/usePeerHost"
+import { useRemoteHost } from "@/hooks/useRemoteHost"
 import { RemoteConnectModal } from "./camera/RemoteConnectModal"
 
 export function PhotoBooth() {
@@ -75,14 +75,12 @@ export function PhotoBooth() {
 
   const {
     roomCode,
-    authToken: remoteAuthToken,
+    token: remoteToken,
     status: remoteStatus,
-  } = usePeerHost({
-    streamRef,
-    // Tied to remoteActive, NOT the modal — closing the QR popup must not drop
-    // a connected phone. Stopping remote is an explicit action in the modal.
-    enabled: remoteActive,
-  })
+    pendingApproval,
+    approve,
+    deny,
+  } = useRemoteHost({ enabled: remoteActive })
   const openModal = useUiStore((s) => s.openModal)
   const closeModal = useUiStore((s) => s.closeModal)
   const gesturesEnabled = useUiStore((s) => s.gesturesEnabled)
@@ -532,9 +530,32 @@ export function PhotoBooth() {
             closeModal("remote")
           }}
           roomCode={roomCode}
-          authToken={remoteAuthToken}
+          token={remoteToken}
           status={remoteStatus}
+          pendingApproval={pendingApproval}
+          approve={approve}
+          deny={deny}
         />
+
+        {pendingApproval && !modals.remote && (
+          <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[min(92vw,28rem)] space-y-3 rounded-2xl border border-gold/40 bg-base/95 p-4 text-center shadow-2xl backdrop-blur-xl">
+            <p className="text-sm text-ink">Een telefoon wil de booth bedienen. Toestaan?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={deny}
+                className="flex-1 cursor-pointer rounded-xl border border-hairline px-4 py-2 text-sm text-ink-muted hover:bg-surface"
+              >
+                Weigeren
+              </button>
+              <button
+                onClick={approve}
+                className="flex-1 cursor-pointer rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-[#1b1407] hover:opacity-90"
+              >
+                Toestaan
+              </button>
+            </div>
+          </div>
+        )}
 
         {toast.message && (
           <div

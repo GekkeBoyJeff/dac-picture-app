@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { CameraPreview } from "./CameraPreview"
+import { useState, useCallback, useRef, useEffect } from "react"
 import {
   scenePresets,
   gesturePresets,
@@ -17,13 +16,33 @@ import {
   RangeControl,
 } from "@/components/drawers/settings/settingsControls"
 
-export function RemotePanel({ remoteState, send, stream, status }) {
+const STATUS_LABEL = {
+  connecting: "Verbinden…",
+  "awaiting-approval": "Wacht op goedkeuring…",
+  connected: "Verbonden",
+  reconnecting: "Herverbinden…",
+  denied: "Geweigerd",
+  occupied: "Booth is al in gebruik",
+  "error-config": "Niet geconfigureerd",
+  "error-timeout": "Booth niet gevonden",
+}
+const NEEDS_RETRY = new Set(["reconnecting", "denied", "occupied", "error-timeout"])
+
+export function RemotePanel({ remoteState, send, status, retry }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const s = remoteState ?? {}
   const isConnected = status === "connected"
 
   const toggle = useCallback((key) => send({ t: "toggle", key }), [send])
-  const setValue = useCallback((key, value) => send({ t: "set", key, value }), [send])
+  const debounceRef = useRef(null)
+  useEffect(() => () => clearTimeout(debounceRef.current), [])
+  const setValue = useCallback(
+    (key, value) => {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => send({ t: "set", key, value }), 80)
+    },
+    [send],
+  )
 
   return (
     <div className="min-h-dvh bg-base text-ink">
@@ -32,25 +51,25 @@ export function RemotePanel({ remoteState, send, stream, status }) {
         <h1 className="text-base font-semibold text-gold">DAC Remote</h1>
         <div className="flex items-center gap-2">
           <span
-            className={`h-2 w-2 rounded-full animate-pulse ${
-              isConnected ? "bg-green-400" : "bg-ink-subtle"
-            }`}
+            className={`h-2 w-2 rounded-full ${isConnected ? "animate-pulse bg-green-400" : "bg-ink-subtle"}`}
           />
           <span
             className={`text-xs font-medium ${isConnected ? "text-green-400" : "text-ink-muted"}`}
           >
-            {isConnected ? "Verbonden" : status === "connecting" ? "Verbinden…" : "Verbroken"}
+            {STATUS_LABEL[status] ?? "Verbroken"}
           </span>
+          {NEEDS_RETRY.has(status) && (
+            <button
+              onClick={retry}
+              className="ml-1 cursor-pointer rounded-full border border-hairline px-2 py-0.5 text-xs text-gold hover:bg-surface"
+            >
+              Opnieuw
+            </button>
+          )}
         </div>
       </header>
 
       <div className="mx-auto max-w-2xl space-y-4 p-4 pb-20">
-        {/* Live camera preview */}
-        <CameraPreview
-          stream={stream}
-          className="aspect-video w-full rounded-2xl border border-hairline"
-        />
-
         {/* Quick actions */}
         <div className="rounded-2xl border border-hairline bg-surface p-4 space-y-3">
           <SectionLabel title="Snelle acties" description="Directe bediening van de booth" />
@@ -96,7 +115,12 @@ export function RemotePanel({ remoteState, send, stream, status }) {
                 key={preset.id}
                 title={preset.label}
                 note={preset.note}
-                selected={false}
+                selected={
+                  s.numHands === preset.numHands &&
+                  s.minDetectionConfidence === preset.minDetectionConfidence &&
+                  s.minPresenceConfidence === preset.minPresenceConfidence &&
+                  s.minTrackingConfidence === preset.minTrackingConfidence
+                }
                 disabled={!isConnected}
                 onClick={() => send({ t: "preset:scene", id: preset.id })}
               />

@@ -36,3 +36,4 @@ playwright-report/
 
 # claude
 .claude/
+.superpowers/

@@ -3,14 +3,24 @@
 import { useEffect, useRef, useMemo } from "react"
 import { BASE_PATH } from "@/lib/config/basePath"
 
-export function RemoteConnectModal({ isOpen, onClose, onStop, roomCode, authToken, status }) {
+export function RemoteConnectModal({
+  isOpen,
+  onClose,
+  onStop,
+  roomCode,
+  token,
+  status,
+  pendingApproval,
+  approve,
+  deny,
+}) {
   const canvasRef = useRef(null)
 
   const remoteUrl = useMemo(() => {
     if (typeof window === "undefined") return ""
-    const token = authToken ? `&k=${authToken}` : ""
-    return `${window.location.origin}${BASE_PATH}/remote?r=${roomCode}${token}`
-  }, [roomCode, authToken])
+    const k = token ? `&k=${token}` : ""
+    return `${window.location.origin}${BASE_PATH}/remote?r=${roomCode}${k}`
+  }, [roomCode, token])
 
   useEffect(() => {
     if (!isOpen || !canvasRef.current || !remoteUrl) return
@@ -55,14 +65,40 @@ export function RemoteConnectModal({ isOpen, onClose, onStop, roomCode, authToke
 
         <div className="flex items-center gap-2.5 rounded-full border border-hairline bg-surface px-4 py-2">
           <span
-            className={`h-2 w-2 rounded-full animate-pulse ${isConnected ? "bg-green-400" : "bg-ink-subtle"}`}
+            className={`h-2 w-2 rounded-full animate-pulse ${status === "connected" ? "bg-green-400" : "bg-ink-subtle"}`}
           />
           <span
-            className={`text-sm font-medium ${isConnected ? "text-green-400" : "text-ink-muted"}`}
+            className={`text-sm font-medium ${status === "connected" ? "text-green-400" : "text-ink-muted"}`}
           >
-            {isConnected ? "Verbonden" : "Wachten op verbinding…"}
+            {status === "connected"
+              ? "Verbonden"
+              : status === "error"
+                ? "Supabase niet bereikbaar"
+                : status === "awaiting-approval"
+                  ? "Telefoon wil verbinden…"
+                  : "Wachten op verbinding…"}
           </span>
         </div>
+
+        {pendingApproval && (
+          <div className="w-full space-y-3 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-center">
+            <p className="text-sm text-ink">Een telefoon wil de booth bedienen. Toestaan?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={deny}
+                className="flex-1 cursor-pointer rounded-xl border border-hairline px-4 py-2 text-sm text-ink-muted hover:bg-surface"
+              >
+                Weigeren
+              </button>
+              <button
+                onClick={approve}
+                className="flex-1 cursor-pointer rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-[#1b1407] hover:opacity-90"
+              >
+                Toestaan
+              </button>
+            </div>
+          </div>
+        )}
 
         <p className="text-center text-xs text-ink-dim">
           De verbinding blijft actief op de achtergrond als je dit venster sluit.
