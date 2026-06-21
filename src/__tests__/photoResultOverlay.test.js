@@ -3,12 +3,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { render, screen, act } from "@testing-library/react"
 import { PhotoResultOverlay } from "@/components/capture/PhotoResultOverlay"
 
-function flushMicrotasks() {
-  return act(async () => {
-    await Promise.resolve()
-    await Promise.resolve()
-  })
-}
+// Timeline constants mirrored from the component (timer-driven, no network wait).
+const REVEAL_MS = 400
+const SENDING_MS = 1300
+const OUTCOME_MS = 800
+const JOIN_HINT_MS = 9000
 
 describe("PhotoResultOverlay phase machine", () => {
   beforeEach(() => {
@@ -21,83 +20,28 @@ describe("PhotoResultOverlay phase machine", () => {
 
   it("shows the sending copy during the sending phase", async () => {
     const photo = { url: "blob:x", isStrip: false }
-    render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.resolve({ success: true, queued: false })}
-        onDismiss={() => {}}
-      />,
-    )
+    render(<PhotoResultOverlay photo={photo} onDismiss={() => {}} />)
     await act(async () => {
-      vi.advanceTimersByTime(400) // reveal -> sending
+      vi.advanceTimersByTime(REVEAL_MS) // reveal -> sending
     })
     expect(screen.getByText(/Versturen naar Discord/i)).toBeTruthy()
   })
 
-  it("renders the success outcome when the send succeeds", async () => {
+  it("always shows the optimistic 'Verzonden' outcome (never waits on the send)", async () => {
     const photo = { url: "blob:x", isStrip: false }
-    render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.resolve({ success: true, queued: false })}
-        onDismiss={() => {}}
-      />,
-    )
+    render(<PhotoResultOverlay photo={photo} onDismiss={() => {}} />)
     await act(async () => {
-      vi.advanceTimersByTime(400 + 1600) // reveal + sending min
+      vi.advanceTimersByTime(REVEAL_MS + SENDING_MS) // sending -> outcome
     })
-    await flushMicrotasks()
     expect(screen.getByText(/Verzonden/i)).toBeTruthy()
-  })
-
-  it("renders the queued outcome when the send is queued", async () => {
-    const photo = { url: "blob:x", isStrip: false }
-    render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.resolve({ success: false, queued: true })}
-        onDismiss={() => {}}
-      />,
-    )
-    await act(async () => {
-      vi.advanceTimersByTime(400 + 1600)
-    })
-    await flushMicrotasks()
-    expect(screen.getByText(/weer online bent/i)).toBeTruthy()
-  })
-
-  it("renders the error outcome when the send rejects", async () => {
-    const photo = { url: "blob:x", isStrip: false }
-    render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.reject(new Error("boom"))}
-        onDismiss={() => {}}
-      />,
-    )
-    await act(async () => {
-      vi.advanceTimersByTime(400 + 1600)
-    })
-    await flushMicrotasks()
-    expect(screen.getByText(/proberen het automatisch opnieuw/i)).toBeTruthy()
   })
 
   it("auto-dismisses after the full sequence", async () => {
     const onDismiss = vi.fn()
     const photo = { url: "blob:x", isStrip: false }
-    render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.resolve({ success: true, queued: false })}
-        onDismiss={onDismiss}
-      />,
-    )
+    render(<PhotoResultOverlay photo={photo} onDismiss={onDismiss} />)
     await act(async () => {
-      vi.advanceTimersByTime(400 + 1600)
-    })
-    await flushMicrotasks()
-    await act(async () => {
-      vi.advanceTimersByTime(600 + 9000) // outcome + joinHint
+      vi.advanceTimersByTime(REVEAL_MS + SENDING_MS + OUTCOME_MS + JOIN_HINT_MS)
     })
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
@@ -105,19 +49,9 @@ describe("PhotoResultOverlay phase machine", () => {
   it("tap dismisses immediately during the join hint", async () => {
     const onDismiss = vi.fn()
     const photo = { url: "blob:x", isStrip: false }
-    const { container } = render(
-      <PhotoResultOverlay
-        photo={photo}
-        sendPromise={Promise.resolve({ success: true, queued: false })}
-        onDismiss={onDismiss}
-      />,
-    )
+    const { container } = render(<PhotoResultOverlay photo={photo} onDismiss={onDismiss} />)
     await act(async () => {
-      vi.advanceTimersByTime(400 + 1600)
-    })
-    await flushMicrotasks()
-    await act(async () => {
-      vi.advanceTimersByTime(600) // into joinHint
+      vi.advanceTimersByTime(REVEAL_MS + SENDING_MS + OUTCOME_MS) // into joinHint
     })
     act(() => {
       container.firstChild.click()

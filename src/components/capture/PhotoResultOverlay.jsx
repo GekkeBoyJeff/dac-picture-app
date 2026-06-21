@@ -5,8 +5,8 @@ import { cn } from "@/lib/styles/cn"
 import { JOIN_HINT, QR_CODE } from "@/lib/config"
 
 const REVEAL_MS = 400
-const SENDING_MIN_MS = 1600
-const OUTCOME_MS = 600
+const SENDING_MS = 1300
+const OUTCOME_MS = 800
 const JOIN_HINT_MS = 9000
 
 function DiscordMark({ className }) {
@@ -21,17 +21,26 @@ function DiscordMark({ className }) {
  * Self-contained post-capture overlay. Owns the full timeline:
  * reveal -> sending -> outcome -> joinHint -> (onDismiss).
  *
- * Sequencing is JS-timer driven (NOT animationend) so the global
- * prefers-reduced-motion rule, which near-zeroes CSS durations, cannot stall
- * the flow. The honest outcome is read from the real sendOrQueue result
- * handed in as `sendPromise` ({ success, queued }); a rejection => "error".
+ * The timeline is PURELY JS-timer driven and NEVER waits on the network, so the
+ * animation always feels fluid no matter how slow the send is. The real send is
+ * fired-and-forgotten by the caller; `sendOrQueue` guarantees eventual delivery
+ * (it queues on failure/offline and retries with backoff), so an optimistic
+ * "Verzonden" is honest enough — hard failures are handled by the background
+ * queue + its corner pill, not by stalling this overlay.
+ *
+ * Using timers (not `animationend`) also keeps the global prefers-reduced-motion
+ * rule — which near-zeroes CSS durations — from stalling the flow.
+ *
+ * The photo's journey (center -> lifted/small -> corner thumb) is driven by ONE
+ * mechanism: transition-based transforms. The lifted state is shared by the
+ * `sending` AND `outcome` phases so the photo never snaps back to center between
+ * the fly-away and the corner shrink.
  *
  * The caller's `onDismiss` is responsible for revoking the object URL and
  * resetting app state. This component is otherwise pure/presentational.
  */
-export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
+export function PhotoResultOverlay({ photo, onDismiss }) {
   const [phase, setPhase] = useState("reveal")
-  const [outcome, setOutcome] = useState(null) // "success" | "queued" | "error"
   const dismissedRef = useRef(false)
   const timers = useRef([])
 
@@ -49,31 +58,21 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
     onDismiss()
   }, [onDismiss])
 
-  // Drive the phase machine with JS timers.
+  // Drive the phase machine entirely with JS timers — no awaiting the send.
   useEffect(() => {
     let alive = true
-    // reveal -> sending
-    after(REVEAL_MS, () => setPhase("sending"))
-
-    // Wait for BOTH the minimum display time AND the real send result, then
-    // transition to outcome. This uses Promise.all so that whichever is slower
-    // (the timer or the network) determines when we advance — no polling needed.
-    // Using a JS timer for the delay (not animationend) keeps reduced-motion safe.
-    const minDelay = new Promise((resolve) => after(SENDING_MIN_MS, resolve))
-    const safeSend = Promise.resolve(sendPromise)
-      .then((r) => (r && r.success ? "success" : r && r.queued ? "queued" : "error"))
-      .catch(() => "error")
-    Promise.all([minDelay, safeSend]).then(([, kind]) => {
-      if (!alive) return
-      setOutcome(kind)
-      setPhase("outcome")
-      // outcome -> joinHint -> auto-dismiss, all scheduled via JS timers
-      after(OUTCOME_MS, () => {
-        if (!alive) return
+    const guard = (fn) => () => {
+      if (alive) fn()
+    }
+    after(REVEAL_MS, guard(() => setPhase("sending")))
+    after(REVEAL_MS + SENDING_MS, guard(() => setPhase("outcome")))
+    after(
+      REVEAL_MS + SENDING_MS + OUTCOME_MS,
+      guard(() => {
         setPhase("joinHint")
         after(JOIN_HINT_MS, dismiss)
-      })
-    })
+      }),
+    )
 
     return () => {
       alive = false
@@ -84,6 +83,9 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
   }, [])
 
   const inJoinHint = phase === "joinHint"
+  // Shared "flown" state: the photo lifts + tilts + shrinks during sending and
+  // STAYS there through outcome (no revert to center), then glides to the corner.
+  const lifted = phase === "sending" || phase === "outcome"
 
   return (
     <div
@@ -93,7 +95,9 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
       onClick={dismiss}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-ground/92 backdrop-blur-md"
     >
-      {/* Photo — center during reveal/sending/outcome, shrinks to a corner thumb in joinHint */}
+      {/* Photo — center during reveal, lifts/shrinks while sending+outcome,
+          then glides to a corner thumb in joinHint. One mechanism (transition
+          on transform) throughout, so there is no snap between phases. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photo.url}
@@ -101,12 +105,14 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
         aria-hidden="true"
         draggable="false"
         className={cn(
-          "select-none rounded-2xl border border-hairline-strong object-contain shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-500 ease-out",
-          inJoinHint
-            ? "fixed bottom-6 right-6 max-h-[22vh] max-w-[22vw]"
-            : "max-h-[64vh] max-w-[80vw]",
+          "select-none rounded-2xl border border-hairline-strong object-contain shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all ease-out",
           phase === "reveal" && "animate-pop-in",
-          phase === "sending" && "animate-send-fly",
+          inJoinHint
+            ? "fixed bottom-6 right-6 max-h-[22vh] max-w-[22vw] duration-500"
+            : "max-h-[64vh] max-w-[80vw]",
+          lifted && "-translate-y-[16vh] -rotate-3 scale-[0.5]",
+          phase === "sending" && "duration-1200",
+          phase === "outcome" && "duration-500",
         )}
       />
 
@@ -114,14 +120,14 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
       {!inJoinHint && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[14%] flex flex-col items-center gap-4">
           <span className="relative flex h-16 w-16 items-center justify-center">
-            {outcome === "success" && (
+            {phase === "outcome" && (
               <span
                 aria-hidden="true"
                 className="absolute inset-0 rounded-full bg-gold/40 animate-gold-ripple"
               />
             )}
             <DiscordMark
-              className={cn("h-12 w-12", outcome === "success" ? "text-gold" : "text-ink-muted")}
+              className={cn("h-12 w-12", phase === "outcome" ? "text-gold" : "text-ink-muted")}
             />
           </span>
 
@@ -138,18 +144,8 @@ export function PhotoResultOverlay({ photo, sendPromise, onDismiss }) {
             </p>
           )}
 
-          {phase === "outcome" && outcome === "success" && (
+          {phase === "outcome" && (
             <p className="text-xl font-semibold text-gold">Verzonden! ✓</p>
-          )}
-          {phase === "outcome" && outcome === "queued" && (
-            <p className="max-w-[80vw] text-center text-lg font-medium text-warning">
-              Wordt verzonden zodra je weer online bent
-            </p>
-          )}
-          {phase === "outcome" && outcome === "error" && (
-            <p className="max-w-[80vw] text-center text-lg font-medium text-danger">
-              Versturen lukte even niet — we proberen het automatisch opnieuw
-            </p>
           )}
         </div>
       )}

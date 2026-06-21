@@ -221,15 +221,14 @@ export function PhotoBooth() {
     [addPhoto],
   )
 
-  // Holds the in-flight send promise for the active result overlay.
-  const [resultSendPromise, setResultSendPromise] = useState(null)
-
-  // Park the captured blob as an object URL, start the send, enter "result".
+  // Park the captured blob as an object URL, fire the send, enter "result".
+  // The send is fire-and-forget: the overlay's animation is timer-driven and
+  // never waits on it (sendForResult never rejects — it queues + retries on
+  // failure), so the post-capture flow always feels fluid.
   const parkAndSend = useCallback(
     (blob, { isStrip = false } = {}) => {
       const url = URL.createObjectURL(blob)
-      const promise = sendForResult(blob, { isStrip })
-      setResultSendPromise(promise)
+      sendForResult(blob, { isStrip })
       setCapturedPhoto({ url, isStrip })
       setAppState("result")
     },
@@ -240,7 +239,6 @@ export function PhotoBooth() {
   const handleResultDismiss = useCallback(() => {
     const current = useUiStore.getState().capturedPhoto
     if (current?.url) URL.revokeObjectURL(current.url)
-    setResultSendPromise(null)
     setCapturedPhoto(null)
     setAppState("camera")
   }, [setCapturedPhoto, setAppState])
@@ -570,12 +568,8 @@ export function PhotoBooth() {
           />
         )}
 
-        {appState === "result" && capturedPhoto && resultSendPromise && (
-          <PhotoResultOverlay
-            photo={capturedPhoto}
-            sendPromise={resultSendPromise}
-            onDismiss={handleResultDismiss}
-          />
+        {appState === "result" && capturedPhoto && (
+          <PhotoResultOverlay photo={capturedPhoto} onDismiss={handleResultDismiss} />
         )}
 
         <UploadStatus entries={displayUploadEntries} onDismiss={dismissEntry} />

@@ -56,7 +56,7 @@ export function TopNotice({ handsDetected, activeGesture }) {
             <div className="flex items-center justify-center gap-2 border-t border-gold/25 bg-gold/10 px-4 py-2">
               <span className="text-base leading-none">✌️</span>
               <span className="text-xs font-semibold leading-tight text-ink">
-                Kom iets dichterbij voor je <span className="text-gold">peace-teken</span>
+                Maak een <span className="text-gold">peace-teken</span> om de foto te starten!
               </span>
             </div>
           </div>
