@@ -39,6 +39,7 @@ const OVERLAY_ASSETS = [
   "/overlays/conventions/hmia-2026/banner.png",
   "/overlays/conventions/dcc-2026/banner.svg",
   "/overlays/conventions/animecon-2026/banner.png",
+  "/overlays/conventions/abunai-2026/banner.webp",
 ]
 
 self.addEventListener("install", (event) => {
