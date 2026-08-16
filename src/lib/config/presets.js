@@ -71,6 +71,21 @@ export const CONVENTIONS = [
       lg: { maxWidth: 24, maxHeight: 17 },
     },
   },
+  {
+    slug: "picknick-meet-2026",
+    name: "Picknick Meet Rotterdam",
+    startDate: "2026-08-16",
+    endDate: "2026-08-16",
+    bannerPath: `${BASE_PATH}/overlays/conventions/picknick-meet-2026/banner.svg`,
+    position: "bottom-left",
+    opacity: 1,
+    offset: { sm: { x: 1, y: 1 }, md: { x: 1, y: 1 }, lg: { x: 1, y: 1 } },
+    sizes: {
+      sm: { maxWidth: 12, maxHeight: 8.5 },
+      md: { maxWidth: 18, maxHeight: 13 },
+      lg: { maxWidth: 24, maxHeight: 17 },
+    },
+  },
 ]
 
 export function getActiveConvention() {
